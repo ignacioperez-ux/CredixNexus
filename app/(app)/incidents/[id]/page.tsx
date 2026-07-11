@@ -11,6 +11,7 @@ import { getVendorForIncidentCi } from "@/lib/vendors/queries";
 import { getIncidentEffort } from "@/lib/worklog/queries";
 import { getCsatForIncident } from "@/lib/csat/queries";
 import { getFinancialCaseForIncident } from "@/lib/fraud/queries";
+import { getAttachments, getTasks } from "@/lib/casework/queries";
 import { suggestForIncident } from "@/lib/talent/recommender";
 import { IncidentDetail, type IncidentDetailData } from "@/components/incidents/detail/incident-detail";
 
@@ -22,7 +23,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const inc = await getIncident(ctx.supabase, id);
   if (!inc) notFound();
 
-  const [comments, ledger, knowledge, fit, riskEvent, canManageRisk, problems, canManageProblem, escalations, workflows, workflowDefs, canRunWorkflow, changes, canManageChange, majorIncident, canManageMi, vendor, canUpdateIncident, canTriage, effort, canLogWork, survey, canSubmitCsat, financialCase, canManageFraud, canManageDispute] = await Promise.all([
+  const [comments, ledger, knowledge, fit, riskEvent, canManageRisk, problems, canManageProblem, escalations, workflows, workflowDefs, canRunWorkflow, changes, canManageChange, majorIncident, canManageMi, vendor, canUpdateIncident, canTriage, effort, canLogWork, survey, canSubmitCsat, financialCase, canManageFraud, canManageDispute, attachments, tasks] = await Promise.all([
     getComments(ctx.supabase, id),
     getLedgerForEntity(ctx.supabase, id),
     getSuggestedKnowledge(ctx.supabase, (inc.category as string) ?? null, (inc.affected_ci_id as string) ?? null),
@@ -49,6 +50,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     getFinancialCaseForIncident(ctx.supabase, id),
     hasPermission(ctx.supabase, "fraud.manage"),
     hasPermission(ctx.supabase, "dispute.manage"),
+    getAttachments(ctx.supabase, id),
+    getTasks(ctx.supabase, id),
   ]);
 
   return (
@@ -80,6 +83,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       financialCase={financialCase}
       canManageFraud={canManageFraud}
       canManageDispute={canManageDispute}
+      attachments={attachments}
+      tasks={tasks}
     />
   );
 }

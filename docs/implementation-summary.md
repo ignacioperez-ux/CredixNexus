@@ -202,5 +202,22 @@ Se priorizó sobre lo ya construido (no reconstruir).
 - Pendientes priorizados (no bloqueantes): adjuntos+checklist de caso, dashboards por rol, colas
   formales, hub de admin, intake omnicanal, editor visual de workflow. Ver gap-assessment §9.
 
+## Experiencia de caso: adjuntos (evidencia) + checklist de tareas
+
+- **Migración `0066_case_evidence`:** bucket privado de Storage `case-attachments` (límite 10 MB)
+  con **RLS por tenant en `storage.objects`** (la primera carpeta del path = `tenant_id`);
+  `case_attachment` (metadata + `storage_path` único) y `case_task` (checklist con estado
+  open/done/cancelled, posición, vencimiento). RLS + auditoría en ambas.
+- **Subida real (cero mock, §11):** `uploadAttachment` es un server action que recibe `FormData`
+  (el `tenant_id` nunca sale al cliente), valida allowlist de MIME + tamaño, sube a Storage con path
+  `${tenant}/${incident}/${uuid}-${archivo}`, registra la metadata, y **compensa** (borra el objeto)
+  si el registro falla — sin huérfanos. Descarga vía **URLs firmadas** (bucket privado, TTL 1h).
+- **Checklist:** `addTask`/`setTaskStatus`/`deleteTask` con barra de progreso (hechas/total),
+  asignación y vencimiento (rojo si vencida). Ambos paneles integrados en la **vista 360 del caso**
+  (`incident-detail`), gated por `incident.update`. `lib/casework/{validation,queries,actions}`
+  (helpers puros testeados), `components/incidents/detail/{attachments,case-tasks}.tsx`, i18n ES/EN.
+- Verificado en vivo: bucket + 3 policies de storage + RLS de tablas; tarea auditada (1 evento
+  ledger). `npm test` **187/187** · `npm run build` verde. Cierra el pendiente #1 del roadmap.
+
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.

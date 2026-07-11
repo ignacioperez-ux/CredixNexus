@@ -27,6 +27,9 @@ import { IncidentWorkflows } from "@/components/workflows/incident-workflows";
 import { ChangeLink } from "@/components/changes/change-link";
 import { DeclareMi } from "@/components/major-incidents/declare-mi";
 import { FinancialCaseLink, type FinancialCase } from "@/components/fraud/financial-case-link";
+import { Attachments } from "./attachments";
+import { CaseTasks } from "./case-tasks";
+import type { Attachment, ChecklistData } from "@/lib/casework/queries";
 
 type Named = { name: string } | null;
 
@@ -83,7 +86,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; fit?: FitSuggestion[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; fit?: FitSuggestion[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData }) {
   const { t, locale } = useI18n();
 
   return (
@@ -171,6 +174,14 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
 
           <Card title={t("inc.section.kb")}>
             <AiKb incidentId={inc.id} />
+          </Card>
+
+          <Card title={`${t("task.section")}${tasks && tasks.tasks.length > 0 ? ` (${tasks.done}/${tasks.open + tasks.done})` : ""}`}>
+            <CaseTasks incidentId={inc.id} data={tasks ?? { tasks: [], open: 0, done: 0, progress: null }} canManage={canUpdateIncident} />
+          </Card>
+
+          <Card title={`${t("att.section")}${attachments.length > 0 ? ` (${attachments.length})` : ""}`}>
+            <Attachments incidentId={inc.id} attachments={attachments} canManage={canUpdateIncident} />
           </Card>
 
           <Card title={t("inc.section.timeline")}>
