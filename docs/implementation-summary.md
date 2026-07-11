@@ -289,5 +289,20 @@ Se priorizó sobre lo ya construido (no reconstruir).
   proyectos/transformación igualmente.) Cada rol ve un **menú y home distintos** (navegación por rol);
   el guard de ruta bloquea accesos directos fuera de su alcance. Login por probar en la app.
 
+## Cockpit por rol (perfil de navegación curado + "Más…")
+
+- **Problema detectado:** el filtro por permiso mostraba casi todo porque `support_agent` fue sembrado
+  con casi todos los `.read` ("puede leer X" ≠ "X es su trabajo diario"). El permiso es el candado de
+  seguridad, pero no da un cockpit enfocado.
+- **Solución (perfil por rol):** `ROLE_PROFILES` en `lib/nav/access.ts` mapea cada rol a su **cockpit
+  curado** (sus opciones diarias). El sidebar muestra solo lo **primario** (perfil ∩ permitido);
+  el resto permitido va a una sección **"Más opciones" colapsable**. `primaryNavKeys(roles, isAdmin)`
+  (puro, testeado) — admin o rol sin perfil → todo primario (no oculta). El permiso sigue como
+  candado (un item nunca aparece sin permiso; el guard de ruta protege la URL directa).
+- Ejemplo Operador (`support_agent`): cockpit = Mi trabajo · Casos · Admisión · SLA · Clientes ·
+  Conocimiento · Catálogo; "Más…" = incidentes mayores, problemas, cambios, fraude/disputas,
+  observabilidad, dependencias, proveedores, workflows, analítica… (todo lo que igual puede).
+- `npm test` **201/201** · `npm run build` verde.
+
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.
