@@ -171,5 +171,22 @@ Se priorizó sobre lo ya construido (no reconstruir).
 
 **Gap-assessment inspirado en EASYVISTA: 7/7 completado.**
 
+## TO-BE operating model — última brecha cerrada
+
+### Gobierno de datos (`/processes`) — Ficha de Proceso + matrices RACI (F4)
+- **Migración `0065_process_governance`:** matrices que faltaban al modelo TO-BE — `process_system`
+  (qué sistemas soportan cada proceso, con `role` primary/secondary/integration/manual + criticidad)
+  y `product_channel` (por qué canales se ofrece cada producto, availability active/pilot/retired).
+  **Dato maestro declarado por el arquitecto** (sin inventar topología, §2.1). RLS + auditoría +
+  permisos `process.read`/`process.manage`. Matrices sembradas vacías (no hay señal para derivarlas).
+- **Ficha de Proceso:** sobre los **64 procesos reales** ya existentes (jerarquía macro/proceso/micro):
+  dueño (accountable = business_unit), objetivo, subprocesos, y la matriz de sistemas que lo soportan
+  con editor de vínculos. `lib/process/{validation,queries,actions}` (helpers puros testeados:
+  `matrixDensity`, `coverageLabel`, validaciones), `components/process/*`, páginas `/processes` +
+  `/processes/[id]`, nav `Procesos` + i18n ES/EN.
+- **Matriz producto↔canal:** grilla editable (clic cicla active→pilot→retired→vacío), con densidad.
+- Verificado en vivo: embeds owner/parent resueltos (FK presentes), link `process_system` auditado
+  (1 evento ledger), RLS en ambas tablas. `npm test` **179/179** · `npm run build` verde.
+
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.

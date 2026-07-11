@@ -42,6 +42,7 @@ const GROUPS: NavGroup[] = [
       { key: "nav.ledger", href: "/ledger", ready: true },
       { key: "nav.knowledge", href: "/knowledge", ready: true },
       { key: "nav.catalog", href: "/catalog", ready: true },
+      { key: "nav.processes", href: "/processes", ready: true },
       { key: "nav.dependencies", href: "/dependencies", ready: true },
       { key: "nav.areas", href: "/delivery-areas", ready: true },
       { key: "nav.vendors", href: "/vendors", ready: true },
