@@ -219,5 +219,25 @@ Se priorizó sobre lo ya construido (no reconstruir).
 - Verificado en vivo: bucket + 3 policies de storage + RLS de tablas; tarea auditada (1 evento
   ledger). `npm test` **187/187** · `npm run build` verde. Cierra el pendiente #1 del roadmap.
 
+## Dashboards por rol — Supervisor (Command Center)
+
+- **Migración `0067_supervisor_metrics`:** función `supervisor_metrics()` (jsonb, SECURITY INVOKER,
+  RLS via `current_tenant_id()`) sobre datos reales: backlog abierto, sin asignar, vencidos (SLA),
+  esperando, reabiertos, **aging** (0-1d/1-3d/3-7d/7d+), **cuellos de botella por estado**,
+  **carga por agente** (abiertos + vencidos), tareas abiertas/vencidas y **calidad de cierre**
+  (resueltos 30d, tasa de reapertura).
+- **App:** `getSupervisor` en `lib/analytics/queries`, `components/analytics/supervisor-dashboard.tsx`
+  (KPIs de control, barras de aging, cuellos por estado, tabla de carga por agente con barra),
+  integrado como **pestaña "Supervisor"** en `/analytics` (no una pantalla nueva — se mejora el
+  dashboard existente). i18n ES/EN.
+- El **cockpit del agente ya existe** como `/workspace` (mis casos, sin asignar, críticos, en riesgo
+  SLA, reabiertos, sensibles, alto impacto). El **ejecutivo** es la pestaña Exec. Con Supervisor,
+  las tres audiencias de §6.18 quedan cubiertas.
+- Verificado en vivo: 10 abiertos, 7 sin asignar, 8 vencidos, aging y carga por agente reales.
+  `npm test` **187/187** · `npm run build` verde.
+- Nota de arquitectura: ante el pedido de rebuild Vite + auth mock, se confirmó **evolucionar la app
+  real** (Next.js/Supabase, cero-mock §11), no reconstruir. Pendiente compatible siguiente:
+  **navegación filtrada por rol + ruteo a home por rol** (requiere mapear los 14 roles a visibilidad).
+
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.

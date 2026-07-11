@@ -3,18 +3,20 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import type { Overview, Performance } from "@/lib/analytics/queries";
+import type { Overview, Performance, Supervisor } from "@/lib/analytics/queries";
 import { ExecDashboard } from "./exec-dashboard";
 import { ReportExport } from "./report-export";
 import { PerformanceTab } from "./performance-tab";
+import { SupervisorDashboard } from "./supervisor-dashboard";
 
-type Tab = "exec" | "performance" | "reports";
+type Tab = "exec" | "supervisor" | "performance" | "reports";
 
-export function Analytics({ overview, performance }: { overview: Overview; performance: Performance }) {
+export function Analytics({ overview, performance, supervisor }: { overview: Overview; performance: Performance; supervisor: Supervisor }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("exec");
   const tabs: { key: Tab; label: MessageKey }[] = [
     { key: "exec", label: "an.tab.exec" },
+    { key: "supervisor", label: "an.tab.supervisor" },
     { key: "performance", label: "an.tab.performance" },
     { key: "reports", label: "an.tab.reports" },
   ];
@@ -33,6 +35,7 @@ export function Analytics({ overview, performance }: { overview: Overview; perfo
         })}
       </div>
       {tab === "exec" && <ExecDashboard o={overview} />}
+      {tab === "supervisor" && <SupervisorDashboard s={supervisor} />}
       {tab === "performance" && <PerformanceTab p={performance} />}
       {tab === "reports" && <ReportExport />}
     </div>

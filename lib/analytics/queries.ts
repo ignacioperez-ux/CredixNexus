@@ -36,6 +36,22 @@ export async function getPerformance(supabase: SupabaseClient): Promise<Performa
   return data as Performance;
 }
 
+// ---- Dashboard de Supervisor (Command Center) ----
+export type Supervisor = {
+  open: number; unassigned: number; overdue: number; waiting: number; reopened: number;
+  aging: { bucket: string; count: number }[];
+  by_status: Record<string, number>;
+  tasks: { open: number; overdue: number };
+  workload: { agent: string; open: number; overdue: number }[];
+  quality: { resolved_30d: number; reopened: number; reopen_rate: number };
+};
+
+export async function getSupervisor(supabase: SupabaseClient): Promise<Supervisor> {
+  const { data, error } = await supabase.rpc("supervisor_metrics");
+  if (error) throw new Error(error.message);
+  return data as Supervisor;
+}
+
 // ---- Reportes: datasets exportables (RLS filtra por tenant) --------------------
 export type ReportDataset = "incidents" | "changes" | "risk" | "problems";
 
