@@ -268,5 +268,26 @@ Se priorizó sobre lo ya construido (no reconstruir).
   `defaultHome`). `npm test` **197/197** · `npm run build` verde. Cierra "route protection" (§3.2 del
   prompt): navegación + ruta + acciones (mutaciones) protegidas por permiso; datos por RLS.
 
+## Usuarios demo por rol (cuentas reales de Supabase Auth)
+
+- **Migración `0069_squad_member_role`:** rol `squad_member` (global) con `squad.read` + `project.read`
+  — completa el modelo RBAC (no había un rol adecuado para "miembro de squad").
+- **5 cuentas demo reales** creadas en Supabase Auth (email confirmado, password bcrypt, identidad)
+  vía SQL en la BD viva — **la password NO se commitea** (§3.1 #6); se comunica por chat. Mapeadas a
+  roles reales existentes (no se inventó auth mock, se respetó la decisión de evolucionar la app real):
+
+  | Email | Rol demo | Rol real | Home por rol |
+  |---|---|---|---|
+  | `usuario@credix.local` | Usuario Final | `partner_user` | `/portal` |
+  | `operador@credix.local` | Operador | `support_agent` | `/workspace` |
+  | `operaciones@credix.local` | Gerente de Operaciones | `support_lead` | `/workspace` |
+  | `evolucion@credix.local` | Gerente Tecnología-Evolución | `product_owner` | `/projects`* |
+  | `squads@credix.local` | Miembro de Squad | `squad_member` | `/projects` |
+  | `ignacio.perez@tiicr.com` | Administrador | `system_admin`+`tenant_admin` | `/dashboard` |
+
+  (*evolución puede caer en `/workspace` si su rol también tiene `incident.read`; el nav muestra
+  proyectos/transformación igualmente.) Cada rol ve un **menú y home distintos** (navegación por rol);
+  el guard de ruta bloquea accesos directos fuera de su alcance. Login por probar en la app.
+
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.
