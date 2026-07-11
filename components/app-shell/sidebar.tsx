@@ -9,45 +9,67 @@ import { Wordmark } from "./wordmark";
 type NavItem = { key: MessageKey; href: string; ready: boolean };
 type NavGroup = { label: MessageKey; items: NavItem[] };
 
+// Navegacion agrupada por dominio (alineada al benchmark ITSM/ESM/Fintech). Todas las rutas
+// existentes se conservan; solo se reagrupan para claridad y sentido de producto integrado.
 const GROUPS: NavGroup[] = [
   {
     label: "nav.group.ops",
     items: [
       { key: "nav.dashboard", href: "/dashboard", ready: true },
       { key: "nav.workspace", href: "/workspace", ready: true },
-      { key: "nav.selfservice", href: "/portal", ready: true },
-      { key: "nav.servicecatalog", href: "/service-catalog", ready: true },
-      { key: "nav.analytics", href: "/analytics", ready: true },
-      { key: "nav.triage", href: "/triage", ready: true },
       { key: "nav.incidents", href: "/incidents", ready: true },
-      { key: "nav.majorincidents", href: "/major-incidents", ready: true },
-      { key: "nav.problems", href: "/problems", ready: true },
-      { key: "nav.changes", href: "/changes", ready: true },
-      { key: "nav.customers", href: "/customers", ready: true },
-      { key: "nav.frauddisputes", href: "/fraud-disputes", ready: true },
+      { key: "nav.triage", href: "/triage", ready: true },
       { key: "nav.sla", href: "/sla-governance", ready: true },
-      { key: "nav.risk", href: "/risk", ready: true },
-      { key: "nav.projects", href: "/projects", ready: true },
-      { key: "nav.rules", href: "/rules", ready: true },
+      { key: "nav.customers", href: "/customers", ready: true },
+      { key: "nav.analytics", href: "/analytics", ready: true },
+      { key: "nav.selfservice", href: "/portal", ready: true },
+      { key: "nav.partner", href: "/partner", ready: true },
     ],
   },
   {
-    label: "nav.group.gov",
+    label: "nav.group.fintech",
     items: [
+      { key: "nav.frauddisputes", href: "/fraud-disputes", ready: true },
+      { key: "nav.risk", href: "/risk", ready: true },
+      { key: "nav.servicecatalog", href: "/service-catalog", ready: true },
+    ],
+  },
+  {
+    label: "nav.group.tech",
+    items: [
+      { key: "nav.majorincidents", href: "/major-incidents", ready: true },
+      { key: "nav.problems", href: "/problems", ready: true },
+      { key: "nav.changes", href: "/changes", ready: true },
+      { key: "nav.observability", href: "/observability", ready: true },
+      { key: "nav.dependencies", href: "/dependencies", ready: true },
+      { key: "nav.vendors", href: "/vendors", ready: true },
+    ],
+  },
+  {
+    label: "nav.group.intel",
+    items: [
+      { key: "nav.knowledge", href: "/knowledge", ready: true },
+      { key: "nav.aicenter", href: "/ai-center", ready: true },
+      { key: "nav.rules", href: "/rules", ready: true },
       { key: "nav.workflows", href: "/workflows", ready: true },
-      { key: "nav.resources", href: "/workload", ready: true },
+    ],
+  },
+  {
+    label: "nav.group.evolution",
+    items: [
+      { key: "nav.projects", href: "/projects", ready: true },
       { key: "nav.squads", href: "/squads", ready: true },
       { key: "nav.talent", href: "/talent", ready: true },
-      { key: "nav.aicenter", href: "/ai-center", ready: true },
-      { key: "nav.ledger", href: "/ledger", ready: true },
-      { key: "nav.knowledge", href: "/knowledge", ready: true },
-      { key: "nav.catalog", href: "/catalog", ready: true },
+      { key: "nav.resources", href: "/workload", ready: true },
+    ],
+  },
+  {
+    label: "nav.group.admin",
+    items: [
       { key: "nav.processes", href: "/processes", ready: true },
-      { key: "nav.dependencies", href: "/dependencies", ready: true },
       { key: "nav.areas", href: "/delivery-areas", ready: true },
-      { key: "nav.vendors", href: "/vendors", ready: true },
-      { key: "nav.observability", href: "/observability", ready: true },
-      { key: "nav.partner", href: "/partner", ready: true },
+      { key: "nav.ledger", href: "/ledger", ready: true },
+      { key: "nav.catalog", href: "/catalog", ready: true },
     ],
   },
 ];

@@ -25,6 +25,11 @@ export const dictionaries = {
     "theme.claro": "Claro",
 
     "nav.group.ops": "Operación",
+    "nav.group.fintech": "Fintech Ops",
+    "nav.group.tech": "Tecnología",
+    "nav.group.intel": "Conocimiento & IA",
+    "nav.group.evolution": "Evolución & Talento",
+    "nav.group.admin": "Gobierno & Datos",
     "nav.group.gov": "Gobierno & Datos",
     "nav.dashboard": "Dashboard",
     "nav.workspace": "Mi trabajo",
@@ -1420,6 +1425,11 @@ export const dictionaries = {
     "theme.claro": "Light",
 
     "nav.group.ops": "Operations",
+    "nav.group.fintech": "Fintech Ops",
+    "nav.group.tech": "Technology",
+    "nav.group.intel": "Knowledge & AI",
+    "nav.group.evolution": "Evolution & Talent",
+    "nav.group.admin": "Governance & Data",
     "nav.group.gov": "Governance & Data",
     "nav.dashboard": "Dashboard",
     "nav.workspace": "My work",

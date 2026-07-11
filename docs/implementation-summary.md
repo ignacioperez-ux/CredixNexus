@@ -188,5 +188,19 @@ Se priorizó sobre lo ya construido (no reconstruir).
 - Verificado en vivo: embeds owner/parent resueltos (FK presentes), link `process_system` auditado
   (1 evento ledger), RLS en ambas tablas. `npm test` **179/179** · `npm run build` verde.
 
+## Evaluación benchmark ITSM/ESM/Fintech + reorganización de navegación
+
+- **Assessment** contra ServiceNow/Zendesk/InvGate/EasyVista: 18 áreas → **15 ✅ / 3 🟡**, ninguna
+  crítica falta. Documentado en `docs/credixnexus-functional-gap-assessment.md` (matriz área × estado)
+  y `docs/credixnexus-integrated-design.md` (visión, principios, modelo de datos mapeado, rutas,
+  workflows, IA, roles, roadmap).
+- **Navegación (cierra brecha §7):** `components/app-shell/sidebar.tsx` reagrupado de 2 grupos de ~15
+  a **6 dominios** (Operación · Fintech Ops · Tecnología · Conocimiento & IA · Evolución & Talento ·
+  Gobierno & Datos), **conservando las 30 rutas** — refinar, no romper (§16). i18n ES/EN.
+- Sin nuevas pantallas (principio "construir mejor producto, no más pantallas"). Build ✅ · tests
+  **179/179** ✅.
+- Pendientes priorizados (no bloqueantes): adjuntos+checklist de caso, dashboards por rol, colas
+  formales, hub de admin, intake omnicanal, editor visual de workflow. Ver gap-assessment §9.
+
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.
