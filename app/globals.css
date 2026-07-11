@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   CREDIX NEXUS — DESIGN TOKENS
+   Fuente: CLAUDE DESIGN SPECIFICATIONS. Valores hex literales del prototipo.
+   Dos temas conmutables: Nexus (default, lima/carbon) y Claro (rojo Credix).
+   Los componentes SOLO referencian var(--token), nunca hex directos
+   (salvo colores semanticos de estado, que son globales).
+   ============================================================================ */
+
+/* ---- Tipografia: las variables --font-display/-ui/-mono las provee next/font
+       en el <html> (ver app/layout.tsx). Aqui solo definimos fallbacks. ---- */
+:root {
+  --font-display: var(--font-jakarta, system-ui, sans-serif); /* titulos, wordmark */
+  --font-ui: var(--font-inter, system-ui, sans-serif);        /* cuerpo, labels, botones */
+  --font-mono: var(--font-jetbrains, ui-monospace, monospace);/* TODO dato numerico */
+
+  /* ---- Radios ---- */
+  --r-xs: 6px;  --r-sm: 8px;  --r-md: 10px; --r-lg: 12px;
+  --r-xl: 14px; --r-2xl: 16px; --r-pill: 20px;
+
+  /* ---- Sombras ---- */
+  --sh-card: 0 4px 14px rgba(20, 40, 25, .06);
+
+  /* ---- Transiciones / z-index ---- */
+  --t-fast: 120ms ease;
+  --z-sidebar: 10; --z-drawer: 900; --z-modal: 1000; --z-toast: 1100;
+}
+
+/* ============================================================================
+   TEMA NEXUS (default) — BRAND OSCURO: negro Credix, texto blanco/gris, acento ROJO.
+   Paleta de graficos vivida sobre negro, anclada en el rojo Credix.
+   ============================================================================ */
+:root,
+[data-theme="nexus"] {
+  --bg: #0B0C0E;
+  --card: #131519;
+  --line: #262A31;
+  --line-soft: #1E2127;
+  --text: #F3F4F6;
+  --muted: #9AA0AA;
+  --paper: #1A1D22;
+  --track: #23262D;
+  --head-bg: #101216;
+  --row-hover: #191C22;
+  --chart-bar: rgba(228, 0, 43, .30);
+
+  --accent: #E4002B;          /* rojo Credix — indicadores, barras primarias */
+  --accent-2: #FF5A70;        /* rojo brillante — IDs/enlaces (resalta sobre negro) */
+  --accent-bright: #FF2247;
+  --accent-soft: rgba(228, 0, 43, .18);
+  --on-accent: #FFFFFF;
+
+  --teal: #2DD4BF;            /* acento secundario para variedad en graficos */
+  --teal-soft: rgba(45, 212, 191, .12);
+
+  --sb-bg: #0E0F13;
+  --sb-fg: #9AA0AA;
+  --sb-fg-active: #FFFFFF;
+  --sb-muted: #6A7079;
+  --sb-label: #565A62;
+  --sb-border: #23262D;
+  --sb-hover: #1C1F26;
+
+  --cta-bg: #E4002B;          /* CTA rojo: resalta sobre el negro */
+  --cta-fg: #FFFFFF;
+  --cta-icon: #FF8A9C;
+
+  --dark-surface: linear-gradient(135deg, #17191E, #1F222A);
+  --dark-surface-border: #2E323A;
+  --dark-surface-fg: #E3E5E9;
+  --dark-chip: rgba(255, 255, 255, .06);
+
+  --sh-card: 0 6px 20px rgba(0, 0, 0, .5);
+
+  /* Estado — paleta vivida legible sobre negro (grafica y badges) */
+  --st-critical: #FF4D5E; --st-critical-fg: #FF6B7A; --st-critical-bg: rgba(255, 77, 94, .16);
+  --st-high: #FF9A3D;     --st-high-fg: #FFB068;     --st-high-bg: rgba(255, 154, 61, .16);
+  --st-medium: #F7CE4B;   --st-medium-fg: #F5D670;   --st-medium-bg: rgba(247, 206, 75, .16);
+  --st-low: #35D07E;      --st-low-fg: #5CE09A;      --st-low-bg: rgba(53, 208, 126, .16);
+  --st-verified: #35D07E; --st-verified-bg: rgba(53, 208, 126, .16);
+  --st-info: #4FA3FF;     --st-info-bg: rgba(79, 163, 255, .16);
+  --st-eval: #B892FF;     --st-eval-bg: rgba(184, 146, 255, .16);
+}
+
+/* ============================================================================
+   TEMA CLARO — rojo Credix / sidebar claro (paleta de marca)
+   ============================================================================ */
+[data-theme="claro"] {
+  --bg: #FCFBF9;
+  --card: #FFFFFF;
+  --line: #E7E3DC;
+  --line-soft: #F1ECE4;
+  --text: #191A1C;
+  --muted: #5B5F66;
+  --paper: #F5F1EA;
+  --track: #EFEAE2;
+  --head-bg: #FAF7F2;
+  --row-hover: #FBF8F3;
+  --chart-bar: #E7DFD3;
+
+  --accent: #E4002B;
+  --accent-2: #B00021;
+  --accent-bright: #E4002B;
+  --accent-soft: rgba(228, 0, 43, .10);
+  --on-accent: #FFFFFF;
+
+  --teal: #0E8C86;
+  --teal-soft: rgba(14, 140, 134, .08);
+
+  --sb-bg: #FFFFFF;
+  --sb-fg: #5B5F66;
+  --sb-fg-active: #191A1C;
+  --sb-muted: #8A8F97;
+  --sb-label: #BCBDC1;
+  --sb-border: #EDE8E0;
+  --sb-hover: #F5F1EA;
+
+  --cta-bg: #E4002B;
+  --cta-fg: #FFFFFF;
+  --cta-icon: #FFFFFF;
+
+  --dark-surface: linear-gradient(135deg, #191A1C, #2A2C30);
+  --dark-surface-border: #3A3C40;
+  --dark-surface-fg: #EDEAE4;
+  --dark-chip: rgba(255, 255, 255, .08);
+
+  /* Estado — paleta para fondo claro (texto oscuro sobre badge translucido) */
+  --st-critical: #E0483B; --st-critical-fg: #991B1B; --st-critical-bg: rgba(224, 72, 59, .12);
+  --st-high: #E8853A;     --st-high-fg: #B45309;     --st-high-bg: rgba(232, 133, 58, .12);
+  --st-medium: #E4B53A;   --st-medium-fg: #92400E;   --st-medium-bg: rgba(228, 181, 58, .16);
+  --st-low: #3FA85E;      --st-low-fg: #2C7A45;      --st-low-bg: rgba(63, 168, 94, .12);
+  --st-verified: #2C9A52; --st-verified-bg: #E2FFE9;
+  --st-info: #2E7CC4;     --st-info-bg: rgba(46, 124, 196, .12);
+  --st-eval: #8A5CC4;     --st-eval-bg: rgba(138, 92, 196, .12);
+}
+
+/* ============================================================================
+   COLORES SEMANTICOS DE ESTADO: ahora definidos POR TEMA (arriba), porque el
+   texto legible cambia entre fondo negro (Nexus) y claro (Claro).
+   ============================================================================ */
+
+/* ---- Base ---- */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Todo dato numerico en mono para alineacion tabular */
+.mono, .num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+
+/* Animacion dot "en vivo" (ledger) */
+@keyframes cnpulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.7); }
+}
+
+/* Respeto a prefers-reduced-motion (accesibilidad §26) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
