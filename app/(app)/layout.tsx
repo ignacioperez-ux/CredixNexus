@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Header } from "@/components/app-shell/header";
+import { canSeeNav, requiredPermForPath } from "@/lib/nav/access";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -29,10 +31,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
   const roleList = (roles as string[] | null) ?? [];
   const isAdmin = roleList.includes("system_admin") || roleList.includes("tenant_admin");
+  const permList = (perms as string[] | null) ?? [];
+
+  // Guard de ruta por permiso: si la ruta requiere un permiso que el usuario no tiene, /unauthorized.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const required = requiredPermForPath(pathname);
+  if (required && !canSeeNav(required, permList, isAdmin)) {
+    redirect("/unauthorized");
+  }
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Sidebar userName={userName} userRole={tenantName} perms={(perms as string[] | null) ?? []} isAdmin={isAdmin} />
+      <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Header />
         <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>

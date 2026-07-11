@@ -168,7 +168,7 @@ export default async function LandingPage() {
             <span className="lp-tag">ITSM · AUDIT-GRADE</span>
             <span className="lp-pill lp-mono">MVP v1.0</span>
             {authed
-              ? <Link href="/dashboard" className="lp-enter">Ir a la plataforma →</Link>
+              ? <Link href="/start" className="lp-enter">Ir a la plataforma →</Link>
               : <a href="#login" className="lp-enter">Iniciar sesión →</a>}
           </div>
         </header>
@@ -181,7 +181,7 @@ export default async function LandingPage() {
             <p className="lp-p">CredixNexus unifica mesa de ayuda, motor de reglas, gestión de proyectos, GRC y un <b>ledger inmutable</b> para que cada incidente de Credix genere aprendizaje, trazabilidad y transformación — no solo una solución puntual.</p>
             <div className="lp-cta">
               {authed
-                ? <Link href="/dashboard" className="lp-btn1">Entrar a la plataforma <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden {...stroke}><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+                ? <Link href="/start" className="lp-btn1">Entrar a la plataforma <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden {...stroke}><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
                 : <a href="#login" className="lp-btn1">Iniciar sesión <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden {...stroke}><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>}
             </div>
             <div className="lp-trust lp-mono">13+ años · Credix World S.A. · Costa Rica</div>
@@ -194,7 +194,7 @@ export default async function LandingPage() {
               <div className="lp-login lp-authed">
                 <h2>Sesión activa</h2>
                 <p>Ya iniciaste sesión. Entra directo a la plataforma.</p>
-                <Link href="/dashboard" className="lp-btn1" style={{ width: "100%", justifyContent: "center" }}>Ir a la plataforma <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden {...stroke}><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+                <Link href="/start" className="lp-btn1" style={{ width: "100%", justifyContent: "center" }}>Ir a la plataforma <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden {...stroke}><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
               </div>
             ) : (
               <div className="lp-login">

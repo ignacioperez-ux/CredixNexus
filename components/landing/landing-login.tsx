@@ -30,7 +30,7 @@ export function LandingLogin() {
       setErr("Credenciales incorrectas.");
       return;
     }
-    router.push("/dashboard");
+    router.push("/start");
     router.refresh();
   }
 

@@ -1432,6 +1432,9 @@ export const dictionaries = {
     "task.placeholder": "Nueva tarea…",
     "task.delete": "Eliminar tarea",
     "task.due": "vence",
+    "unauth.title": "Acceso no autorizado",
+    "unauth.body": "No tienes permiso para ver esta sección. Si crees que es un error, contacta a tu administrador.",
+    "unauth.home": "Volver al inicio",
   },
   en: {
     "app.name": "CredixNexus",
@@ -2861,6 +2864,9 @@ export const dictionaries = {
     "task.placeholder": "New task…",
     "task.delete": "Delete task",
     "task.due": "due",
+    "unauth.title": "Access not authorized",
+    "unauth.body": "You don't have permission to view this section. If you think this is an error, contact your administrator.",
+    "unauth.home": "Back to home",
   },
 } as const;
 

@@ -250,8 +250,23 @@ Se priorizó sobre lo ya construido (no reconstruir).
 - Esto produce **menús diferenciados por rol** sin un mapa rol→menú frágil: un support_agent ve
   operación; un auditor ve el ledger; un analista de fraude ve fraude/disputas; etc. Datos siguen
   protegidos por RLS y las mutaciones por sus permisos.
-- Pendiente compatible siguiente: **guards a nivel de ruta** (redirect a /unauthorized si falta el
-  `.read`) y **ruteo a home por rol** al ingresar. `npm test` **191/191** · `npm run build` verde.
+- `npm test` **191/191** · `npm run build` verde.
+
+## Guards de ruta + home por rol
+
+- **Guard de ruta centralizado (una sola fuente de verdad):** `lib/nav/access.ts` agrega
+  `ROUTE_PERMISSIONS` (mapa ruta→permiso, prefijo más específico gana) y `requiredPermForPath`. El
+  **middleware** inyecta `x-pathname` en el request; el **layout `(app)`** lee el pathname, resuelve
+  el permiso requerido y **redirige a `/unauthorized`** si el usuario no lo tiene (bypass admin). No
+  basta ocultar el link: la ruta directa queda protegida. Página `/unauthorized` con navegación de
+  salida. i18n ES/EN.
+- **Home por rol:** `defaultHome(perms, isAdmin)` — admin→`/dashboard`, agente/operaciones (incident.read)
+  →`/workspace`, evolución/squad (project/squad.read)→`/projects`, usuario final→`/portal`. Ruta
+  server-side `/start` (sin shell, sin flash) resuelve el home real; el login y los enlaces del
+  landing apuntan a `/start` en vez de `/dashboard`.
+- Todo sobre permisos reales (RLS-backed), cero mock. Helpers puros testeados (`requiredPermForPath`,
+  `defaultHome`). `npm test` **197/197** · `npm run build` verde. Cierra "route protection" (§3.2 del
+  prompt): navegación + ruta + acciones (mutaciones) protegidas por permiso; datos por RLS.
 
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.
