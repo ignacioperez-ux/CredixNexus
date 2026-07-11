@@ -131,6 +131,12 @@ Se priorizó sobre lo ya construido (no reconstruir).
 - **App:** `lib/catalog/{validation,queries,actions}`, `components/catalog/*` (grid por categoría,
   formulario dinámico, lista/detalle de solicitudes con ancla + SLA), páginas `/service-catalog` +
   `/service-catalog/requests/[id]`, nav `Catálogo de servicios` + header + i18n ES/EN.
+- **Constructor visual de formularios (admin):** tab `Administración` (gated `service_catalog.manage`)
+  con `FormBuilder` — agregar/editar/reordenar/quitar campos (clave, etiqueta, tipo
+  text/textarea/number/select/date, requerido, opciones), **vista previa en vivo** del formulario del
+  solicitante, y validación (clave duplicada/vacía, select sin opciones). `ItemManager` lista todos
+  los items (incl. inactivos) con activar/desactivar. Verificado: schema construido round-trip a
+  `form_schema` jsonb y renderizado por el formulario dinámico.
 
 ## Integridad / calidad
 - RLS por tenant + policy en `case_survey`, `monitoring_alert`, `digital_experience_event`,

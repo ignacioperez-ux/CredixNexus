@@ -5,10 +5,12 @@ import { ServiceCatalog } from "@/components/catalog/service-catalog";
 export default async function ServiceCatalogPage() {
   const ctx = await getContext();
   if (!ctx) return null;
-  const [items, requests, canRequest] = await Promise.all([
+  const [items, requests, canRequest, canManage] = await Promise.all([
     listCatalogItems(ctx.supabase),
     listRequests(ctx.supabase),
     hasPermission(ctx.supabase, "service_catalog.request"),
+    hasPermission(ctx.supabase, "service_catalog.manage"),
   ]);
-  return <ServiceCatalog items={items} requests={requests.rows} stats={requests.stats} canRequest={canRequest} />;
+  const allItems = canManage ? await listCatalogItems(ctx.supabase, true) : [];
+  return <ServiceCatalog items={items} requests={requests.rows} stats={requests.stats} canRequest={canRequest} canManage={canManage} allItems={allItems} />;
 }
