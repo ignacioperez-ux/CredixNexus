@@ -236,8 +236,22 @@ Se priorizó sobre lo ya construido (no reconstruir).
 - Verificado en vivo: 10 abiertos, 7 sin asignar, 8 vencidos, aging y carga por agente reales.
   `npm test` **187/187** · `npm run build` verde.
 - Nota de arquitectura: ante el pedido de rebuild Vite + auth mock, se confirmó **evolucionar la app
-  real** (Next.js/Supabase, cero-mock §11), no reconstruir. Pendiente compatible siguiente:
-  **navegación filtrada por rol + ruteo a home por rol** (requiere mapear los 14 roles a visibilidad).
+  real** (Next.js/Supabase, cero-mock §11), no reconstruir.
+
+## Navegación por rol (permission-based)
+
+- **Migración `0068_my_access`:** `my_permissions()` y `my_roles()` (text[], SECURITY DEFINER, solo
+  el usuario actual vía `auth.uid()`; espejan el patrón de `has_permission`, sin cruzar tenants).
+- **Sidebar filtrado por permiso:** cada ítem del nav declara su permiso requerido (`incident.read`,
+  `fraud.read`/`dispute.read` any-of, `risk.read`, `process.read`, `audit.read`, `masterdata.manage`,
+  etc.); el layout pasa `perms` + `isAdmin` y el sidebar oculta lo que el usuario no puede — y
+  **descarta grupos vacíos**. Los roles `system_admin`/`tenant_admin` ven todo (bypass). Ignacio es
+  admin → menú completo (verificado). Lógica pura `lib/nav/access.ts` (`canSeeNav`, testeada).
+- Esto produce **menús diferenciados por rol** sin un mapa rol→menú frágil: un support_agent ve
+  operación; un auditor ve el ledger; un analista de fraude ve fraude/disputas; etc. Datos siguen
+  protegidos por RLS y las mutaciones por sus permisos.
+- Pendiente compatible siguiente: **guards a nivel de ruta** (redirect a /unauthorized si falta el
+  `.read`) y **ruteo a home por rol** al ingresar. `npm test` **191/191** · `npm run build` verde.
 
 Ninguno requiere reconstruir lo existente: todos cuelgan del `incident` (case anchor),
 del `delivery_area`, del motor de workflow y de la analítica ya construidos.

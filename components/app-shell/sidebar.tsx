@@ -5,8 +5,11 @@ import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { Wordmark } from "./wordmark";
+import { canSeeNav } from "@/lib/nav/access";
 
-type NavItem = { key: MessageKey; href: string; ready: boolean };
+// perm: permiso requerido para ver el item (string = exacto; array = any-of). Sin perm = visible
+// a cualquier autenticado. Los roles admin (system_admin/tenant_admin) ven todo (bypass).
+type NavItem = { key: MessageKey; href: string; ready: boolean; perm?: string | string[] };
 type NavGroup = { label: MessageKey; items: NavItem[] };
 
 // Navegacion agrupada por dominio (alineada al benchmark ITSM/ESM/Fintech). Todas las rutas
@@ -16,12 +19,12 @@ const GROUPS: NavGroup[] = [
     label: "nav.group.ops",
     items: [
       { key: "nav.dashboard", href: "/dashboard", ready: true },
-      { key: "nav.workspace", href: "/workspace", ready: true },
-      { key: "nav.incidents", href: "/incidents", ready: true },
-      { key: "nav.triage", href: "/triage", ready: true },
-      { key: "nav.sla", href: "/sla-governance", ready: true },
-      { key: "nav.customers", href: "/customers", ready: true },
-      { key: "nav.analytics", href: "/analytics", ready: true },
+      { key: "nav.workspace", href: "/workspace", ready: true, perm: "incident.read" },
+      { key: "nav.incidents", href: "/incidents", ready: true, perm: "incident.read" },
+      { key: "nav.triage", href: "/triage", ready: true, perm: "triage.manage" },
+      { key: "nav.sla", href: "/sla-governance", ready: true, perm: "sla.read" },
+      { key: "nav.customers", href: "/customers", ready: true, perm: "incident.read" },
+      { key: "nav.analytics", href: "/analytics", ready: true, perm: "incident.read" },
       { key: "nav.selfservice", href: "/portal", ready: true },
       { key: "nav.partner", href: "/partner", ready: true },
     ],
@@ -29,54 +32,60 @@ const GROUPS: NavGroup[] = [
   {
     label: "nav.group.fintech",
     items: [
-      { key: "nav.frauddisputes", href: "/fraud-disputes", ready: true },
-      { key: "nav.risk", href: "/risk", ready: true },
-      { key: "nav.servicecatalog", href: "/service-catalog", ready: true },
+      { key: "nav.frauddisputes", href: "/fraud-disputes", ready: true, perm: ["fraud.read", "dispute.read"] },
+      { key: "nav.risk", href: "/risk", ready: true, perm: "risk.read" },
+      { key: "nav.servicecatalog", href: "/service-catalog", ready: true, perm: "service_catalog.read" },
     ],
   },
   {
     label: "nav.group.tech",
     items: [
-      { key: "nav.majorincidents", href: "/major-incidents", ready: true },
-      { key: "nav.problems", href: "/problems", ready: true },
-      { key: "nav.changes", href: "/changes", ready: true },
-      { key: "nav.observability", href: "/observability", ready: true },
-      { key: "nav.dependencies", href: "/dependencies", ready: true },
-      { key: "nav.vendors", href: "/vendors", ready: true },
+      { key: "nav.majorincidents", href: "/major-incidents", ready: true, perm: "major_incident.read" },
+      { key: "nav.problems", href: "/problems", ready: true, perm: "problem.read" },
+      { key: "nav.changes", href: "/changes", ready: true, perm: "change.read" },
+      { key: "nav.observability", href: "/observability", ready: true, perm: "observability.read" },
+      { key: "nav.dependencies", href: "/dependencies", ready: true, perm: "cmdb.read" },
+      { key: "nav.vendors", href: "/vendors", ready: true, perm: "vendor.read" },
     ],
   },
   {
     label: "nav.group.intel",
     items: [
-      { key: "nav.knowledge", href: "/knowledge", ready: true },
-      { key: "nav.aicenter", href: "/ai-center", ready: true },
-      { key: "nav.rules", href: "/rules", ready: true },
-      { key: "nav.workflows", href: "/workflows", ready: true },
+      { key: "nav.knowledge", href: "/knowledge", ready: true, perm: "knowledge.read" },
+      { key: "nav.aicenter", href: "/ai-center", ready: true, perm: "incident.read" },
+      { key: "nav.rules", href: "/rules", ready: true, perm: "rule.read" },
+      { key: "nav.workflows", href: "/workflows", ready: true, perm: "workflow.read" },
     ],
   },
   {
     label: "nav.group.evolution",
     items: [
-      { key: "nav.projects", href: "/projects", ready: true },
-      { key: "nav.squads", href: "/squads", ready: true },
-      { key: "nav.talent", href: "/talent", ready: true },
-      { key: "nav.resources", href: "/workload", ready: true },
+      { key: "nav.projects", href: "/projects", ready: true, perm: "project.read" },
+      { key: "nav.squads", href: "/squads", ready: true, perm: "squad.read" },
+      { key: "nav.talent", href: "/talent", ready: true, perm: "talent.read" },
+      { key: "nav.resources", href: "/workload", ready: true, perm: "squad.read" },
     ],
   },
   {
     label: "nav.group.admin",
     items: [
-      { key: "nav.processes", href: "/processes", ready: true },
-      { key: "nav.areas", href: "/delivery-areas", ready: true },
-      { key: "nav.ledger", href: "/ledger", ready: true },
-      { key: "nav.catalog", href: "/catalog", ready: true },
+      { key: "nav.processes", href: "/processes", ready: true, perm: "process.read" },
+      { key: "nav.areas", href: "/delivery-areas", ready: true, perm: "area.read" },
+      { key: "nav.ledger", href: "/ledger", ready: true, perm: "audit.read" },
+      { key: "nav.catalog", href: "/catalog", ready: true, perm: "masterdata.manage" },
     ],
   },
 ];
 
-export function Sidebar({ userName, userRole }: { userName: string; userRole: string }) {
+
+export function Sidebar({ userName, userRole, perms = [], isAdmin = false }: { userName: string; userRole: string; perms?: string[]; isAdmin?: boolean }) {
   const pathname = usePathname();
   const { t } = useI18n();
+
+  // Filtra por permiso y descarta grupos sin items visibles (navegacion por rol).
+  const groups = GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((it) => canSeeNav(it.perm, perms, isAdmin)) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <aside
@@ -98,7 +107,7 @@ export function Sidebar({ userName, userRole }: { userName: string; userRole: st
       </div>
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "14px 12px" }}>
-        {GROUPS.map((g) => (
+        {groups.map((g) => (
           <div key={g.label} style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.5px", color: "var(--sb-label)", padding: "0 12px 8px", fontWeight: 700 }}>
               {t(g.label)}
