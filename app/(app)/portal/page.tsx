@@ -12,5 +12,5 @@ export default async function PortalPage() {
     hasPermission(ctx.supabase, "incident.read"),
     getMyReportedCases(ctx.supabase, ctx.accountId),
   ]);
-  return <Portal categories={categories} applications={applications} canFeedback={canFeedback} canViewIncidents={canViewIncidents} myCases={myCases} />;
+  return <Portal categories={categories} applications={applications} canFeedback={canFeedback} canViewIncidents={canViewIncidents} myCases={myCases} userName={ctx.name} />;
 }

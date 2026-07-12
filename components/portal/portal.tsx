@@ -17,10 +17,12 @@ import { statusKey } from "@/lib/incidents/labels";
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 const MIN_CHARS = 8;
 
-export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [] }: {
-  categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[];
+export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], userName = "" }: {
+  categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; userName?: string;
 }) {
   const { t, locale } = useI18n();
+  const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
+  const openCount = myCases.filter((c) => !["resolved", "closed", "cancelled"].includes(c.status)).length;
   const router = useRouter();
   const [subject, setSubject] = useState("");
   const [touched, setTouched] = useState(false);
@@ -67,6 +69,19 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1120 }}>
+      {/* Saludo de bienvenida personalizado */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(120deg, var(--accent-soft), transparent 70%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "16px 20px" }}>
+        <span style={{ fontSize: 30, lineHeight: 1 }}>👋</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--text)" }}>
+            {t("portal.welcome")}{firstName ? `, ${firstName}` : ""}
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
+            {openCount > 0 ? t("portal.welcome.open").replace("{n}", String(openCount)) : t("portal.welcome.sub")}
+          </div>
+        </div>
+      </div>
+
       <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("portal.intro")}</div>
 
       {created && (
