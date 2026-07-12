@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { KbData, ArticleRow } from "@/lib/knowledge/queries";
 import { ArticleTypeBadge, HealthBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 export function KbBrowser({ data }: { data: KbData }) {
   const { t } = useI18n();
@@ -19,6 +19,21 @@ export function KbBrowser({ data }: { data: KbData }) {
     { key: "health", label: t("kb.col.health"), get: (a) => a.health, allLabel: t("md.filter.all"), render: (v) => t(("kb.health." + v) as MessageKey) },
   ];
   const f = useListFilters(data.articles, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(a: ArticleRow) {
+    return (
+      <Link key={a.id} href={`/knowledge/${a.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{a.article_number}</Cell>
+        <Cell>{a.title}{a.status !== "active" && <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 8 }}>({t(("sla.st." + a.status) as MessageKey)})</span>}</Cell>
+        <Cell><Drill onClick={() => f.set("type", a.article_type)}><ArticleTypeBadge type={a.article_type} /></Drill></Cell>
+        <Cell muted><Drill onClick={() => f.set("cat", a.category)}>{a.category}</Drill></Cell>
+        <Cell mono muted>{a.view_count}</Cell>
+        <Cell mono muted>{a.deflection_count}</Cell>
+        <Cell><Drill onClick={() => f.set("health", a.health)}><HealthBadge health={a.health} pct={a.helpful_pct} /></Drill></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -43,24 +58,24 @@ export function KbBrowser({ data }: { data: KbData }) {
         </div>
       )}
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.7fr 120px 130px 90px 90px 130px", minWidth: 960 }}>
             {[t("kb.col.number"), t("kb.col.title"), t("kb.col.type"), t("kb.col.category"), t("kb.col.views"), t("kb.col.deflect"), t("kb.col.health")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("kb.empty")}</div>}
-            {f.filtered.map((a) => (
-              <Link key={a.id} href={`/knowledge/${a.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                <Cell mono accent>{a.article_number}</Cell>
-                <Cell>{a.title}{a.status !== "active" && <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 8 }}>({t(("sla.st." + a.status) as MessageKey)})</span>}</Cell>
-                <Cell><Drill onClick={() => f.set("type", a.article_type)}><ArticleTypeBadge type={a.article_type} /></Drill></Cell>
-                <Cell muted><Drill onClick={() => f.set("cat", a.category)}>{a.category}</Drill></Cell>
-                <Cell mono muted>{a.view_count}</Cell>
-                <Cell mono muted>{a.deflection_count}</Cell>
-                <Cell><Drill onClick={() => f.set("health", a.health)}><HealthBadge health={a.health} pct={a.helpful_pct} /></Drill></Cell>
-              </Link>
-            ))}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

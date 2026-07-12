@@ -8,7 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Catalog } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { setRecordStatus } from "@/lib/masterdata/actions";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
 type Rec = Record<string, unknown> & { id: string; code: string; name: string; status: string };
@@ -45,6 +45,39 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
     return f.filtered.filter((r) => String(r.code).toLowerCase().includes(s) || String(r.name).toLowerCase().includes(s));
   }, [f.filtered, search]);
 
+  const g = useGrouping(filtered, defs);
+
+  function Line(r: Rec) {
+    return (
+      <div key={r.id} style={{ display: "contents" }}>
+        <Cell mono accent>{r.code}</Cell>
+        <Cell bold>{r.name}</Cell>
+        {extraFields.map((fld) => {
+          const d = disp(r, fld.name);
+          return <Cell key={fld.name}>{d ? <Drill onClick={() => f.set(fld.name, d)}>{d}</Drill> : "—"}</Cell>;
+        })}
+        <Cell>
+          <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: "var(--r-pill)", background: r.status === "active" ? "var(--st-low-bg)" : "var(--paper)", color: r.status === "active" ? "var(--st-low-fg)" : "var(--muted)", whiteSpace: "nowrap" }}>
+            {t(("md.status." + r.status) as MessageKey)}
+          </span>
+        </Cell>
+        <div style={{ ...cellSt, justifyContent: "flex-end", gap: 8 }}>
+          {canManage ? (
+            <>
+              <Link href={`/catalog/${catalog.key}/${r.id}/edit`} title={t("common.edit")} style={{ display: "inline-flex", color: "var(--accent-2)", textDecoration: "none" }}><Icon name="edit" size={14} /></Link>
+              <button onClick={() => toggle(r)} disabled={busy === r.id}
+                style={{ fontSize: 11.5, padding: "4px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--card)", color: r.status === "active" ? "var(--st-critical-fg)" : "var(--st-low-fg)", cursor: "pointer", whiteSpace: "nowrap" }}>
+                {r.status === "active" ? t("md.deactivate") : t("md.activate")}
+              </button>
+            </>
+          ) : (
+            <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   async function toggle(r: Rec) {
     if (r.status === "active" && !confirm(t("md.confirm_deactivate"))) return;
     setBusy(r.id);
@@ -79,7 +112,12 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
         )}
       </div>
 
-      {defs.length > 0 && <FilterBar defs={defs} filters={f} />}
+      {defs.length > 0 && (
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <FilterBar defs={defs} filters={f} />
+          <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+        </div>
+      )}
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
@@ -93,34 +131,14 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
 
               {filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: "36px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("md.empty")}</div>}
 
-              {filtered.map((r) => (
-                <div key={r.id} style={{ display: "contents" }}>
-                  <Cell mono accent>{r.code}</Cell>
-                  <Cell bold>{r.name}</Cell>
-                  {extraFields.map((fld) => {
-                    const d = disp(r, fld.name);
-                    return <Cell key={fld.name}>{d ? <Drill onClick={() => f.set(fld.name, d)}>{d}</Drill> : "—"}</Cell>;
-                  })}
-                  <Cell>
-                    <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: "var(--r-pill)", background: r.status === "active" ? "var(--st-low-bg)" : "var(--paper)", color: r.status === "active" ? "var(--st-low-fg)" : "var(--muted)", whiteSpace: "nowrap" }}>
-                      {t(("md.status." + r.status) as MessageKey)}
-                    </span>
-                  </Cell>
-                  <div style={{ ...cellSt, justifyContent: "flex-end", gap: 8 }}>
-                    {canManage ? (
-                      <>
-                        <Link href={`/catalog/${catalog.key}/${r.id}/edit`} title={t("common.edit")} style={{ display: "inline-flex", color: "var(--accent-2)", textDecoration: "none" }}><Icon name="edit" size={14} /></Link>
-                        <button onClick={() => toggle(r)} disabled={busy === r.id}
-                          style={{ fontSize: 11.5, padding: "4px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--card)", color: r.status === "active" ? "var(--st-critical-fg)" : "var(--st-low-fg)", cursor: "pointer", whiteSpace: "nowrap" }}>
-                          {r.status === "active" ? t("md.deactivate") : t("md.activate")}
-                        </button>
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {g.groups
+                ? g.groups.map((grp) => (
+                    <div key={grp.value} style={{ display: "contents" }}>
+                      <GroupHeader label={grp.label} count={grp.rows.length} />
+                      {grp.rows.map(Line)}
+                    </div>
+                  ))
+                : filtered.map(Line)}
             </div>
           </div>
         </div>
