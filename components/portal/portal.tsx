@@ -13,6 +13,7 @@ import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
 import type { PortalCategory, PortalApp, MyCase } from "@/lib/portal/queries";
 import type { Urgency } from "@/lib/incidents/priority";
 import { statusKey } from "@/lib/incidents/labels";
+import { Icon } from "@/components/ui/icon";
 
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 const MIN_CHARS = 8;
@@ -71,7 +72,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1120 }}>
       {/* Saludo de bienvenida personalizado */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(120deg, var(--accent-soft), transparent 70%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "16px 20px" }}>
-        <span style={{ fontSize: 30, lineHeight: 1 }}>👋</span>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, flexShrink: 0 }}>{(firstName[0] ?? "U").toUpperCase()}</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--text)" }}>
             {t("portal.welcome")}{firstName ? `, ${firstName}` : ""}
@@ -86,7 +87,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
       {created && (
         <div style={{ fontSize: 13, fontWeight: 600, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--st-low-bg)", color: "var(--st-low-fg)", display: "flex", alignItems: "center", gap: 8 }}>
-          ✓ {t("portal.created")} <span style={{ fontFamily: "var(--font-mono)" }}>{created}</span>
+          <Icon name="check" size={15} /> {t("portal.created")} <span style={{ fontFamily: "var(--font-mono)" }}>{created}</span>
         </div>
       )}
 

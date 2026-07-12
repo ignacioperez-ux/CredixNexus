@@ -38,6 +38,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = 
   { prefix: "/delivery-areas", perm: "area.read" },
   { prefix: "/ledger", perm: "audit.read" },
   { prefix: "/catalog", perm: "masterdata.manage" },
+  { prefix: "/admin", perm: "user.manage" },
 ];
 
 /** Permiso requerido para una ruta (por prefijo mas especifico), o undefined si es libre. */

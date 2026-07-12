@@ -7,6 +7,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Attachment } from "@/lib/casework/queries";
 import { uploadAttachment, deleteAttachment } from "@/lib/casework/actions";
 import { formatBytes } from "@/lib/casework/validation";
+import { Icon } from "@/components/ui/icon";
 
 export function Attachments({ incidentId, attachments, canManage }: { incidentId: string; attachments: Attachment[]; canManage: boolean }) {
   const { t, locale } = useI18n();
@@ -35,7 +36,7 @@ export function Attachments({ incidentId, attachments, canManage }: { incidentId
       {attachments.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("att.empty")}</div>}
       {attachments.map((a) => (
         <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
-          <span style={{ fontSize: 16 }}>📎</span>
+          <Icon name="paperclip" size={15} color="var(--muted)" />
           <div style={{ flex: 1, minWidth: 0 }}>
             {a.url
               ? <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{a.file_name}</a>

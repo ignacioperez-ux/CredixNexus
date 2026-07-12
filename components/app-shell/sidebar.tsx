@@ -70,6 +70,7 @@ const GROUPS: NavGroup[] = [
   {
     label: "nav.group.admin",
     items: [
+      { key: "nav.admin", href: "/admin", ready: true, perm: "user.manage" },
       { key: "nav.processes", href: "/processes", ready: true, perm: "process.read" },
       { key: "nav.areas", href: "/delivery-areas", ready: true, perm: "area.read" },
       { key: "nav.ledger", href: "/ledger", ready: true, perm: "audit.read" },

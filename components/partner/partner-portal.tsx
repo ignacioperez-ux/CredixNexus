@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { PartnerPortal } from "@/lib/partner/queries";
 import { StatusPill } from "@/components/incidents/badges";
+import { Icon } from "@/components/ui/icon";
 
 export function PartnerPortalView({ data }: { data: PartnerPortal }) {
   const { t, locale } = useI18n();
@@ -23,8 +24,8 @@ export function PartnerPortalView({ data }: { data: PartnerPortal }) {
           </div>
           <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("pp.subtitle")}</div>
         </div>
-        <span style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent-2)" }}>
-          🔒 {t("pp.isolation")}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent-2)" }}>
+          <Icon name="lock" size={13} /> {t("pp.isolation")}
         </span>
       </div>
 
