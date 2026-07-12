@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -41,7 +43,7 @@ export function ProblemLink({ incidentId, problems, canManage }: { incidentId: s
       {canManage && (
         <button onClick={promote} disabled={pending}
           style={{ fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--accent-2)", cursor: pending ? "default" : "pointer" }}>
-          {pending ? t("prob.promoting") : "⚑ " + t("prob.promote")}
+          {pending ? t("prob.promoting") : <><Icon name="flag" size={13} style={{ verticalAlign: "-2px" }} /> {t("prob.promote")}</>}
         </button>
       )}
       {err && <div style={{ fontSize: 11, color: "var(--st-critical)" }}>{err}</div>}

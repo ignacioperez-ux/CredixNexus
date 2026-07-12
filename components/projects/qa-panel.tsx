@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -45,7 +47,7 @@ export function QaPanel({ projectId, projectName, qaStatus, prodAuthorizedAt, va
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("qa.title")}</span>
         <span style={{ fontSize: 10.5, fontWeight: 600, color: qc.fg, background: qc.bg, padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t(("qa.st." + qaStatus) as MessageKey)}</span>
-        {prodAuthorizedAt && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--st-low-fg)", background: "var(--st-low-bg)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>✓ {t("qa.authorized")}</span>}
+        {prodAuthorizedAt && <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, color: "var(--st-low-fg)", background: "var(--st-low-bg)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}><Icon name="check" size={12} /> {t("qa.authorized")}</span>}
       </div>
       <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>{t("qa.intro")}</p>
       {msg && <div style={{ fontSize: 12, color: "var(--st-critical)" }}>{errMsg(msg, t)}</div>}
@@ -112,7 +114,7 @@ export function QaPanel({ projectId, projectName, qaStatus, prodAuthorizedAt, va
       {/* Autorizacion a produccion */}
       <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
         {prodAuthorizedAt ? (
-          <div style={{ fontSize: 12.5, color: "var(--st-low-fg)", fontWeight: 600 }}>✓ {t("qa.authorized.at")} {new Date(prodAuthorizedAt).toLocaleString(locale)}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--st-low-fg)", fontWeight: 600 }}><Icon name="check" size={13} /> {t("qa.authorized.at")} {new Date(prodAuthorizedAt).toLocaleString(locale)}</div>
         ) : canDeploy ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ fontSize: 11.5, color: canAuthorizeProduction(qaStatus) ? "var(--muted)" : "var(--st-high-fg)" }}>

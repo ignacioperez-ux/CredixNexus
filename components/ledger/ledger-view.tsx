@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { LedgerData, LedgerEvent } from "@/lib/ledger/queries";
@@ -42,7 +44,7 @@ export function LedgerView({ data }: { data: LedgerData }) {
         background: broken > 0 ? "var(--st-critical-bg)" : "var(--st-low-bg)",
         border: `1px solid ${broken > 0 ? "var(--st-critical)" : "var(--st-low)"}`,
         color: broken > 0 ? "var(--st-critical-fg)" : "var(--st-low-fg)" }}>
-        {broken > 0 ? "✕ " + t("led.integrity_broken") : "✓ " + t("led.integrity_ok")}
+        {broken > 0 ? <><Icon name="x" size={13} style={{ verticalAlign: "-2px" }} /> {t("led.integrity_broken")}</> : <><Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> {t("led.integrity_ok")}</>}
       </div>
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
@@ -50,8 +52,8 @@ export function LedgerView({ data }: { data: LedgerData }) {
           <Select label={t("led.filter.entity")} value={entity} onChange={setEntity} options={entities} tAll={t("led.all")} />
           <Select label={t("led.filter.actor")} value={actor} onChange={setActor} options={actors} tAll={t("led.all")} />
           <div style={{ flex: 1 }} />
-          <button onClick={exportCsv} style={{ padding: "8px 14px", borderRadius: "var(--r-md)", background: "var(--card)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-            ↓ {t("led.export")}
+          <button onClick={exportCsv} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-md)", background: "var(--card)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            <Icon name="download" size={14} /> {t("led.export")}
           </button>
         </div>
 
@@ -79,7 +81,7 @@ function Row({ e, locale, onActor, onEntity }: { e: LedgerEvent; locale: string;
       <div style={{ ...cell, color: "var(--text)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.action}</div>
       <div style={{ ...mono, fontSize: 10.5, color: "var(--muted)" }}><Drill onClick={onEntity}>{e.entity_type}</Drill></div>
       <div style={{ ...mono, fontSize: 10.5, color: "var(--accent-2)" }}>{e.current_hash.slice(0, 12)}</div>
-      <div style={{ ...cell, justifyContent: "flex-end", color: e.verified ? "var(--st-verified)" : "var(--st-critical)" }}>{e.verified ? "✓" : "✕"}</div>
+      <div style={{ ...cell, justifyContent: "flex-end", color: e.verified ? "var(--st-verified)" : "var(--st-critical)" }}>{e.verified ? <Icon name="check" size={13} /> : <Icon name="x" size={13} />}</div>
     </div>
   );
 }

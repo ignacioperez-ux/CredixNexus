@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { submitKbFeedback } from "@/lib/knowledge/actions";
+import { Icon } from "@/components/ui/icon";
 
 /** Widget de feedback util/no-util reutilizable (KB y portal). Un voto por usuario. */
 export function FeedbackWidget({ articleId, source, initial, canFeedback, compact }: {
@@ -43,8 +44,8 @@ export function FeedbackWidget({ articleId, source, initial, canFeedback, compac
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ fontSize: compact ? 11.5 : 12.5, color: "var(--muted)" }}>{done ? t("kb.fb.thanks") : t("kb.fb.ask")}</span>
-        <button disabled={pending} onClick={() => send(true, false)} style={btn(vote === true)}>👍 {t("kb.fb.yes")}</button>
-        <button disabled={pending} onClick={() => { setVote(false); setShowComment((s) => !s); }} style={btn(vote === false)}>👎 {t("kb.fb.no")}</button>
+        <button disabled={pending} onClick={() => send(true, false)} style={{ ...btn(vote === true), display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="thumbs-up" size={13} /> {t("kb.fb.yes")}</button>
+        <button disabled={pending} onClick={() => { setVote(false); setShowComment((s) => !s); }} style={{ ...btn(vote === false), display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="thumbs-down" size={13} /> {t("kb.fb.no")}</button>
       </div>
       {showComment && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

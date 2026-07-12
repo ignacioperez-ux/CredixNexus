@@ -6,6 +6,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ReportDataset, ReportResult } from "@/lib/analytics/queries";
 import { fetchReport } from "@/app/(app)/analytics/actions";
 import { toCsv } from "@/lib/analytics/format";
+import { Icon } from "@/components/ui/icon";
 
 const DATASETS: ReportDataset[] = ["incidents", "changes", "risk", "problems"];
 
@@ -73,7 +74,7 @@ export function ReportExport() {
           </button>
         ))}
         <div style={{ flex: 1 }} />
-        {result && <button onClick={download} style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 16px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: "pointer" }}>⤓ {t("an.rep.csv")}</button>}
+        {result && <button onClick={download} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, padding: "8px 16px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: "pointer" }}><Icon name="download" size={14} /> {t("an.rep.csv")}</button>}
       </div>
       {err && <div style={{ fontSize: 12.5, color: "var(--st-critical)" }}>{err}</div>}
       {pending && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("common.loading")}</div>}

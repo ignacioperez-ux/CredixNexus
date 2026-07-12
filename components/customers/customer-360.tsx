@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
@@ -41,7 +43,7 @@ export function Customer360({ data }: { data: Data }) {
       {/* Alertas */}
       {alerts.length > 0 && (
         <div style={{ background: "var(--st-medium-bg)", border: "1px solid var(--st-medium)", borderRadius: "var(--r-lg)", padding: "12px 16px" }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--st-medium-fg)", marginBottom: 6 }}>⚠ {t("cust.alerts")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--st-medium-fg)", marginBottom: 6 }}><Icon name="alert" size={13} /> {t("cust.alerts")}</div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "var(--text)" }}>{alerts.map((a) => <li key={a}>{a}</li>)}</ul>
         </div>
       )}
@@ -67,7 +69,7 @@ export function Customer360({ data }: { data: Data }) {
         {/* Identidad + productos */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 14, color: "var(--text)" }}>🔒 {t("cust.identity")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 14, color: "var(--text)" }}><Icon name="lock" size={15} /> {t("cust.identity")}</div>
             <Row label={t("cust.taxid")} value={maskTaxId(p.tax_id)} />
             <Row label={t("cust.email")} value={maskEmail(p.email)} />
             <Row label={t("cust.phone")} value={maskPhone(p.phone)} />

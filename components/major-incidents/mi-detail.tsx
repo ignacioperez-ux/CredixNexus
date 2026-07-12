@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -49,7 +51,7 @@ export function MiDetail({ mi, updates, people, ledger, canManage }: { mi: MiVie
           <MiStatusBadge status={mi.status} />
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {mi.bridge_url && <a href={mi.bridge_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: "none" } as React.CSSProperties}>🔗 {t("mi.bridge")}</a>}
+          {mi.bridge_url && <a href={mi.bridge_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: "none" } as React.CSSProperties}><Icon name="link" size={13} style={{ verticalAlign: "-2px" }} /> {t("mi.bridge")}</a>}
           {canManage && nexts.map((s) => <button key={s} onClick={() => run(() => changeMiStatus(mi.id, s))} disabled={pending} style={btnGhost}>→ {t(("mi.st." + s) as MessageKey)}</button>)}
         </div>
       </div>

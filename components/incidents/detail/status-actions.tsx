@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,7 +39,7 @@ export function StatusActions({ incidentId, status }: { incidentId: string; stat
         </button>
       ))}
       <Link href={`/incidents/${incidentId}/edit`} style={{ ...ghostBtn, textDecoration: "none", display: "inline-block" }}>
-        ✎ Editar
+        <Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> Editar
       </Link>
       <button onClick={remove} disabled={busy} style={{ ...ghostBtn, color: "var(--st-critical-fg)", borderColor: "var(--st-critical)" }}>
         Eliminar

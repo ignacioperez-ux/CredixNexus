@@ -27,6 +27,7 @@ import { IncidentWorkflows } from "@/components/workflows/incident-workflows";
 import { ChangeLink } from "@/components/changes/change-link";
 import { DeclareMi } from "@/components/major-incidents/declare-mi";
 import { FinancialCaseLink, type FinancialCase } from "@/components/fraud/financial-case-link";
+import { Icon } from "@/components/ui/icon";
 import { Attachments } from "./attachments";
 import { CaseTasks } from "./case-tasks";
 import type { Attachment, ChecklistData } from "@/lib/casework/queries";
@@ -143,7 +144,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
                   <div key={k.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: "var(--r-md)", background: "var(--teal-soft)" }}>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--teal)" }}>{k.article_number}</span>
                     <span style={{ fontSize: 13, color: "var(--text)", flex: 1 }}>{k.title}</span>
-                    <span style={{ fontSize: 10.5, color: "var(--teal)" }}>✓ KB</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "var(--accent-2)" }}><Icon name="check" size={11} /> KB</span>
                   </div>
                 ))}
               </div>
@@ -257,7 +258,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
               </div>
             )}
             <Row label={t("inc.f.risk")} value={inc.risk_score != null ? String(Math.round(inc.risk_score)) : null} mono />
-            <Row label={t("inc.f.sensitive")} value={inc.sensitive_flag ? "🔒 Sí" : "No"} />
+            <Row label={t("inc.f.sensitive")} value={inc.sensitive_flag ? "Sí" : "No"} />
             <Row label={t("inc.f.pii")} value={inc.pii_flag ? "Sí" : "No"} />
             <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
           </Card>

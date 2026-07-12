@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { SimulationInputs } from "@/lib/workload/simulation";
@@ -63,7 +65,7 @@ export function Simulation({ inputs }: { inputs: SimulationInputs }) {
             <b style={{ fontFamily: "var(--font-mono)", fontSize: 22, color: "var(--st-critical)" }}>+{result.extraResources}</b> {t("sim.needs_resources")} · {t("sim.gap")}: <b style={{ fontFamily: "var(--font-mono)" }}>{result.totalGap}</b>
           </div>
         ) : (
-          <div style={{ fontSize: 13, color: "var(--st-low-fg)" }}>✓ {t("sim.needs_none")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--st-low-fg)" }}><Icon name="check" size={14} /> {t("sim.needs_none")}</div>
         )}
       </div>
 

@@ -3,6 +3,7 @@
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { FIELD_TYPES, type FormField, type FieldType } from "@/lib/catalog/validation";
+import { Icon } from "@/components/ui/icon";
 
 // Constructor visual del form_schema: agregar/editar/reordenar/quitar campos.
 // Controlado: el padre mantiene el arreglo de FormField y recibe onChange.
@@ -68,9 +69,9 @@ export function FormBuilder({ value, onChange }: { value: FormField[]; onChange:
                 {t("cat.fb.required")}
               </label>
               <div style={{ display: "flex", gap: 4 }}>
-                <IconBtn label="↑" onClick={() => move(i, -1)} disabled={i === 0} />
-                <IconBtn label="↓" onClick={() => move(i, 1)} disabled={i === value.length - 1} />
-                <IconBtn label="×" onClick={() => remove(i)} danger />
+                <IconBtn icon="chevron-up" onClick={() => move(i, -1)} disabled={i === 0} />
+                <IconBtn icon="chevron-down" onClick={() => move(i, 1)} disabled={i === value.length - 1} />
+                <IconBtn icon="x" onClick={() => remove(i)} danger />
               </div>
             </div>
             {dupKey && <div style={{ fontSize: 10.5, color: "var(--st-critical-fg)" }}>{t("cat.fb.dupkey")}</div>}
@@ -78,18 +79,18 @@ export function FormBuilder({ value, onChange }: { value: FormField[]; onChange:
         );
       })}
 
-      <button onClick={add} style={{ alignSelf: "flex-start", fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", border: "1px dashed var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: "pointer" }}>
-        + {t("cat.fb.add")}
+      <button onClick={add} style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start", fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", border: "1px dashed var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: "pointer" }}>
+        <Icon name="plus" size={14} /> {t("cat.fb.add")}
       </button>
     </div>
   );
 }
 
-function IconBtn({ label, onClick, disabled, danger }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+function IconBtn({ icon, onClick, disabled, danger }: { icon: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      style={{ width: 26, height: 26, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: danger ? "var(--st-critical-fg)" : "var(--text)", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 13, lineHeight: 1 }}>
-      {label}
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: danger ? "var(--st-critical-fg)" : "var(--text)", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1 }}>
+      <Icon name={icon} size={14} />
     </button>
   );
 }

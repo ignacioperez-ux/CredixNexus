@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { AiInteraction } from "@/lib/ai/queries";
@@ -25,7 +27,7 @@ export function AiCenter({ interactions }: { interactions: AiInteraction[] }) {
           {AGENTS.map((a) => (
             <div key={a} style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ color: "var(--accent-2)" }}>✦</span>
+                <Icon name="sparkle" size={12} color="var(--accent-2)" style={{ verticalAlign: "-2px" }} />
                 <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13.5, color: "var(--text)" }}>{t(("aic.ag." + a) as MessageKey)}</span>
               </div>
               <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>{t(("aic.ag." + a + ".d") as MessageKey)}</p>
@@ -36,7 +38,7 @@ export function AiCenter({ interactions }: { interactions: AiInteraction[] }) {
 
       {/* Guardrails */}
       <div style={{ background: "var(--teal-soft)", border: "1px solid var(--teal)", borderRadius: "var(--r-xl)", padding: "14px 18px" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "var(--teal)", marginBottom: 6 }}>🔒 {t("aic.guardrails")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "var(--accent-2)", marginBottom: 6 }}><Icon name="lock" size={13} /> {t("aic.guardrails")}</div>
         <p style={{ margin: 0, fontSize: 12.5, color: "var(--text)", lineHeight: 1.55 }}>{t("aic.guardrails.text")}</p>
       </div>
 
@@ -56,7 +58,7 @@ export function AiCenter({ interactions }: { interactions: AiInteraction[] }) {
                   <Cell mono>{i.action_type}</Cell>
                   <Cell mono muted>{i.related_entity_type ?? "—"}</Cell>
                   <Cell mono muted>{i.model_name}</Cell>
-                  <div style={{ ...cellSt, justifyContent: "center", color: i.human_review_required ? "var(--st-high-fg)" : "var(--muted)" }}>{i.human_review_required ? "✓" : "—"}</div>
+                  <div style={{ ...cellSt, justifyContent: "center", color: i.human_review_required ? "var(--st-high-fg)" : "var(--muted)" }}>{i.human_review_required ? <Icon name="check" size={13} /> : "—"}</div>
                   <Cell mono muted>{new Date(i.created_at).toLocaleString(locale)}</Cell>
                 </div>
               ))}

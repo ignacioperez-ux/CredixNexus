@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
@@ -35,7 +37,7 @@ export function EvolutionPanel({ incidentId, status, score, candidate }: { incid
       ) : (
         <div>
           {candidate && (
-            <div style={{ fontSize: 12, color: "var(--accent-bright)", marginBottom: 8 }}>★ {t("inc.evolution.candidate")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--accent-bright)", marginBottom: 8 }}><Icon name="sparkle" size={13} fill="currentColor" /> {t("inc.evolution.candidate")}</div>
           )}
           <p style={{ margin: "0 0 12px", fontSize: 12.5, opacity: 0.85, lineHeight: 1.5 }}>{t("inc.evolution.note")}</p>
           <button onClick={send} disabled={busy}

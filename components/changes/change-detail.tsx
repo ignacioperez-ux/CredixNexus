@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -64,9 +66,9 @@ export function ChangeDetail({ change, ledger, canManage, canApprove }: { change
             style={{ width: "100%", fontSize: 12.5, padding: "8px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", resize: "vertical", marginBottom: 10, fontFamily: "var(--font-ui)" }} />
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => run(() => cabDecision(change.id, "approved", cabNotes))} disabled={pending}
-              style={{ ...btnBase, background: "var(--cta-bg)", color: "var(--cta-fg)", border: "none" }}>✓ {t("chg.cab.approve")}</button>
+              style={{ ...btnBase, background: "var(--cta-bg)", color: "var(--cta-fg)", border: "none" }}><Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> {t("chg.cab.approve")}</button>
             <button onClick={() => run(() => cabDecision(change.id, "rejected", cabNotes))} disabled={pending}
-              style={{ ...btnBase, background: "var(--st-critical-bg)", color: "var(--st-critical-fg)", border: "none" }}>✕ {t("chg.cab.reject")}</button>
+              style={{ ...btnBase, background: "var(--st-critical-bg)", color: "var(--st-critical-fg)", border: "none" }}><Icon name="x" size={13} style={{ verticalAlign: "-2px" }} /> {t("chg.cab.reject")}</button>
           </div>
         </div>
       )}

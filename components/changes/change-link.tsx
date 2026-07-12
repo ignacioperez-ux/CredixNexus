@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import { ChangeStatusBadge } from "./badges";
@@ -24,7 +26,7 @@ export function ChangeLink({ changes, canManage, newHref }: { changes: LinkedCha
       )}
       {canManage && (
         <Link href={newHref} style={{ fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--accent-2)", textDecoration: "none", textAlign: "center" }}>
-          ⚙ {t("chg.create")}
+          <Icon name="gear" size={13} style={{ verticalAlign: "-2px" }} /> {t("chg.create")}
         </Link>
       )}
     </div>

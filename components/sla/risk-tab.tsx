@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -34,7 +36,7 @@ export function RiskTab({ data, canManage }: { data: AtRiskData; canManage: bool
         {canManage && (
           <button onClick={evaluate} disabled={pending}
             style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: pending ? "default" : "pointer" }}>
-            {pending ? t("sla.eval.running") : "⚡ " + t("sla.eval.run")}
+            {pending ? t("sla.eval.running") : <><Icon name="zap" size={13} style={{ verticalAlign: "-2px" }} /> {t("sla.eval.run")}</>}
           </button>
         )}
       </div>

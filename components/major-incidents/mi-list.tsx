@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
@@ -41,7 +43,7 @@ export function MiList({ data }: { data: MiData }) {
                   <Cell><Drill onClick={() => f.set("sev", m.severity)}><SevBadge severity={m.severity} /></Drill></Cell>
                   <Cell>{m.title}</Cell>
                   <Cell muted>{m.commander?.full_name ?? "—"}</Cell>
-                  <Cell mono style={overdue ? { color: "var(--st-critical)" } : { color: "var(--muted)" }}>{m.next_update_due_at ? new Date(m.next_update_due_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}{overdue ? " ⚠" : ""}</Cell>
+                  <Cell mono style={overdue ? { color: "var(--st-critical)" } : { color: "var(--muted)" }}>{m.next_update_due_at ? new Date(m.next_update_due_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}{overdue ? <Icon name="alert" size={12} color="var(--st-critical)" style={{ marginLeft: 4, verticalAlign: "-2px" }} /> : ""}</Cell>
                   <Cell><MiStatusBadge status={m.status} /></Cell>
                 </Link>
               );

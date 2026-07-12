@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
+import { Icon } from "@/components/ui/icon";
 
 export const INST_COLOR: Record<string, { fg: string; bg: string }> = {
   running: { fg: "var(--st-info)", bg: "var(--st-info-bg)" },
@@ -14,7 +15,19 @@ export const STEP_COLOR: Record<string, { fg: string; bg: string }> = {
   rejected: { fg: "var(--st-critical-fg)", bg: "var(--st-critical-bg)" },
   skipped: { fg: "var(--muted)", bg: "var(--paper)" },
 };
-export const NODE_ICON: Record<string, string> = { start: "▸", task: "◻", approval: "⚖", automated: "⚙", end: "■" };
+// Mapa tipo-de-nodo -> icono geometrico (sin glifos Unicode). fill para nodos "solidos".
+const NODE_ICON_MAP: Record<string, { name: string; fill?: boolean }> = {
+  start: { name: "play", fill: true },
+  task: { name: "square" },
+  approval: { name: "scale" },
+  automated: { name: "gear" },
+  end: { name: "square", fill: true },
+};
+
+export function NodeIcon({ nodeType, size = 13 }: { nodeType: string; size?: number }) {
+  const m = NODE_ICON_MAP[nodeType] ?? { name: "square" };
+  return <Icon name={m.name} size={size} fill={m.fill ? "currentColor" : "none"} />;
+}
 
 export function InstanceStatusBadge({ status }: { status: string }) {
   const { t } = useI18n();

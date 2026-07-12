@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -79,9 +81,9 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
           <span style={{ padding: "4px 11px", borderRadius: "var(--r-pill)", fontSize: 11.5, fontWeight: 600, background: "var(--paper)", color: "var(--text)" }}>{t(("pst." + project.status) as MessageKey)}</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {project.status !== "active" && <button onClick={() => setStatus("active")} disabled={busy} style={ghost}>▶ {t("pst.active")}</button>}
-          {project.status !== "completed" && <button onClick={() => setStatus("completed")} disabled={busy} style={ghost}>✓ {t("pst.completed")}</button>}
-          <Link href={`/projects/${project.id}/edit`} style={{ ...ghost, textDecoration: "none" }}>✎ {t("proj.save")}</Link>
+          {project.status !== "active" && <button onClick={() => setStatus("active")} disabled={busy} style={ghost}><Icon name="play" size={12} fill="currentColor" style={{ verticalAlign: "-1px" }} /> {t("pst.active")}</button>}
+          {project.status !== "completed" && <button onClick={() => setStatus("completed")} disabled={busy} style={ghost}><Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> {t("pst.completed")}</button>}
+          <Link href={`/projects/${project.id}/edit`} style={{ ...ghost, textDecoration: "none" }}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("proj.save")}</Link>
           <button onClick={remove} disabled={busy} style={{ ...ghost, color: "var(--st-critical-fg)", borderColor: "var(--st-critical)" }}>{t("proj.delete")}</button>
         </div>
       </div>

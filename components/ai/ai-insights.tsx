@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -96,7 +98,7 @@ function Btn({ onClick, busy, label }: { onClick: () => void; busy: boolean; lab
   return (
     <button onClick={onClick} disabled={busy}
       style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: "var(--r-md)", background: "var(--dark-surface)", color: "var(--dark-surface-fg)", border: "1px solid var(--dark-surface-border)", fontWeight: 600, fontSize: 12, cursor: busy ? "default" : "pointer", width: "100%", justifyContent: "center" }}>
-      <span style={{ color: "var(--accent-bright)" }}>✦</span> {busy ? t("ai.generating") : label}
+      <Icon name="sparkle" size={13} color="var(--accent-bright)" style={{ verticalAlign: "-2px" }} /> {busy ? t("ai.generating") : label}
     </button>
   );
 }

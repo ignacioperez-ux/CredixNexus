@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
@@ -34,7 +36,7 @@ export function RuleConfig({ rule, version, governance }: { rule: { code: string
         ))}
       </div>
       <div style={{ fontSize: 11.5, marginBottom: 18, color: sumOk ? "var(--st-low-fg)" : "var(--st-critical-fg)" }}>
-        {t("rule.weightsum")}: {Math.round(sum * 100)}% {sumOk ? "✓" : "✕"}
+        {t("rule.weightsum")}: {Math.round(sum * 100)}% {sumOk ? <Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> : <Icon name="x" size={13} style={{ verticalAlign: "-2px" }} />}
       </div>
 
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10 }}>{t("rule.thresholds")}</div>

@@ -1,12 +1,14 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { NodeRow, EdgeRow } from "@/lib/workflows/queries";
 import { addNode, deleteNode, addEdge, deleteEdge, publishDefinition, setDefinitionStatus } from "@/lib/workflows/actions";
-import { DefStatusBadge, NODE_ICON } from "./badges";
+import { DefStatusBadge, NodeIcon } from "./badges";
 import { BackButton } from "@/components/common/back-button";
 
 type DefView = { id: string; code: string; name: string; description: string | null; entity_type: string; status: string };
@@ -70,11 +72,11 @@ export function DefinitionDetail({ def, nodes, edges, options, canManage }: { de
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: editable ? 16 : 0 }}>
             {nodes.map((n) => (
               <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: "var(--r-md)", background: "var(--paper)" }}>
-                <span style={{ fontSize: 13 }}>{NODE_ICON[n.node_type] ?? "◻"}</span>
+                <NodeIcon nodeType={n.node_type} size={14} />
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{n.code}</span>
                 <span style={{ fontSize: 12.5, color: "var(--text)", flex: 1 }}>{n.name}</span>
                 <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{t(("wf.nt." + n.node_type) as MessageKey)}{n.assignee_role ? ` · ${n.assignee_role}` : ""}</span>
-                {editable && <button onClick={() => run(() => deleteNode(def.id, n.id))} disabled={pending} style={btnX}>✕</button>}
+                {editable && <button onClick={() => run(() => deleteNode(def.id, n.id))} disabled={pending} style={btnX}><Icon name="x" size={12} /></button>}
               </div>
             ))}
           </div>
@@ -101,7 +103,7 @@ export function DefinitionDetail({ def, nodes, edges, options, canManage }: { de
                 <span style={{ color: "var(--muted)" }}>→</span>
                 <span style={{ color: "var(--text)", flex: 1 }}>{nodeName(e.to_node_id)}</span>
                 {e.guard && <span style={{ fontSize: 10, color: "var(--st-eval)", background: "var(--st-eval-bg)", padding: "1px 6px", borderRadius: "var(--r-pill)" }}>{e.guard}</span>}
-                {editable && <button onClick={() => run(() => deleteEdge(def.id, e.id))} disabled={pending} style={btnX}>✕</button>}
+                {editable && <button onClick={() => run(() => deleteEdge(def.id, e.id))} disabled={pending} style={btnX}><Icon name="x" size={12} /></button>}
               </div>
             ))}
           </div>

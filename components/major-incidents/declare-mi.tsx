@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -44,7 +46,7 @@ export function DeclareMi({ incidentId, incidentTitle, isP1, linked, canManage }
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {!isP1 && <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("mi.hint.notp1")}</div>}
-        <button onClick={() => setOpen(true)} style={{ fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--st-critical)", background: "var(--st-critical-bg)", color: "var(--st-critical-fg)", cursor: "pointer" }}>⚠ {t("mi.declare")}</button>
+        <button onClick={() => setOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--st-critical)", background: "var(--st-critical-bg)", color: "var(--st-critical-fg)", cursor: "pointer" }}><Icon name="alert" size={13} /> {t("mi.declare")}</button>
       </div>
     );
   }

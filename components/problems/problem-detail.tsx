@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -117,7 +119,7 @@ export function ProblemDetail({ problem, linked, linkable, ledger, canManage, ch
                     {canManage && (
                       <button onClick={() => run(() => unlinkIncidentFromProblem(problem.id, l.incident!.id))} disabled={pending}
                         title={t("prob.link.remove")}
-                        style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--st-critical)", cursor: pending ? "default" : "pointer" }}>✕</button>
+                        style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--st-critical)", cursor: pending ? "default" : "pointer" }}><Icon name="x" size={13} /></button>
                     )}
                   </div>
                 ))}

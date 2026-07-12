@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
@@ -24,7 +26,7 @@ export function IncidentEscalations({ escalations }: { escalations: Esc[] }) {
           <span style={{ fontSize: 11, fontWeight: 600, color: actionColor[e.action] ?? "var(--text)", whiteSpace: "nowrap" }}>{t(("sla.act." + e.action) as MessageKey)}</span>
           <span style={{ fontSize: 12, color: "var(--text)", flex: 1 }}>{t(("sla.clock." + e.sla_type) as MessageKey)} · {e.threshold_pct}% <span style={{ color: "var(--muted)", fontFamily: "var(--font-mono)" }}>({e.elapsed_pct}%)</span></span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)" }}>{new Date(e.triggered_at).toLocaleDateString(locale)}</span>
-          {e.acknowledged && <span style={{ fontSize: 10.5, color: "var(--st-low-fg)" }}>✓</span>}
+          {e.acknowledged && <span style={{ color: "var(--st-low-fg)", display: "inline-flex" }}><Icon name="check" size={13} /></span>}
         </div>
       ))}
     </div>

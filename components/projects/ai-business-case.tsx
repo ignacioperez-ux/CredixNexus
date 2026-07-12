@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
@@ -51,7 +53,7 @@ export function AiBusinessCase({ projectId, current }: { projectId: string; curr
       ) : (
         <button onClick={gen} disabled={busy}
           style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 16px", borderRadius: "var(--r-md)", background: "var(--dark-surface)", color: "var(--dark-surface-fg)", border: "1px solid var(--dark-surface-border)", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
-          <span style={{ color: "var(--accent-bright)" }}>✦</span> {busy ? t("ai.generating") : t("bc.gen")}
+          <Icon name="sparkle" size={13} color="var(--accent-bright)" style={{ verticalAlign: "-2px" }} /> {busy ? t("ai.generating") : t("bc.gen")}
         </button>
       )}
       {notice && <p style={{ marginTop: 10, fontSize: 11.5, color: "var(--st-high-fg)" }}>{notice}</p>}

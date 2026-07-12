@@ -8,7 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { StepRow } from "@/lib/workflows/queries";
 import { allowedOutcomes, type NodeType } from "@/lib/workflows/graph";
 import { advanceStep, cancelInstance } from "@/lib/workflows/actions";
-import { InstanceStatusBadge, STEP_COLOR, NODE_ICON } from "./badges";
+import { InstanceStatusBadge, STEP_COLOR, NodeIcon } from "./badges";
 import { BackButton } from "@/components/common/back-button";
 
 type InstanceView = {
@@ -61,7 +61,7 @@ export function InstanceDetail({ instance, steps, ledger, canRun }: { instance: 
               return (
                 <div key={s.id} style={{ display: "flex", gap: 12 }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: c.bg, color: c.fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>{NODE_ICON[nt] ?? "◻"}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: c.bg, color: c.fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}><NodeIcon nodeType={nt} size={13} /></div>
                     {idx < steps.length - 1 && <div style={{ width: 2, flex: 1, background: "var(--line)", minHeight: 18 }} />}
                   </div>
                   <div style={{ flex: 1, paddingBottom: 18 }}>

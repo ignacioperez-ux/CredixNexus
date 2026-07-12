@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
@@ -73,12 +75,12 @@ function Row({ c, fmt, locale, highImpact }: { c: WsCase; fmt: (n: number) => st
       <Cell mono accent>{c.incident_number}</Cell>
       <Cell>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
-        {(c.sensitive_flag || c.pii_flag) && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--st-high-fg)", marginLeft: 8, flexShrink: 0 }}>🔒</span>}
+        {(c.sensitive_flag || c.pii_flag) && <span style={{ color: "var(--st-high-fg)", marginLeft: 8, flexShrink: 0, display: "inline-flex" }}><Icon name="lock" size={12} /></span>}
       </Cell>
       <Cell muted>{highImpact ? fmt(c.financial_impact_estimate) : (c.ci?.name ?? "—")}</Cell>
       <Cell><PriorityTag priority={c.priority} /></Cell>
       <Cell mono style={overdue ? { color: "var(--st-critical)" } : { color: "var(--muted)" }}>
-        {c.sla_resolution_due_at ? new Date(c.sla_resolution_due_at).toLocaleDateString(locale) : "—"}{overdue ? " ⚠" : ""}
+        {c.sla_resolution_due_at ? new Date(c.sla_resolution_due_at).toLocaleDateString(locale) : "—"}{overdue ? <Icon name="alert" size={12} color="var(--st-critical)" style={{ marginLeft: 4, verticalAlign: "-2px" }} /> : ""}
       </Cell>
       <Cell><StatusPill status={c.status} /></Cell>
     </Link>

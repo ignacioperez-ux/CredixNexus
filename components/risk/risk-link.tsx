@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -20,7 +22,7 @@ export function RiskLink({ incidentId, linked, canManage }: { incidentId: string
     return (
       <div style={{ padding: "6px 0" }}>
         <Link href="/risk" style={{ fontSize: 12, color: "var(--st-critical)", textDecoration: "none", fontWeight: 600 }}>
-          ⚠ {t("risk.linked")} · {linked.event_number}
+          <Icon name="alert" size={13} style={{ verticalAlign: "-2px" }} /> {t("risk.linked")} · {linked.event_number}
         </Link>
       </div>
     );
@@ -43,7 +45,7 @@ export function RiskLink({ incidentId, linked, canManage }: { incidentId: string
         disabled={pending}
         style={{ fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--paper)", color: "var(--st-critical)", cursor: pending ? "default" : "pointer", width: "100%" }}
       >
-        {pending ? t("risk.registering") : "⚠ " + t("risk.register")}
+        {pending ? t("risk.registering") : <><Icon name="alert" size={13} style={{ verticalAlign: "-2px" }} /> {t("risk.register")}</>}
       </button>
       {err && <div style={{ fontSize: 11, color: "var(--st-critical)", marginTop: 6 }}>{err}</div>}
     </div>

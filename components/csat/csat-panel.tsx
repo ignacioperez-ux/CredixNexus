@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
@@ -45,7 +47,7 @@ export function CsatPanel({ incidentId, survey, canSubmit }: { incidentId: strin
       <div style={{ display: "flex", gap: 4 }} onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} onClick={() => setScore(n)} onMouseEnter={() => setHover(n)}
-            style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 24, lineHeight: 1, padding: 0, color: (hover || score) >= n ? "#F7CE4B" : "var(--line)" }}>★</button>
+            style={{ background: "transparent", border: "none", cursor: "pointer", lineHeight: 1, padding: 0, color: (hover || score) >= n ? "#F7CE4B" : "var(--line)" }}><Icon name="star" size={22} fill={(hover || score) >= n ? "#F7CE4B" : "none"} /></button>
         ))}
       </div>
       <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder={t("csat.comment")}
@@ -60,5 +62,5 @@ export function CsatPanel({ incidentId, survey, canSubmit }: { incidentId: strin
 }
 
 function Stars({ value }: { value: number }) {
-  return <span style={{ display: "inline-flex", gap: 2 }}>{[1, 2, 3, 4, 5].map((n) => <span key={n} style={{ fontSize: 16, color: value >= n ? "#F7CE4B" : "var(--line)" }}>★</span>)}</span>;
+  return <span style={{ display: "inline-flex", gap: 2 }}>{[1, 2, 3, 4, 5].map((n) => <span key={n} style={{ color: value >= n ? "#F7CE4B" : "var(--line)", display: "inline-flex" }}><Icon name="star" size={15} fill={value >= n ? "#F7CE4B" : "none"} /></span>)}</span>;
 }

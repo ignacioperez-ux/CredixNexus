@@ -9,6 +9,7 @@ import type { Catalog } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { setRecordStatus } from "@/lib/masterdata/actions";
 import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { Icon } from "@/components/ui/icon";
 
 type Rec = Record<string, unknown> & { id: string; code: string; name: string; status: string };
 
@@ -25,7 +26,7 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
   function disp(r: Rec, fname: string): string | null {
     const f = catalog.fields.find((x) => x.name === fname);
     const v = r[fname];
-    if (f?.type === "bool") return v ? "✓" : null;
+    if (f?.type === "bool") return v ? t("common.yes") : null;
     if (f?.type === "fk") return v ? ((fkOptions[fname] ?? []).find((o) => o.id === v)?.name ?? null) : null;
     return v == null || v === "" ? null : String(v);
   }
@@ -108,7 +109,7 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
                   <div style={{ ...cellSt, justifyContent: "flex-end", gap: 8 }}>
                     {canManage ? (
                       <>
-                        <Link href={`/catalog/${catalog.key}/${r.id}/edit`} title={t("common.edit")} style={{ fontSize: 13, color: "var(--accent-2)", textDecoration: "none" }}>✎</Link>
+                        <Link href={`/catalog/${catalog.key}/${r.id}/edit`} title={t("common.edit")} style={{ display: "inline-flex", color: "var(--accent-2)", textDecoration: "none" }}><Icon name="edit" size={14} /></Link>
                         <button onClick={() => toggle(r)} disabled={busy === r.id}
                           style={{ fontSize: 11.5, padding: "4px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--card)", color: r.status === "active" ? "var(--st-critical-fg)" : "var(--st-low-fg)", cursor: "pointer", whiteSpace: "nowrap" }}>
                           {r.status === "active" ? t("md.deactivate") : t("md.activate")}

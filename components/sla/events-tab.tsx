@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -44,7 +46,7 @@ export function EventsTab({ events, canManage }: { events: EscalationEventRow[];
               <Cell mono muted>{e.elapsed_pct}%</Cell>
               <Cell>
                 {e.acknowledged ? (
-                  <span style={{ fontSize: 11, color: "var(--st-low-fg)" }}>✓</span>
+                  <span style={{ color: "var(--st-low-fg)", display: "inline-flex" }}><Icon name="check" size={13} /></span>
                 ) : canManage ? (
                   <button onClick={() => ack(e.id)} disabled={pending}
                     style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: "var(--r-pill)", border: "1px solid var(--line)", background: "var(--paper)", color: "var(--text)", cursor: pending ? "default" : "pointer" }}>

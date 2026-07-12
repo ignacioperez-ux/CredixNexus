@@ -8,6 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { DependencyGraph, ServiceNode, ServiceOption } from "@/lib/dependencies/queries";
 import { DEPENDENCY_TYPES } from "@/lib/dependencies/validation";
 import { addDependency, removeDependency } from "@/lib/dependencies/actions";
+import { Icon } from "@/components/ui/icon";
 
 const CRIT: Record<string, string> = { critical: "var(--st-critical-fg)", high: "var(--st-high-fg)", medium: "var(--st-medium-fg)", low: "var(--st-low-fg)" };
 
@@ -113,7 +114,7 @@ function ImpactPanel({ node, services, canManage, onSelect }: { node: ServiceNod
           </Section>
         </div>
 
-        <div style={{ fontSize: 10.5, color: "var(--muted)", borderTop: "1px solid var(--line-soft)", paddingTop: 10 }}>✦ {t("dep.derived.note")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--muted)", borderTop: "1px solid var(--line-soft)", paddingTop: 10 }}><Icon name="sparkle" size={12} /> {t("dep.derived.note")}</div>
       </div>
 
       {/* Incidentes activos (impacto operativo real) */}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
+
 import { useI18n } from "@/lib/i18n/provider";
 
 // Render visual de informes IA: interpreta el texto (encabezados "Titulo:", vinetas
@@ -72,7 +74,7 @@ export function AiReport({ text, framed = true }: { text: string; framed?: boole
     <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderLeft: "3px solid var(--accent)", borderRadius: "var(--r-md)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
       {body}
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--muted)", borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
-        <span style={{ color: "var(--accent-bright)" }}>✦</span> {t("ai.footer")}
+        <Icon name="sparkle" size={13} color="var(--accent-bright)" style={{ verticalAlign: "-2px" }} /> {t("ai.footer")}
       </div>
     </div>
   );
