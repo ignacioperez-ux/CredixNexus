@@ -1,37 +1,21 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Header } from "@/components/app-shell/header";
 import { canSeeNav, requiredPermForPath } from "@/lib/nav/access";
+import { getSessionUser, getSessionAccount, getAccessControl, tenantNameOf } from "@/lib/auth/session";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  // Perfil del usuario (RLS: solo su propio tenant). Aprovisionado por trigger handle_new_user.
-  const { data: account } = await supabase
-    .from("user_account")
-    .select("full_name, tenant:tenant_id (name)")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  // Perfil + control de acceso en paralelo, reutilizando la sesion cacheada por request
+  // (session.ts): las paginas hijas comparten estas mismas resoluciones, sin repetir viajes.
+  const [account, access] = await Promise.all([getSessionAccount(), getAccessControl()]);
 
   const userName = account?.full_name ?? user.email ?? "Usuario";
-  const tenantRel = account?.tenant as { name?: string } | { name?: string }[] | null | undefined;
-  const tenantName =
-    (Array.isArray(tenantRel) ? tenantRel[0]?.name : tenantRel?.name) ?? "Credix Core";
-
-  // Navegacion por rol: permisos + roles del usuario para filtrar el menu (bypass admin).
-  const [{ data: perms }, { data: roles }] = await Promise.all([
-    supabase.rpc("my_permissions"),
-    supabase.rpc("my_roles"),
-  ]);
-  const roleList = (roles as string[] | null) ?? [];
-  const isAdmin = roleList.includes("system_admin") || roleList.includes("tenant_admin");
-  const permList = (perms as string[] | null) ?? [];
+  const tenantName = tenantNameOf(account);
+  const { perms: permList, roles: roleList, isAdmin } = access;
 
   // Guard de ruta por permiso: si la ruta requiere un permiso que el usuario no tiene, /unauthorized.
   const pathname = (await headers()).get("x-pathname") ?? "";
