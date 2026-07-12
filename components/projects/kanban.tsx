@@ -26,6 +26,7 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
 
   const defs: FilterDef<ProjectRow>[] = [
     { key: "squad", label: t("proj.field.squad"), get: (p) => p.squad?.name, allLabel: t("md.filter.all") },
+    { key: "bu", label: t("proj.field.bu"), get: (p) => p.business_unit?.name, allLabel: t("md.filter.all") },
   ];
   const f = useListFilters(projects, defs);
 

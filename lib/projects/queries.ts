@@ -10,12 +10,13 @@ export type ProjectRow = {
   estimated_cost_amount: number;
   squad: { name: string } | null;
   incident: { incident_number: string } | null;
+  business_unit: { name: string } | null;
 };
 
 export async function listProjects(supabase: SupabaseClient): Promise<ProjectRow[]> {
   const { data, error } = await supabase
     .from("project")
-    .select("id, project_code, name, status, wsjf, estimated_benefit_amount, estimated_cost_amount, squad:squad_id(name), incident:created_from_incident_id(incident_number)")
+    .select("id, project_code, name, status, wsjf, estimated_benefit_amount, estimated_cost_amount, squad:squad_id(name), incident:created_from_incident_id(incident_number), business_unit:business_unit_id(name)")
     .order("wsjf", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as ProjectRow[];

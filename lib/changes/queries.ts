@@ -12,6 +12,7 @@ export type ChangeRow = {
   planned_start: string | null;
   related_incident_id: string | null;
   related_problem_id: string | null;
+  assignee: { full_name: string } | null;
 };
 
 export type ChangeStats = { open: number; pendingCab: number; scheduled: number; emergency: number };
@@ -22,10 +23,10 @@ const OPEN = ["draft", "assessment", "pending_cab", "approved", "scheduled", "im
 export async function listChanges(supabase: SupabaseClient): Promise<ChangeData> {
   const { data, error } = await supabase
     .from("change_request")
-    .select("id, change_number, title, change_type, risk_level, status, planned_start, related_incident_id, related_problem_id")
+    .select("id, change_number, title, change_type, risk_level, status, planned_start, related_incident_id, related_problem_id, assignee:assigned_to(full_name)")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  const changes = (data ?? []) as ChangeRow[];
+  const changes = (data ?? []) as unknown as ChangeRow[];
   return {
     changes,
     stats: {

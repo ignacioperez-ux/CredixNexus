@@ -21,12 +21,14 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
   const [bu, setBu] = useState("");
   const [app, setApp] = useState("");
   const [prio, setPrio] = useState("");
+  const [resp, setResp] = useState("");
 
   const domainOf = (r: IncidentRow) => caseTypes[r.case_type]?.domain ?? "business";
 
   // Opciones de filtro derivadas de los datos reales (cero hardcode).
   const buOptions = useMemo(() => distinct(rows.map((r) => r.business_unit?.name)), [rows]);
   const appOptions = useMemo(() => distinct(rows.map((r) => r.ci?.name)), [rows]);
+  const respOptions = useMemo(() => distinct(rows.map((r) => r.assignee?.name)), [rows]);
   const prioOptions = useMemo(() => PRIORITY_ORDER.filter((p) => rows.some((r) => r.priority === p)), [rows]);
 
   const filtered = useMemo(
@@ -35,20 +37,22 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
       (domain === "all" || domainOf(r) === domain) &&
       (!bu || r.business_unit?.name === bu) &&
       (!app || r.ci?.name === app) &&
+      (!resp || r.assignee?.name === resp) &&
       (!prio || r.priority === prio)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, filter, domain, bu, app, prio],
+    [rows, filter, domain, bu, app, prio, resp],
   );
 
   const chips = [
     bu && { label: t("inc.field.bu"), value: bu, clear: () => setBu("") },
     app && { label: t("inc.field.app"), value: app, clear: () => setApp("") },
+    resp && { label: t("flt.responsible"), value: resp, clear: () => setResp("") },
     prio && { label: t("inc.col.priority"), value: t(priorityKey(prio)), clear: () => setPrio("") },
     domain !== "all" && { label: t("inc.domain"), value: t(("dom." + domain) as MessageKey), clear: () => setDomain("all") },
     filter !== "all" && { label: t("inc.col.status"), value: t(("st." + filter) as MessageKey), clear: () => setFilter("all") },
   ].filter(Boolean) as { label: string; value: string; clear: () => void }[];
 
-  function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); }
+  function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); }
 
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
@@ -90,6 +94,7 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
       <div style={{ display: "flex", gap: 10, padding: "0 20px 12px", flexWrap: "wrap", alignItems: "center" }}>
         <FieldSelect label={t("inc.field.bu")} value={bu} onChange={setBu} options={buOptions} allLabel={t("inc.filter.allbu")} />
         <FieldSelect label={t("inc.field.app")} value={app} onChange={setApp} options={appOptions} allLabel={t("inc.filter.allapp")} />
+        <FieldSelect label={t("flt.responsible")} value={resp} onChange={setResp} options={respOptions} allLabel={t("flt.allresp")} />
         <FieldSelect label={t("inc.col.priority")} value={prio} onChange={setPrio}
           options={prioOptions} allLabel={t("inc.filter.allprio")} render={(p) => t(priorityKey(p))} />
       </div>

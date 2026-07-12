@@ -14,6 +14,7 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
     { key: "status", label: t("prob.col.status"), get: (p) => p.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("prob.st." + v) as MessageKey) },
     { key: "prio", label: t("prob.col.priority"), get: (p) => p.priority, allLabel: t("inc.filter.allprio"), render: (v) => t(("prob.prio." + v) as MessageKey) },
     { key: "cat", label: t("prob.col.category"), get: (p) => p.category, allLabel: t("inc.filter.allcat") },
+    { key: "owner", label: t("flt.responsible"), get: (p) => p.owner?.full_name, allLabel: t("flt.allresp") },
   ];
   const f = useListFilters(data.problems, defs);
 

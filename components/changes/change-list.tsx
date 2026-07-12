@@ -14,6 +14,7 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
     { key: "type", label: t("chg.col.type"), get: (c) => c.change_type, allLabel: t("inc.filter.alltype"), render: (v) => t(("chg.type." + v) as MessageKey) },
     { key: "risk", label: t("chg.col.risk"), get: (c) => c.risk_level, allLabel: t("inc.filter.allrisk"), render: (v) => t(("chg.risk." + v) as MessageKey) },
     { key: "status", label: t("chg.col.status"), get: (c) => c.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("chg.st." + v) as MessageKey) },
+    { key: "resp", label: t("flt.responsible"), get: (c) => c.assignee?.full_name, allLabel: t("flt.allresp") },
   ];
   const f = useListFilters(data.changes, defs);
   const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };
