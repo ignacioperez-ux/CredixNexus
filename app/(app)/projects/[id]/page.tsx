@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getContext, hasPermission } from "@/lib/auth/context";
+import { getContext } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { getProject, getProjectTasks, getProjectValidations } from "@/lib/projects/queries";
 import { getWorkflowsForProject, getActiveDefinitions } from "@/lib/workflows/queries";
 import { ProjectDetail, type ProjectDetailData } from "@/components/projects/project-detail";
@@ -11,15 +12,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const project = await getProject(ctx.supabase, id);
   if (!project) notFound();
 
-  const [tasks, validations, workflows, workflowDefs, canValidate, canDeploy, canRunWorkflow] = await Promise.all([
+  // Permisos desde la resolucion cacheada por request (session.ts): 0 viajes extra.
+  const access = await getAccessControl();
+  const can = (code: string) => access.isAdmin || access.perms.includes(code);
+
+  const [tasks, validations, workflows, workflowDefs] = await Promise.all([
     getProjectTasks(ctx.supabase, id),
     getProjectValidations(ctx.supabase, id),
     getWorkflowsForProject(ctx.supabase, id),
     getActiveDefinitions(ctx.supabase, "project"),
-    hasPermission(ctx.supabase, "project.validate"),
-    hasPermission(ctx.supabase, "project.deploy"),
-    hasPermission(ctx.supabase, "workflow.run"),
   ]);
+  const canValidate = can("project.validate");
+  const canDeploy = can("project.deploy");
+  const canRunWorkflow = can("workflow.run");
 
   return (
     <ProjectDetail

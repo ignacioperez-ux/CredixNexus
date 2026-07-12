@@ -12,6 +12,7 @@ import { computeRoi } from "@/lib/projects/queries";
 import { AiBusinessCase } from "./ai-business-case";
 import { BackButton } from "@/components/common/back-button";
 import { QaPanel } from "./qa-panel";
+import { ProjectStepper } from "./project-stepper";
 
 type Named = { name: string } | null;
 export type ProjectDetailData = {
@@ -66,7 +67,7 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
   }
   async function setStatus(s: string) { setBusy(true); await changeProjectStatus(project.id, s); setBusy(false); router.refresh(); }
   async function remove() {
-    if (!confirm("¿Cancelar (eliminación lógica) este proyecto?")) return;
+    if (!confirm(t("proj.cancel.confirm"))) return;
     setBusy(true); await softDeleteProject(project.id); setBusy(false);
     router.push("/projects"); router.refresh();
   }
@@ -78,13 +79,13 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent-2)" }}>{project.project_code}</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, margin: 0, color: "var(--text)" }}>{project.name}</h1>
-          <span style={{ padding: "4px 11px", borderRadius: "var(--r-pill)", fontSize: 11.5, fontWeight: 600, background: "var(--paper)", color: "var(--text)" }}>{t(("pst." + project.status) as MessageKey)}</span>
+          <ProjectStepper status={project.status} />
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {project.status !== "active" && <button onClick={() => setStatus("active")} disabled={busy} style={ghost}><Icon name="play" size={12} fill="currentColor" style={{ verticalAlign: "-1px" }} /> {t("pst.active")}</button>}
           {project.status !== "completed" && <button onClick={() => setStatus("completed")} disabled={busy} style={ghost}><Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> {t("pst.completed")}</button>}
           <Link href={`/projects/${project.id}/edit`} style={{ ...ghost, textDecoration: "none" }}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("proj.save")}</Link>
-          <button onClick={remove} disabled={busy} style={{ ...ghost, color: "var(--st-critical-fg)", borderColor: "var(--st-critical)" }}>{t("proj.delete")}</button>
+          <button onClick={remove} disabled={busy} style={cancelBtn}>{t("proj.cancel")}</button>
         </div>
       </div>
 
@@ -173,3 +174,5 @@ function fmt(v: number, locale: string) {
   return new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(v ?? 0);
 }
 const ghost: React.CSSProperties = { padding: "7px 12px", borderRadius: "var(--r-md)", background: "var(--card)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+// Accion destructiva de-enfatizada: no es un paso del flujo (setea Cancelado, no elimina).
+const cancelBtn: React.CSSProperties = { padding: "7px 10px", borderRadius: "var(--r-md)", background: "transparent", border: "none", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 };
