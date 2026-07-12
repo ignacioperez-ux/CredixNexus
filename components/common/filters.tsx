@@ -83,6 +83,63 @@ export function FilterBar<T>({ defs, filters }: { defs: FilterDef<T>[]; filters:
   );
 }
 
+// ---- Agrupacion reutilizable -------------------------------------------------
+// Agrupa filas por un campo (normalmente derivado de un maestro: estado, responsable,
+// aplicacion, producto...). Devuelve grupos con etiqueta + conteo, o null si no hay agrupacion.
+
+export type GroupDef<T> = {
+  key: string;
+  label: string;                               // etiqueta traducida (para el selector)
+  get: (row: T) => string | null | undefined;  // valor de agrupacion
+  render?: (v: string) => string;              // valor -> texto visible (enums)
+};
+
+export type Group<T> = { value: string; label: string; rows: T[] };
+
+export function useGrouping<T>(rows: T[], defs: GroupDef<T>[]) {
+  const [groupKey, setGroupKey] = useState("");
+  const active = defs.find((d) => d.key === groupKey) ?? null;
+  const groups = useMemo<Group<T>[] | null>(() => {
+    if (!active) return null;
+    const map = new Map<string, T[]>();
+    for (const r of rows) {
+      const raw = active.get(r);
+      const k = raw == null || raw === "" ? "—" : raw;
+      const arr = map.get(k);
+      if (arr) arr.push(r); else map.set(k, [r]);
+    }
+    return [...map.entries()]
+      .sort((a, b) => (a[0] === "—" ? 1 : b[0] === "—" ? -1 : a[0].localeCompare(b[0])))
+      .map(([value, items]) => ({ value, label: active.render && value !== "—" ? active.render(value) : value, rows: items }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, active]);
+  return { groupKey, setGroupKey, groups, defs };
+}
+
+/** Selector "Agrupar por" (un dropdown). allLabel = opcion "sin agrupar". */
+export function GroupBar<T>({ defs, groupKey, setGroupKey, allLabel, label }: { defs: GroupDef<T>[]; groupKey: string; setGroupKey: (v: string) => void; allLabel: string; label: string }) {
+  return (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--muted)", fontWeight: 600 }}>
+      {label}
+      <select value={groupKey} onChange={(e) => setGroupKey(e.target.value)}
+        style={{ fontSize: 12, padding: "6px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)", maxWidth: 210 }}>
+        <option value="">{allLabel}</option>
+        {defs.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
+/** Encabezado de grupo (fila de titulo con conteo) para intercalar en tablas agrupadas. */
+export function GroupHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--head-bg)", borderTop: "1px solid var(--line)" }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{label}</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>{count}</span>
+    </div>
+  );
+}
+
 /** Valor de campo clickeable: hace drill-down (aplica el filtro) sin propagar el clic. */
 export function Drill({ onClick, children, mono }: { onClick: () => void; children: React.ReactNode; mono?: boolean }) {
   const { t } = useI18n();

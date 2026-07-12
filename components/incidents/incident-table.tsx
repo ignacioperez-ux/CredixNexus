@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { IncidentRow, CaseTypeMeta } from "@/lib/incidents/queries";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { priorityKey } from "@/lib/incidents/labels";
+import { priorityKey, statusKey } from "@/lib/incidents/labels";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
+import { useGrouping, GroupBar, type GroupDef } from "@/components/common/filters";
 
 const STATUS_FILTERS = ["all", "new", "triaged", "in_progress", "in_evolution", "resolved"];
 const DOMAIN_FILTERS = ["all", "business", "technology", "service"];
@@ -42,6 +43,52 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [rows, filter, domain, bu, app, prio, resp],
   );
+
+  // Agrupacion por campo de maestro (estado, responsable, aplicacion, unidad, prioridad).
+  const groupDefs: GroupDef<IncidentRow>[] = [
+    { key: "gstatus", label: t("inc.col.status"), get: (r) => r.status, render: (v) => t(statusKey(v)) },
+    { key: "gprio", label: t("inc.col.priority"), get: (r) => r.priority, render: (v) => t(priorityKey(v)) },
+    { key: "gresp", label: t("flt.responsible"), get: (r) => r.assignee?.name },
+    { key: "gapp", label: t("inc.field.app"), get: (r) => r.ci?.name },
+    { key: "gbu", label: t("inc.field.bu"), get: (r) => r.business_unit?.name },
+  ];
+  const g = useGrouping(filtered, groupDefs);
+
+  function Line(r: IncidentRow) {
+    return (
+      <div key={r.id} onClick={() => router.push(`/incidents/${r.id}`)}
+        style={{ ...gridStyle(false), cursor: "pointer" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.incident_number}</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9.5, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--paper)", color: "var(--text)", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: domainColor[domainOf(r)] ?? "var(--muted)" }} />
+              {caseTypes[r.case_type]?.name ?? r.case_type}
+            </span>
+            {r.business_unit?.name
+              ? <Drill onClick={() => setBu(r.business_unit!.name)}>{r.business_unit.name}</Drill>
+              : <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.category?.name ?? "—"}</span>}
+          </div>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          {r.ci?.name
+            ? <Drill onClick={() => setApp(r.ci!.name)}>{r.ci.name}</Drill>
+            : <span style={{ fontSize: 12.5, color: "var(--muted)" }}>—</span>}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <span onClick={(e) => { e.stopPropagation(); setPrio(r.priority); }} style={{ cursor: "pointer" }} title={t("inc.filter.drill")}>
+            <PriorityTag priority={r.priority} />
+          </span>
+        </div>
+        <div style={{ minWidth: 0 }}><SlaBadge dueAt={r.sla_resolution_due_at} resolvedAt={r.resolved_at} status={r.status} /></div>
+        <div style={{ textAlign: "right" }}><ScoreBadge score={r.transformation_score} /></div>
+        <div style={{ minWidth: 0 }}><StatusPill status={r.status} /></div>
+      </div>
+    );
+  }
 
   const chips = [
     bu && { label: t("inc.field.bu"), value: bu, clear: () => setBu("") },
@@ -97,6 +144,7 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
         <FieldSelect label={t("flt.responsible")} value={resp} onChange={setResp} options={respOptions} allLabel={t("flt.allresp")} />
         <FieldSelect label={t("inc.col.priority")} value={prio} onChange={setPrio}
           options={prioOptions} allLabel={t("inc.filter.allprio")} render={(p) => t(priorityKey(p))} />
+        <GroupBar defs={groupDefs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
       </div>
 
       {/* Chips de filtro activo (× para volver / quitar el filtro) */}
@@ -128,40 +176,18 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
 
           {filtered.length === 0 ? (
             <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("inc.empty")}</div>
-          ) : (
-            filtered.map((r) => (
-              <div key={r.id} onClick={() => router.push(`/incidents/${r.id}`)}
-                style={{ ...gridStyle(false), cursor: "pointer" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.incident_number}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9.5, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--paper)", color: "var(--text)", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: domainColor[domainOf(r)] ?? "var(--muted)" }} />
-                      {caseTypes[r.case_type]?.name ?? r.case_type}
-                    </span>
-                    {r.business_unit?.name
-                      ? <Drill onClick={() => setBu(r.business_unit!.name)}>{r.business_unit.name}</Drill>
-                      : <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.category?.name ?? "—"}</span>}
-                  </div>
+          ) : g.groups ? (
+            g.groups.map((grp) => (
+              <div key={grp.value}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 20px", background: "var(--head-bg)", borderTop: "1px solid var(--line)" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{grp.label}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>{grp.rows.length}</span>
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  {r.ci?.name
-                    ? <Drill onClick={() => setApp(r.ci!.name)}>{r.ci.name}</Drill>
-                    : <span style={{ fontSize: 12.5, color: "var(--muted)" }}>—</span>}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <span onClick={(e) => { e.stopPropagation(); setPrio(r.priority); }} style={{ cursor: "pointer" }} title={t("inc.filter.drill")}>
-                    <PriorityTag priority={r.priority} />
-                  </span>
-                </div>
-                <div style={{ minWidth: 0 }}><SlaBadge dueAt={r.sla_resolution_due_at} resolvedAt={r.resolved_at} status={r.status} /></div>
-                <div style={{ textAlign: "right" }}><ScoreBadge score={r.transformation_score} /></div>
-                <div style={{ minWidth: 0 }}><StatusPill status={r.status} /></div>
+                {grp.rows.map(Line)}
               </div>
             ))
+          ) : (
+            filtered.map(Line)
           )}
         </div>
       </div>

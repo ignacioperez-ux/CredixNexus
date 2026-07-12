@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProblemData, ProblemRow } from "@/lib/problems/queries";
 import { ProblemStatusBadge, PROB_PRIORITY_COLOR } from "./badges";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 export function ProblemList({ data, canManage }: { data: ProblemData; canManage: boolean }) {
   const { t } = useI18n();
@@ -17,6 +17,24 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
     { key: "owner", label: t("flt.responsible"), get: (p) => p.owner?.full_name, allLabel: t("flt.allresp") },
   ];
   const f = useListFilters(data.problems, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(p: ProblemRow) {
+    const pc = PROB_PRIORITY_COLOR[p.priority] ?? PROB_PRIORITY_COLOR.medium;
+    return (
+      <Link key={p.id} href={`/problems/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{p.problem_number}</Cell>
+        <Cell>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
+          {p.known_error && <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--st-high-fg)", background: "var(--st-high-bg)", padding: "1px 6px", borderRadius: "var(--r-pill)", marginLeft: 8, flexShrink: 0 }}>{t("prob.knownerror")}</span>}
+        </Cell>
+        <Cell muted>{p.category ? <Drill onClick={() => f.set("cat", p.category!)}>{p.category}</Drill> : "—"}</Cell>
+        <Cell><Drill onClick={() => f.set("prio", p.priority)}><span style={{ fontSize: 10.5, fontWeight: 600, color: pc.fg, background: pc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>{t(("prob.prio." + p.priority) as MessageKey)}</span></Drill></Cell>
+        <Cell mono muted>{p.linked_count}</Cell>
+        <Cell><ProblemStatusBadge status={p.status} /></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -36,7 +54,10 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
         <Kpi label={t("prob.kpi.linked")} value={String(data.stats.linkedIncidents)} />
       </div>
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
@@ -45,22 +66,14 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
               <div key={h} style={head}>{h}</div>
             ))}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("prob.empty")}</div>}
-            {f.filtered.map((p) => {
-              const pc = PROB_PRIORITY_COLOR[p.priority] ?? PROB_PRIORITY_COLOR.medium;
-              return (
-                <Link key={p.id} href={`/problems/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                  <Cell mono accent>{p.problem_number}</Cell>
-                  <Cell>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
-                    {p.known_error && <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--st-high-fg)", background: "var(--st-high-bg)", padding: "1px 6px", borderRadius: "var(--r-pill)", marginLeft: 8, flexShrink: 0 }}>{t("prob.knownerror")}</span>}
-                  </Cell>
-                  <Cell muted>{p.category ? <Drill onClick={() => f.set("cat", p.category!)}>{p.category}</Drill> : "—"}</Cell>
-                  <Cell><Drill onClick={() => f.set("prio", p.priority)}><span style={{ fontSize: 10.5, fontWeight: 600, color: pc.fg, background: pc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>{t(("prob.prio." + p.priority) as MessageKey)}</span></Drill></Cell>
-                  <Cell mono muted>{p.linked_count}</Cell>
-                  <Cell><ProblemStatusBadge status={p.status} /></Cell>
-                </Link>
-              );
-            })}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

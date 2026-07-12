@@ -6,7 +6,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ChangeData } from "@/lib/changes/queries";
 import type { ChangeRow } from "@/lib/changes/queries";
 import { ChangeStatusBadge, RiskBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 export function ChangeList({ data, canManage }: { data: ChangeData; canManage: boolean }) {
   const { t } = useI18n();
@@ -17,7 +17,21 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
     { key: "resp", label: t("flt.responsible"), get: (c) => c.assignee?.full_name, allLabel: t("flt.allresp") },
   ];
   const f = useListFilters(data.changes, defs);
+  const g = useGrouping(f.filtered, defs);
   const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };
+
+  function Line(c: ChangeRow) {
+    return (
+      <Link key={c.id} href={`/changes/${c.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{c.change_number}</Cell>
+        <Cell>{c.title}</Cell>
+        <Cell muted><Drill onClick={() => f.set("type", c.change_type)}>{t(("chg.type." + c.change_type) as MessageKey)}</Drill></Cell>
+        <Cell><Drill onClick={() => f.set("risk", c.risk_level)}><RiskBadge risk={c.risk_level} /></Drill></Cell>
+        <Cell muted>{c.related_incident_id ? t("chg.origin.incident") : c.related_problem_id ? t("chg.origin.problem") : "—"}</Cell>
+        <Cell><ChangeStatusBadge status={c.status} /></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -26,7 +40,10 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
         {canManage && <Link href="/changes/new" style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", textDecoration: "none" }}>+ {t("chg.new")}</Link>}
       </div>
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         <Kpi label={t("chg.kpi.open")} value={String(data.stats.open)} />
@@ -40,16 +57,14 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
           <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 110px 90px 120px 120px", minWidth: 880 }}>
             {[t("chg.col.number"), t("chg.col.title"), t("chg.col.type"), t("chg.col.risk"), t("chg.col.origin"), t("chg.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("chg.empty")}</div>}
-            {f.filtered.map((c) => (
-              <Link key={c.id} href={`/changes/${c.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                <Cell mono accent>{c.change_number}</Cell>
-                <Cell>{c.title}</Cell>
-                <Cell muted><Drill onClick={() => f.set("type", c.change_type)}>{t(("chg.type." + c.change_type) as MessageKey)}</Drill></Cell>
-                <Cell><Drill onClick={() => f.set("risk", c.risk_level)}><RiskBadge risk={c.risk_level} /></Drill></Cell>
-                <Cell muted>{c.related_incident_id ? t("chg.origin.incident") : c.related_problem_id ? t("chg.origin.problem") : "—"}</Cell>
-                <Cell><ChangeStatusBadge status={c.status} /></Cell>
-              </Link>
-            ))}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>
