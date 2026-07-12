@@ -40,7 +40,9 @@ export function LoginForm() {
       setFormErr(t("login.badcreds"));
       return;
     }
-    router.push("/dashboard");
+    // Enruta por rol (home segun acceso real) en vez de forzar /dashboard, que exige
+    // incident.read y mandaba a /unauthorized a los roles sin ese permiso. Ver app/start.
+    router.push("/start");
     router.refresh();
   }
 
