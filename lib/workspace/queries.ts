@@ -22,6 +22,7 @@ export type WsCase = {
 export type Workspace = {
   buckets: {
     myCases: WsCase[];
+    toAssign: WsCase[];
     unassigned: WsCase[];
     critical: WsCase[];
     slaAtRisk: WsCase[];
@@ -62,6 +63,9 @@ export async function getWorkspace(supabase: SupabaseClient, userId: string | nu
 
   const my = rows.filter(isMine);
   const unassigned = rows.filter(isUnassigned);
+  // Admitidos (status "triaged") que aun no tienen responsable: caso recien admitido por
+  // Operaciones, listo para asignar. Evita que "desaparezca" tras admitir.
+  const toAssign = rows.filter((r) => r.status === "triaged" && isUnassigned(r));
   const critical = rows.filter((r) => r.priority === "p1_critical" || r.priority === "p2_high");
   const atRisk = rows.filter(slaAtRisk);
   const pendingTriage = rows.filter((r) => r.intake_status === "pending");
@@ -71,11 +75,11 @@ export async function getWorkspace(supabase: SupabaseClient, userId: string | nu
 
   return {
     buckets: {
-      myCases: cap(my), unassigned: cap(unassigned), critical: cap(critical), slaAtRisk: cap(atRisk),
+      myCases: cap(my), toAssign: cap(toAssign), unassigned: cap(unassigned), critical: cap(critical), slaAtRisk: cap(atRisk),
       pendingTriage: cap(pendingTriage), reopened: cap(reopened), sensitive: cap(sensitive), highImpact: cap(highImpact),
     },
     counts: {
-      open: rows.length, myCases: my.length, unassigned: unassigned.length, critical: critical.length,
+      open: rows.length, myCases: my.length, toAssign: toAssign.length, unassigned: unassigned.length, critical: critical.length,
       slaAtRisk: atRisk.length, pendingTriage: pendingTriage.length, reopened: reopened.length,
       sensitive: sensitive.length, highImpact: highImpact.length,
     },

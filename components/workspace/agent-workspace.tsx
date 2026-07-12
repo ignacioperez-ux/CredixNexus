@@ -13,6 +13,7 @@ type QueueKey = keyof Workspace["buckets"];
 
 const QUEUES: { key: QueueKey; label: MessageKey; danger?: boolean }[] = [
   { key: "myCases", label: "ws.q.mine" },
+  { key: "toAssign", label: "ws.q.toassign" },
   { key: "unassigned", label: "ws.q.unassigned" },
   { key: "critical", label: "ws.q.critical", danger: true },
   { key: "slaAtRisk", label: "ws.q.slarisk", danger: true },
@@ -22,9 +23,14 @@ const QUEUES: { key: QueueKey; label: MessageKey; danger?: boolean }[] = [
   { key: "highImpact", label: "ws.q.impact" },
 ];
 
+// Orden de preferencia para la cola inicial: se abre la primera que tenga casos, para no
+// caer en una vista vacia (p.ej. un lead que admite casos ve "Por asignar", no "Mis casos" vacio).
+const DEFAULT_PRIORITY: QueueKey[] = ["myCases", "toAssign", "unassigned", "slaAtRisk", "critical", "pendingTriage", "reopened", "sensitive", "highImpact"];
+
 export function AgentWorkspace({ ws }: { ws: Workspace }) {
   const { t, locale } = useI18n();
-  const [active, setActive] = useState<QueueKey>("myCases");
+  const initial = DEFAULT_PRIORITY.find((k) => (ws.counts[k] ?? 0) > 0) ?? "myCases";
+  const [active, setActive] = useState<QueueKey>(initial);
   const fmt = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
   const cases = ws.buckets[active];
 
