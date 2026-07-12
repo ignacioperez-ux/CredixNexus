@@ -11,8 +11,6 @@ import { AssignResponsible } from "./assign-responsible";
 import type { AssignableMember } from "@/lib/talent/queries";
 import { EvolutionPanel } from "./evolution-panel";
 import { EvaluatePanel } from "@/components/rules/evaluate-panel";
-import { FitPanel } from "@/components/talent/fit-panel";
-import type { FitSuggestion } from "@/lib/talent/recommender";
 import { AiRca } from "./ai-rca";
 import { AiKb } from "./ai-kb";
 import { AiExecSummary } from "./ai-exec-summary";
@@ -92,7 +90,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [] }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; fit?: FitSuggestion[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[] }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [] }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[] }) {
   const { t, locale } = useI18n();
 
   return (
@@ -156,10 +154,6 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
             )}
           </Card>
 
-          <Card title={t("inc.section.rca")}>
-            <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
-          </Card>
-
           <Card title={t("prob.linked")}>
             <ProblemLink incidentId={inc.id} problems={problems} canManage={canManageProblem} />
           </Card>
@@ -177,10 +171,6 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
               <FinancialCaseLink incidentId={inc.id} existing={financialCase} amount={inc.amount} canFraud={canManageFraud} canDispute={canManageDispute} />
             </Card>
           )}
-
-          <Card title={t("inc.section.kb")}>
-            <AiKb incidentId={inc.id} />
-          </Card>
 
           <Card title={`${t("task.section")}${tasks && tasks.tasks.length > 0 ? ` (${tasks.done}/${tasks.open + tasks.done})` : ""}`}>
             <CaseTasks incidentId={inc.id} data={tasks ?? { tasks: [], open: 0, done: 0, progress: null }} canManage={canUpdateIncident} />
@@ -215,15 +205,20 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
               <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
             </Card>
           )}
-          <AssignResponsible incidentId={inc.id} members={members} currentName={inc.assignee?.name ?? null} topSuggestion={fit[0] ?? null} canAssign={canUpdateIncident} />
+          <AssignResponsible incidentId={inc.id} members={members} currentName={inc.assignee?.name ?? null} canAssign={canUpdateIncident} />
+          <EvaluatePanel incidentId={inc.id} />
           <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />
           <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")}>
-            <EvaluatePanel incidentId={inc.id} />
+            <Card title={t("inc.section.rca")}>
+              <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
+            </Card>
             <Card title={t("ai2.title")}>
               <AiInsights incidentId={inc.id} canUpdate={canUpdateIncident} />
             </Card>
             <AiExecSummary incidentId={inc.id} />
-            <FitPanel incidentId={inc.id} suggestions={fit} />
+            <Card title={t("inc.section.kb")}>
+              <AiKb incidentId={inc.id} />
+            </Card>
           </AiSuggestions>
 
           <Card title="SLA">

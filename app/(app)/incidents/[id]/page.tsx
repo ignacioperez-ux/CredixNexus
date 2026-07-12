@@ -13,7 +13,6 @@ import { getIncidentEffort } from "@/lib/worklog/queries";
 import { getCsatForIncident } from "@/lib/csat/queries";
 import { getFinancialCaseForIncident } from "@/lib/fraud/queries";
 import { getAttachments, getTasks } from "@/lib/casework/queries";
-import { suggestForIncident } from "@/lib/talent/recommender";
 import { getAssignableMembers } from "@/lib/talent/queries";
 import { IncidentDetail, type IncidentDetailData } from "@/components/incidents/detail/incident-detail";
 
@@ -31,11 +30,10 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const access = await getAccessControl();
   const can = (code: string) => access.isAdmin || access.perms.includes(code);
 
-  const [comments, ledger, knowledge, fit, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members] = await Promise.all([
+  const [comments, ledger, knowledge, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members] = await Promise.all([
     getComments(ctx.supabase, id),
     getLedgerForEntity(ctx.supabase, id),
     getSuggestedKnowledge(ctx.supabase, (inc.category as string) ?? null, (inc.affected_ci_id as string) ?? null),
-    suggestForIncident(ctx.supabase, id),
     getRiskEventForIncident(ctx.supabase, id),
     getProblemsForIncident(ctx.supabase, id),
     getEscalationsForIncident(ctx.supabase, id),
@@ -70,7 +68,6 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       comments={comments as never}
       ledger={ledger as never}
       knowledge={knowledge}
-      fit={fit}
       riskEvent={riskEvent}
       canManageRisk={canManageRisk}
       problems={problems}

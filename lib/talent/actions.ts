@@ -3,6 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/auth/context";
 import { ErrorCode } from "@/lib/validation";
+import { suggestForIncident, type FitSuggestion } from "@/lib/talent/recommender";
+
+/** Sugerencia de responsable bajo demanda (opt-in): solo corre cuando el usuario la pide,
+ *  no en la carga de la pagina. La asignacion sigue siendo manual. */
+export async function suggestAssignees(incidentId: string): Promise<{ ok: boolean; suggestions?: FitSuggestion[]; error?: string }> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  const suggestions = await suggestForIncident(ctx.supabase, incidentId);
+  return { ok: true, suggestions };
+}
 
 /** Asigna un responsable al caso y lo pasa a "assigned". `viaSuggestion` solo cambia la
  *  nota de auditoria (asignacion manual vs. tomada de la sugerencia de IA). */

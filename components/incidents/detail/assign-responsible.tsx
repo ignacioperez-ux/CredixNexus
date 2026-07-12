@@ -1,43 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { AssignableMember } from "@/lib/talent/queries";
 import type { FitSuggestion } from "@/lib/talent/recommender";
-import { assignIncidentMember } from "@/lib/talent/actions";
+import { assignIncidentMember, suggestAssignees } from "@/lib/talent/actions";
 import { Icon } from "@/components/ui/icon";
 import { scoreColor } from "@/lib/incidents/labels";
 
-// Asignacion de responsable SIMPLE y directa: selector + Asignar. La sugerencia de IA
-// aparece como un chip opcional ("IA sugiere: X — Asignar"), nunca como unica via.
-export function AssignResponsible({ incidentId, members, currentName, topSuggestion, canAssign }: {
+// Asignacion MANUAL desde una tabla filtrable (buscar, disciplina, interno/externo).
+// La sugerencia de IA es opt-in: solo al presionar "Sugerencia" se calcula la afinidad y
+// se reordena la tabla; nunca corre en la carga de la pagina.
+export function AssignResponsible({ incidentId, members, currentName, canAssign }: {
   incidentId: string;
   members: AssignableMember[];
   currentName: string | null;
-  topSuggestion?: FitSuggestion | null;
   canAssign: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [sel, setSel] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [disc, setDisc] = useState("");
+  const [kind, setKind] = useState<"all" | "internal" | "external">("all");
+  const [fit, setFit] = useState<Map<string, number> | null>(null);
+  const [loadingSug, setLoadingSug] = useState(false);
+
+  const disciplines = useMemo(
+    () => [...new Set(members.map((m) => m.discipline).filter((d): d is string => !!d))].sort((a, b) => a.localeCompare(b)),
+    [members],
+  );
+
+  const rows = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const list = members.filter((m) =>
+      (!term || m.name.toLowerCase().includes(term)) &&
+      (!disc || m.discipline === disc) &&
+      (kind === "all" || (kind === "external" ? m.is_external : !m.is_external)));
+    if (fit) return [...list].sort((a, b) => (fit.get(b.id) ?? -1) - (fit.get(a.id) ?? -1));
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  }, [members, q, disc, kind, fit]);
 
   async function assign(memberId: string, viaSuggestion = false) {
-    if (!memberId) return;
     setBusy(true);
     setErr(null);
     const r = await assignIncidentMember(incidentId, memberId, viaSuggestion);
     setBusy(false);
     if (!r.ok) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
-    setSel("");
     router.refresh();
   }
 
-  // No mostrar la sugerencia si ya es el asignado actual.
-  const showSuggestion = topSuggestion && topSuggestion.name !== currentName;
+  async function loadSuggestions() {
+    setLoadingSug(true);
+    setErr(null);
+    const r = await suggestAssignees(incidentId);
+    setLoadingSug(false);
+    if (!r.ok) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
+    setFit(new Map((r.suggestions ?? []).map((s: FitSuggestion) => [s.id, s.fit])));
+  }
 
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 }}>
@@ -50,33 +73,48 @@ export function AssignResponsible({ incidentId, members, currentName, topSuggest
 
       {canAssign ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <select value={sel} onChange={(e) => setSel(e.target.value)} disabled={busy}
-              style={{ flex: 1, minWidth: 160, fontSize: 12.5, padding: "8px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }}>
-              <option value="">{t("asg.placeholder")}</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}{m.discipline ? ` · ${m.discipline}` : ""}{m.is_external ? ` (${t("asg.ext")})` : ""}</option>
-              ))}
+          {/* Filtros de la tabla */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("asg.search")}
+              style={{ flex: 1, minWidth: 120, fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
+            <select value={disc} onChange={(e) => setDisc(e.target.value)}
+              style={{ fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)" }}>
+              <option value="">{t("asg.f.alldisc")}</option>
+              {disciplines.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
-            <button onClick={() => assign(sel)} disabled={busy || !sel}
-              style={{ fontSize: 12.5, fontWeight: 700, padding: "8px 16px", borderRadius: "var(--r-md)", border: "none", background: sel ? "var(--cta-bg)" : "var(--paper)", color: sel ? "var(--cta-fg)" : "var(--muted)", cursor: sel && !busy ? "pointer" : "default" }}>
-              {currentName ? t("asg.reassign") : t("asg.assign")}
+            <select value={kind} onChange={(e) => setKind(e.target.value as "all" | "internal" | "external")}
+              style={{ fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)" }}>
+              <option value="all">{t("asg.f.alltype")}</option>
+              <option value="internal">{t("asg.f.internal")}</option>
+              <option value="external">{t("asg.f.external")}</option>
+            </select>
+            <button onClick={loadSuggestions} disabled={loadingSug} title={t("asg.ai.hint")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "7px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: fit ? "var(--accent-soft)" : "var(--card)", color: "var(--accent-2)", cursor: loadingSug ? "default" : "pointer", whiteSpace: "nowrap" }}>
+              <Icon name="sparkle" size={13} color="var(--accent-bright)" /> {loadingSug ? t("asg.suggesting") : t("asg.suggest")}
             </button>
           </div>
 
-          {showSuggestion && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--accent-soft)", borderRadius: "var(--r-md)", padding: "8px 12px" }}>
-              <Icon name="sparkle" size={13} color="var(--accent-bright)" />
-              <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("asg.ai")}:</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: scoreColor(topSuggestion!.fit) }}>{topSuggestion!.fit}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", flex: 1 }}>{topSuggestion!.name}</span>
-              <button onClick={() => assign(topSuggestion!.id, true)} disabled={busy}
-                style={{ fontSize: 11.5, fontWeight: 700, padding: "6px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: "pointer" }}>
-                {t("asg.assign")}
-              </button>
-            </div>
-          )}
-          {showSuggestion && <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{t("asg.ai.hint")}</div>}
+          {/* Tabla de candidatos (scroll) */}
+          <div style={{ border: "1px solid var(--line-soft)", borderRadius: "var(--r-md)", maxHeight: 264, overflowY: "auto" }}>
+            {rows.length === 0 ? (
+              <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--muted)" }}>{t("asg.empty")}</div>
+            ) : rows.map((m) => {
+              const f = fit?.get(m.id);
+              return (
+                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid var(--line-soft)" }}>
+                  {fit && <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, width: 24, textAlign: "right", color: f != null ? scoreColor(f) : "var(--muted)" }}>{f ?? "—"}</span>}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{m.discipline ?? "—"} · {m.is_external ? t("asg.ext") : t("asg.int")}</div>
+                  </div>
+                  <button onClick={() => assign(m.id, !!fit)} disabled={busy}
+                    style={{ fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: busy ? "default" : "pointer" }}>
+                    {t("asg.assign")}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
           {err && <div style={{ fontSize: 11.5, color: "var(--st-critical-fg)" }}>{err}</div>}
         </div>
       ) : (
