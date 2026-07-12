@@ -4,21 +4,26 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { CLASSIFICATIONS } from "@/lib/triage/validation";
 import { acceptCase, discardCase } from "@/lib/triage/actions";
+import { Icon } from "@/components/ui/icon";
 
 type Kb = { id: string; article_number: string; title: string };
 
-/** Protocolo de admision: admitir + clasificar (con chequeo KB) o descartar con motivo. */
+/** Protocolo de admision simplificado: la decision principal es binaria — Incidencia
+ *  (Operaciones) vs Evolucion (oportunidad estructural). Si es Evolucion, un sub-tipo
+ *  Mejora/Proyecto. O descartar con motivo. El backend recibe incident/improvement/project. */
 export function TriagePanel({ incidentId, knowledge = [] }: { incidentId: string; knowledge?: Kb[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [mode, setMode] = useState<"accept" | "discard">("accept");
-  const [classification, setClassification] = useState("incident");
+  const [route, setRoute] = useState<"ops" | "evo">("ops");
+  const [evoKind, setEvoKind] = useState<"improvement" | "project">("improvement");
   const [kbId, setKbId] = useState("");
   const [reason, setReason] = useState("");
   const [err, setErr] = useState<string | null>(null);
+
+  const classification = route === "ops" ? "incident" : evoKind;
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setErr(null);
@@ -46,32 +51,41 @@ export function TriagePanel({ incidentId, knowledge = [] }: { incidentId: string
       </div>
 
       {mode === "accept" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <label style={lbl}>{t("tri.classify")}</label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {CLASSIFICATIONS.map((c) => (
-                <button key={c} onClick={() => setClassification(c)}
-                  style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", cursor: "pointer",
-                    border: classification === c ? "1px solid var(--accent)" : "1px solid var(--line)",
-                    background: classification === c ? "var(--accent-soft)" : "var(--card)", color: classification === c ? "var(--accent-2)" : "var(--text)" }}>
-                  {t(("tri.class." + c) as MessageKey)}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
-              {classification === "incident" ? t("tri.route.ops") : t("tri.route.evo")}
-            </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Decision principal: dos opciones claras */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <OptionCard selected={route === "ops"} onClick={() => setRoute("ops")} icon="gear"
+              title={t("tri.class.incident")} desc={t("tri.opt.incident.desc")} />
+            <OptionCard selected={route === "evo"} onClick={() => setRoute("evo")} icon="sparkle"
+              title={t("tri.opt.evo.title")} desc={t("tri.opt.evo.desc")} />
           </div>
 
-          {classification === "incident" && knowledge.length > 0 && (
+          {/* Sub-tipo solo si es Evolucion */}
+          {route === "evo" && (
             <div>
-              <label style={lbl}>{t("tri.kb")}</label>
+              <label style={lbl}>{t("tri.evo.kind")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["improvement", "project"] as const).map((k) => (
+                  <button key={k} onClick={() => setEvoKind(k)}
+                    style={{ fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: "var(--r-md)", cursor: "pointer",
+                      border: evoKind === k ? "1px solid var(--accent)" : "1px solid var(--line)",
+                      background: evoKind === k ? "var(--accent-soft)" : "var(--card)", color: evoKind === k ? "var(--accent-2)" : "var(--text)" }}>
+                    {t(("tri.class." + k) as MessageKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Resolucion directa por KB solo para incidencias, opcional */}
+          {route === "ops" && knowledge.length > 0 && (
+            <div>
+              <label style={lbl}>{t("tri.kb.q")}</label>
               <select value={kbId} onChange={(e) => setKbId(e.target.value)} style={inp}>
                 <option value="">{t("tri.kb.none")}</option>
                 {knowledge.map((k) => <option key={k.id} value={k.id}>{k.article_number} · {k.title}</option>)}
               </select>
-              {kbId && <div style={{ fontSize: 11, color: "var(--st-low-fg)", marginTop: 6 }}>{t("tri.kb.resolve")}</div>}
+              {kbId && <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--st-low-fg)", marginTop: 6 }}><Icon name="check" size={12} /> {t("tri.kb.resolve")}</div>}
             </div>
           )}
 
@@ -93,6 +107,20 @@ export function TriagePanel({ incidentId, knowledge = [] }: { incidentId: string
         </div>
       )}
     </div>
+  );
+}
+
+function OptionCard({ selected, onClick, icon, title, desc }: { selected: boolean; onClick: () => void; icon: string; title: string; desc: string }) {
+  return (
+    <button onClick={onClick}
+      style={{ textAlign: "left", cursor: "pointer", padding: "12px 14px", borderRadius: "var(--r-lg)",
+        border: selected ? "1px solid var(--accent)" : "1px solid var(--line)",
+        background: selected ? "var(--accent-soft)" : "var(--card)", display: "flex", flexDirection: "column", gap: 6 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 700, color: selected ? "var(--accent-2)" : "var(--text)" }}>
+        <Icon name={icon} size={15} /> {title}
+      </span>
+      <span style={{ fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45 }}>{desc}</span>
+    </button>
   );
 }
 
