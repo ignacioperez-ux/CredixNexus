@@ -56,6 +56,7 @@ export async function getIncident(supabase: SupabaseClient, id: string) {
        channel:affected_channel_id(name),
        business_unit:affected_business_unit_id(name),
        reporter:reported_by_user_id(full_name),
+       assignee:assigned_member_id(name),
        area:delivery_area_id(name, code)`,
     )
     .eq("id", id)

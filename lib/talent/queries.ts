@@ -15,6 +15,18 @@ export type TalentProfile = {
   performance: number | null; // solo si el usuario tiene permiso talent.read (RLS)
 };
 
+export type AssignableMember = { id: string; name: string; discipline: string | null; is_external: boolean };
+
+/** Lista simple de responsables asignables (activos) para el selector manual de asignacion. */
+export async function getAssignableMembers(supabase: SupabaseClient): Promise<AssignableMember[]> {
+  const { data } = await supabase
+    .from("team_member")
+    .select("id, name, discipline, is_external")
+    .eq("status", "active")
+    .order("name");
+  return (data ?? []) as AssignableMember[];
+}
+
 export async function getTalentProfiles(supabase: SupabaseClient): Promise<TalentProfile[]> {
   const [membersRes, skillsRes, expRes, incRes, evalRes] = await Promise.all([
     supabase.from("team_member").select("id, name, discipline, is_external, seniority, capacity_points").eq("status", "active").order("name"),

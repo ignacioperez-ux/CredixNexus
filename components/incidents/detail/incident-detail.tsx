@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { StatusPill, PriorityTag } from "../badges";
+import { PriorityTag } from "../badges";
 import { CommentThread } from "./comment-thread";
 import { StatusActions } from "./status-actions";
+import { StatusStepper } from "./status-stepper";
+import { AssignResponsible } from "./assign-responsible";
+import type { AssignableMember } from "@/lib/talent/queries";
 import { EvolutionPanel } from "./evolution-panel";
 import { EvaluatePanel } from "@/components/rules/evaluate-panel";
 import { FitPanel } from "@/components/talent/fit-panel";
@@ -72,6 +75,8 @@ export type IncidentDetailData = {
   area: ({ name: string; code: string }) | null;
   intake_status: string;
   classified_as: string | null;
+  assigned_member_id: string | null;
+  assignee: { name: string } | null;
 };
 
 type Comment = { id: string; body: string; visibility: string; is_system_generated: boolean; created_at: string; author: { full_name: string } | null };
@@ -87,7 +92,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; fit?: FitSuggestion[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [] }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; fit?: FitSuggestion[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[] }) {
   const { t, locale } = useI18n();
 
   return (
@@ -104,7 +109,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent-2)" }}>{inc.incident_number}</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, letterSpacing: "-0.3px", margin: 0, color: "var(--text)" }}>{inc.title}</h1>
-          <StatusPill status={inc.status} />
+          <StatusStepper status={inc.status} />
           <PriorityTag priority={inc.priority} />
           {inc.intake_status === "pending" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.pending")}</span>}
           {inc.intake_status === "discarded" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", background: "var(--paper)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.discarded")}</span>}
@@ -210,13 +215,16 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
               <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
             </Card>
           )}
-          <EvaluatePanel incidentId={inc.id} />
-          <Card title={t("ai2.title")}>
-            <AiInsights incidentId={inc.id} canUpdate={canUpdateIncident} />
-          </Card>
-          <AiExecSummary incidentId={inc.id} />
-          <FitPanel incidentId={inc.id} suggestions={fit} />
+          <AssignResponsible incidentId={inc.id} members={members} currentName={inc.assignee?.name ?? null} topSuggestion={fit[0] ?? null} canAssign={canUpdateIncident} />
           <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />
+          <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")}>
+            <EvaluatePanel incidentId={inc.id} />
+            <Card title={t("ai2.title")}>
+              <AiInsights incidentId={inc.id} canUpdate={canUpdateIncident} />
+            </Card>
+            <AiExecSummary incidentId={inc.id} />
+            <FitPanel incidentId={inc.id} suggestions={fit} />
+          </AiSuggestions>
 
           <Card title="SLA">
             <Row label={t("inc.sla.response")} value={inc.sla_response_due_at ? new Date(inc.sla_response_due_at).toLocaleString(locale) : null} mono />
@@ -271,6 +279,23 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], fit = []
         </div>
       </div>
     </div>
+  );
+}
+
+// Envuelve los paneles de IA/reglas en un plegable cerrado por defecto: la IA queda como
+// sugerencia opcional, no como la vista principal del caso.
+function AiSuggestions({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+  return (
+    <details style={{ background: "var(--card)", border: "1px dashed var(--line)", borderRadius: "var(--r-xl)", padding: "4px 16px" }}>
+      <summary style={{ cursor: "pointer", listStyle: "none", padding: "12px 0", display: "flex", alignItems: "center", gap: 8 }}>
+        <Icon name="sparkle" size={14} color="var(--accent-bright)" />
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{title}</span>
+      </summary>
+      <div style={{ fontSize: 11, color: "var(--muted)", paddingBottom: 6 }}>{hint}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0 14px" }}>
+        {children}
+      </div>
+    </details>
   );
 }
 
