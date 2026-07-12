@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { RequestRow, RequestStats } from "@/lib/catalog/queries";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 const STATUS_COLOR: Record<string, { fg: string; bg: string }> = {
   open: { fg: "var(--st-high-fg)", bg: "var(--st-high-bg)" },
@@ -20,8 +20,23 @@ export function RequestList({ rows, stats }: { rows: RequestRow[]; stats: Reques
   const defs: FilterDef<RequestRow>[] = [
     { key: "status", label: t("obs.col.status"), get: (r) => r.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("cat.st." + v) as MessageKey) },
     { key: "item", label: t("cat.col.item"), get: (r) => r.item_name, allLabel: t("md.filter.all") },
+    { key: "req", label: t("flt.responsible"), get: (r) => r.requester_name, allLabel: t("flt.allresp") },
   ];
   const f = useListFilters(rows, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(r: RequestRow) {
+    const overdue = r.status === "open" && r.sla_due_at && r.sla_due_at < now;
+    return (
+      <Link key={r.id} href={`/service-catalog/requests/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{r.request_number}</Cell>
+        <Cell><Drill onClick={() => f.set("item", r.item_name)}>{r.item_name}</Drill></Cell>
+        <Cell mono muted>{r.incident_number}</Cell>
+        <Cell mono muted={!overdue}><span style={{ color: overdue ? "var(--st-critical-fg)" : undefined }}>{r.sla_due_at ? new Date(r.sla_due_at).toLocaleDateString(locale) : "—"}</span></Cell>
+        <Cell><Drill onClick={() => f.set("status", r.status)}><StatusPill status={r.status} /></Drill></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -30,24 +45,23 @@ export function RequestList({ rows, stats }: { rows: RequestRow[]; stats: Reques
         <Kpi label={t("cat.kpi.fulfilled")} value={String(stats.fulfilled)} color="var(--st-low-fg)" />
         <Kpi label={t("cat.kpi.overdue")} value={String(stats.overdue)} color={stats.overdue > 0 ? "var(--st-critical-fg)" : undefined} />
       </div>
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 130px 150px 110px", minWidth: 820 }}>
             {[t("cat.col.number"), t("cat.col.item"), t("cat.col.case"), t("cat.col.due"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("cat.req.empty")}</div>}
-            {f.filtered.map((r) => {
-              const overdue = r.status === "open" && r.sla_due_at && r.sla_due_at < now;
-              return (
-                <Link key={r.id} href={`/service-catalog/requests/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                  <Cell mono accent>{r.request_number}</Cell>
-                  <Cell><Drill onClick={() => f.set("item", r.item_name)}>{r.item_name}</Drill></Cell>
-                  <Cell mono muted>{r.incident_number}</Cell>
-                  <Cell mono muted={!overdue}><span style={{ color: overdue ? "var(--st-critical-fg)" : undefined }}>{r.sla_due_at ? new Date(r.sla_due_at).toLocaleDateString(locale) : "—"}</span></Cell>
-                  <Cell><Drill onClick={() => f.set("status", r.status)}><StatusPill status={r.status} /></Drill></Cell>
-                </Link>
-              );
-            })}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

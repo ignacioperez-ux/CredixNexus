@@ -43,13 +43,14 @@ export async function getCatalogItem(supabase: SupabaseClient, id: string): Prom
 export type RequestRow = {
   id: string; request_number: string; status: string; sla_due_at: string | null; created_at: string;
   item_name: string; incident_id: string; incident_number: string; incident_status: string;
+  requester_name: string | null;
 };
 export type RequestStats = { open: number; fulfilled: number; overdue: number };
 
 export async function listRequests(supabase: SupabaseClient): Promise<{ rows: RequestRow[]; stats: RequestStats }> {
   const { data, error } = await supabase
     .from("service_request")
-    .select("id, request_number, status, sla_due_at, created_at, item:item_id(name), incident:incident_id(id, incident_number, status)")
+    .select("id, request_number, status, sla_due_at, created_at, item:item_id(name), incident:incident_id(id, incident_number, status), requester:requested_by_user_id(full_name)")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   const now = new Date().toISOString();
@@ -57,10 +58,12 @@ export async function listRequests(supabase: SupabaseClient): Promise<{ rows: Re
     const row = r as Record<string, unknown>;
     const item = row.item as { name: string } | null;
     const inc = row.incident as { id: string; incident_number: string; status: string } | null;
+    const req = row.requester as { full_name: string } | null;
     return {
       id: row.id as string, request_number: row.request_number as string, status: row.status as string,
       sla_due_at: (row.sla_due_at as string | null) ?? null, created_at: row.created_at as string,
       item_name: item?.name ?? "—", incident_id: inc?.id ?? "", incident_number: inc?.incident_number ?? "—", incident_status: inc?.status ?? "—",
+      requester_name: req?.full_name ?? null,
     };
   });
   return {

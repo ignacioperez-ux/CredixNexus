@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { FraudRow, FraudStats } from "@/lib/fraud/queries";
 import { FraudStatusBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats }) {
   const { t, locale } = useI18n();
@@ -18,6 +18,26 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
     { key: "src", label: t("fr.col.source"), get: (r) => r.detection_source, allLabel: t("md.filter.all"), render: (v) => t(("fr.src." + v) as MessageKey) },
   ];
   const f = useListFilters(rows, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(r: FraudRow) {
+    return (
+      <Link key={r.id} href={`/fraud-disputes/fraud/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{r.fraud_number}</Cell>
+        <Cell>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ color: "var(--text)" }}>{r.title}</span>
+            <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{r.incident_number} · {r.customer_masked}</span>
+          </div>
+        </Cell>
+        <Cell muted><Drill onClick={() => f.set("type", r.fraud_type)}>{t(("fr.type." + r.fraud_type) as MessageKey)}</Drill></Cell>
+        <Cell muted><Drill onClick={() => f.set("src", r.detection_source)}>{t(("fr.src." + r.detection_source) as MessageKey)}</Drill></Cell>
+        <Cell mono>{r.risk_score ?? "—"}</Cell>
+        <Cell mono muted>{r.amount_exposed != null ? money(r.amount_exposed, r.currency) : "—"}</Cell>
+        <Cell><Drill onClick={() => f.set("status", r.status)}><FraudStatusBadge status={r.status} /></Drill></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -28,28 +48,23 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
         <Kpi label={t("fr.kpi.exposed")} value={money(stats.exposed)} />
         <Kpi label={t("fr.kpi.recovered")} value={money(stats.recovered)} color="var(--st-low-fg)" />
       </div>
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 150px 150px 90px 110px 120px", minWidth: 940 }}>
             {[t("fr.col.number"), t("fr.col.case"), t("fr.col.type"), t("fr.col.source"), t("fr.col.risk"), t("fr.col.exposed"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("fr.empty")}</div>}
-            {f.filtered.map((r) => (
-              <Link key={r.id} href={`/fraud-disputes/fraud/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                <Cell mono accent>{r.fraud_number}</Cell>
-                <Cell>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span style={{ color: "var(--text)" }}>{r.title}</span>
-                    <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{r.incident_number} · {r.customer_masked}</span>
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
                   </div>
-                </Cell>
-                <Cell muted><Drill onClick={() => f.set("type", r.fraud_type)}>{t(("fr.type." + r.fraud_type) as MessageKey)}</Drill></Cell>
-                <Cell muted><Drill onClick={() => f.set("src", r.detection_source)}>{t(("fr.src." + r.detection_source) as MessageKey)}</Drill></Cell>
-                <Cell mono>{r.risk_score ?? "—"}</Cell>
-                <Cell mono muted>{r.amount_exposed != null ? money(r.amount_exposed, r.currency) : "—"}</Cell>
-                <Cell><Drill onClick={() => f.set("status", r.status)}><FraudStatusBadge status={r.status} /></Drill></Cell>
-              </Link>
-            ))}
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

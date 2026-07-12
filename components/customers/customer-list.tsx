@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { CustomerRow } from "@/lib/customers/queries";
 import { maskTaxId } from "@/lib/customers/queries";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 const riskColor: Record<string, { fg: string; bg: string }> = {
   critical: { fg: "var(--st-critical-fg)", bg: "var(--st-critical-bg)" },
@@ -23,10 +23,36 @@ export function CustomerList({ rows }: { rows: CustomerRow[] }) {
     { key: "risk", label: t("cust.risk"), get: (c) => c.risk_level, allLabel: t("inc.filter.allrisk"), render: (v) => t(("lvl." + v) as MessageKey) },
   ];
   const f = useListFilters(rows, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(c: CustomerRow) {
+    const rc = riskColor[c.risk_level] ?? riskColor.low;
+    return (
+      <div key={c.id} onClick={() => router.push(`/customers/${c.id}`)} style={{ display: "contents", cursor: "pointer" }}>
+        <Cell>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.display_name}</span>
+            {c.vip_flag && <span style={{ fontSize: 9.5, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent-2)", fontWeight: 700, flexShrink: 0 }}>VIP</span>}
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{maskTaxId(c.tax_id)}</div>
+        </Cell>
+        <Cell muted>{c.segment ? <Drill onClick={() => f.set("segment", c.segment!)}>{c.segment}</Drill> : "—"}</Cell>
+        <div style={{ ...cellSt, justifyContent: "center" }}>
+          <Drill onClick={() => f.set("risk", c.risk_level)}><span style={{ fontSize: 10.5, padding: "2px 9px", borderRadius: "var(--r-pill)", color: rc.fg, background: rc.bg, fontWeight: 600 }}>{t(("lvl." + c.risk_level) as MessageKey)}</span></Drill>
+        </div>
+        <div style={{ ...cellSt, justifyContent: "flex-end", fontFamily: "var(--font-mono)", color: c.openCases > 0 ? "var(--st-high-fg)" : "var(--muted)" }}>{c.openCases}</div>
+        <div style={{ ...cellSt, justifyContent: "flex-end", fontFamily: "var(--font-mono)", color: "var(--muted)" }}>{c.totalCases}</div>
+        <Cell muted mono>{c.lastInteraction ? new Date(c.lastInteraction).toLocaleDateString(locale) : "—"}</Cell>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 130px 100px 90px 80px 130px", minWidth: 820 }}>
@@ -39,28 +65,14 @@ export function CustomerList({ rows }: { rows: CustomerRow[] }) {
 
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("cust.empty")}</div>}
 
-            {f.filtered.map((c) => {
-              const rc = riskColor[c.risk_level] ?? riskColor.low;
-              return (
-                <div key={c.id} onClick={() => router.push(`/customers/${c.id}`)}
-                  style={{ display: "contents", cursor: "pointer" }}>
-                  <Cell>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.display_name}</span>
-                      {c.vip_flag && <span style={{ fontSize: 9.5, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent-2)", fontWeight: 700, flexShrink: 0 }}>VIP</span>}
-                    </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{maskTaxId(c.tax_id)}</div>
-                  </Cell>
-                  <Cell muted>{c.segment ? <Drill onClick={() => f.set("segment", c.segment!)}>{c.segment}</Drill> : "—"}</Cell>
-                  <div style={{ ...cellSt, justifyContent: "center" }}>
-                    <Drill onClick={() => f.set("risk", c.risk_level)}><span style={{ fontSize: 10.5, padding: "2px 9px", borderRadius: "var(--r-pill)", color: rc.fg, background: rc.bg, fontWeight: 600 }}>{t(("lvl." + c.risk_level) as MessageKey)}</span></Drill>
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
                   </div>
-                  <div style={{ ...cellSt, justifyContent: "flex-end", fontFamily: "var(--font-mono)", color: c.openCases > 0 ? "var(--st-high-fg)" : "var(--muted)" }}>{c.openCases}</div>
-                  <div style={{ ...cellSt, justifyContent: "flex-end", fontFamily: "var(--font-mono)", color: "var(--muted)" }}>{c.totalCases}</div>
-                  <Cell muted mono>{c.lastInteraction ? new Date(c.lastInteraction).toLocaleDateString(locale) : "—"}</Cell>
-                </div>
-              );
-            })}
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

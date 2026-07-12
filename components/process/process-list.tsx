@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProcessRow, ProcessStats } from "@/lib/process/queries";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 const COV: Record<string, { fg: string; bg: string }> = {
   covered: { fg: "var(--st-low-fg)", bg: "var(--st-low-bg)" },
@@ -21,6 +21,19 @@ export function ProcessList({ rows, stats }: { rows: ProcessRow[]; stats: Proces
     { key: "bu", label: t("proc.col.owner"), get: (p) => p.business_unit ?? "—", allLabel: t("md.filter.all") },
   ];
   const f = useListFilters(rows, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(p: ProcessRow) {
+    return (
+      <Link key={p.id} href={`/processes/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell bold>{p.name}</Cell>
+        <Cell><Drill onClick={() => f.set("level", p.process_level)}><span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: p.process_level === "macro" ? "var(--accent-2)" : "var(--muted)" }}>{t(("proc.level." + p.process_level) as MessageKey)}</span></Drill></Cell>
+        <Cell muted>{p.business_unit ?? "—"}</Cell>
+        <Cell mono muted>{p.system_count}</Cell>
+        <Cell><Drill onClick={() => f.set("cov", p.coverage)}><Pill c={p.coverage} label={t(("proc.cov." + p.coverage) as MessageKey)} /></Drill></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -30,21 +43,23 @@ export function ProcessList({ rows, stats }: { rows: ProcessRow[]; stats: Proces
         <Kpi label={t("proc.kpi.macro")} value={String(stats.macro)} />
         <Kpi label={t("proc.kpi.nocov")} value={String(stats.without_systems)} color={stats.without_systems > 0 ? "var(--st-high-fg)" : undefined} />
       </div>
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 110px 160px 90px 130px", minWidth: 780 }}>
             {[t("proc.col.name"), t("proc.col.level"), t("proc.col.owner"), t("proc.col.systems"), t("proc.col.coverage")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("proc.empty")}</div>}
-            {f.filtered.map((p) => (
-              <Link key={p.id} href={`/processes/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                <Cell bold>{p.name}</Cell>
-                <Cell><Drill onClick={() => f.set("level", p.process_level)}><span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: p.process_level === "macro" ? "var(--accent-2)" : "var(--muted)" }}>{t(("proc.level." + p.process_level) as MessageKey)}</span></Drill></Cell>
-                <Cell muted>{p.business_unit ?? "—"}</Cell>
-                <Cell mono muted>{p.system_count}</Cell>
-                <Cell><Drill onClick={() => f.set("cov", p.coverage)}><Pill c={p.coverage} label={t(("proc.cov." + p.coverage) as MessageKey)} /></Drill></Cell>
-              </Link>
-            ))}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>
