@@ -7,7 +7,7 @@ import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { SquadRow } from "@/lib/squads/queries";
 import { createSquad } from "@/lib/squads/actions";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
 type Bu = { id: string; name: string };
@@ -27,6 +27,20 @@ export function SquadList({ rows, businessUnits = [], canManage = false }: { row
     { key: "transversal", label: t("sq.transversal"), get: (s) => (s.is_transversal ? "yes" : "no"), allLabel: t("md.filter.all"), render: (v) => (v === "yes" ? t("common.yes") : t("common.no")) },
   ];
   const f = useListFilters(rows, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(s: SquadRow) {
+    return (
+      <Link key={s.id} href={`/squads/${s.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{s.code}</Cell>
+        <Cell>{s.name}</Cell>
+        <Cell muted>{s.business_unit?.name ? <Drill onClick={() => f.set("bu", s.business_unit!.name)}>{s.business_unit.name}</Drill> : "—"}</Cell>
+        <Cell mono>{s.member_count}</Cell>
+        <Cell mono muted>{s.allocated_points}%{s.capacity_points ? ` / ${s.capacity_points}p` : ""}</Cell>
+        <Cell muted>{s.is_transversal ? t("sq.transversal") : t("sq.dedicated")}</Cell>
+      </Link>
+    );
+  }
 
   function create() {
     setErr(null);
@@ -87,22 +101,23 @@ export function SquadList({ rows, businessUnits = [], canManage = false }: { row
         </div>
       )}
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "150px 1.4fr 1fr 90px 120px 110px", minWidth: 820 }}>
             {[t("sq.col.code"), t("sq.col.name"), t("sq.col.bu"), t("sq.col.members"), t("sq.col.allocation"), t("sq.col.type")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("sq.empty")}</div>}
-            {f.filtered.map((s) => (
-              <Link key={s.id} href={`/squads/${s.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                <Cell mono accent>{s.code}</Cell>
-                <Cell>{s.name}</Cell>
-                <Cell muted>{s.business_unit?.name ? <Drill onClick={() => f.set("bu", s.business_unit!.name)}>{s.business_unit.name}</Drill> : "—"}</Cell>
-                <Cell mono>{s.member_count}</Cell>
-                <Cell mono muted>{s.allocated_points}%{s.capacity_points ? ` / ${s.capacity_points}p` : ""}</Cell>
-                <Cell muted>{s.is_transversal ? t("sq.transversal") : t("sq.dedicated")}</Cell>
-              </Link>
-            ))}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

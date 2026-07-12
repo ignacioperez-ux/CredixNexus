@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { VendorData, VendorRow } from "@/lib/vendors/queries";
 import { CriticalityBadge, VendorStatusBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 export function VendorList({ data, canManage }: { data: VendorData; canManage: boolean }) {
   const { t } = useI18n();
@@ -16,6 +16,20 @@ export function VendorList({ data, canManage }: { data: VendorData; canManage: b
     { key: "status", label: t("vnd.col.status"), get: (v) => v.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("sla.st." + v) as MessageKey) },
   ];
   const f = useListFilters(data.vendors, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(v: VendorRow) {
+    return (
+      <Link key={v.id} href={`/vendors/${v.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{v.code}</Cell>
+        <Cell>{v.name}</Cell>
+        <Cell muted><Drill onClick={() => f.set("cat", v.category)}>{t(("vnd.cat." + v.category) as MessageKey)}</Drill></Cell>
+        <Cell><Drill onClick={() => f.set("crit", v.criticality)}><CriticalityBadge criticality={v.criticality} /></Drill></Cell>
+        <Cell mono muted>{v.system_count}</Cell>
+        <Cell><VendorStatusBadge status={v.status} /></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -30,23 +44,24 @@ export function VendorList({ data, canManage }: { data: VendorData; canManage: b
         <Kpi label={t("vnd.kpi.expiring")} value={String(data.stats.expiringSoon)} color={data.stats.expiringSoon > 0 ? "var(--st-high-fg)" : undefined} />
       </div>
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.6fr 150px 100px 90px 100px", minWidth: 840 }}>
             {[t("vnd.col.code"), t("vnd.col.name"), t("vnd.col.category"), t("vnd.col.criticality"), t("vnd.col.systems"), t("vnd.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("vnd.empty")}</div>}
-            {f.filtered.map((v) => (
-              <Link key={v.id} href={`/vendors/${v.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                <Cell mono accent>{v.code}</Cell>
-                <Cell>{v.name}</Cell>
-                <Cell muted><Drill onClick={() => f.set("cat", v.category)}>{t(("vnd.cat." + v.category) as MessageKey)}</Drill></Cell>
-                <Cell><Drill onClick={() => f.set("crit", v.criticality)}><CriticalityBadge criticality={v.criticality} /></Drill></Cell>
-                <Cell mono muted>{v.system_count}</Cell>
-                <Cell><VendorStatusBadge status={v.status} /></Cell>
-              </Link>
-            ))}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

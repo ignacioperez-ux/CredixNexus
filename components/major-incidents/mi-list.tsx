@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { MiData, MiRow } from "@/lib/major-incidents/queries";
 import { MiStatusBadge, SevBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 export function MiList({ data }: { data: MiData }) {
   const { t, locale } = useI18n();
@@ -16,8 +16,24 @@ export function MiList({ data }: { data: MiData }) {
   const defs: FilterDef<MiRow>[] = [
     { key: "sev", label: t("mi.col.sev"), get: (m) => m.severity, allLabel: t("inc.filter.allsev"), render: (v) => t(("mi.sev." + v) as MessageKey) },
     { key: "status", label: t("mi.col.status"), get: (m) => m.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("mi.st." + v) as MessageKey) },
+    { key: "cmd", label: t("flt.responsible"), get: (m) => m.commander?.full_name, allLabel: t("flt.allresp") },
   ];
   const f = useListFilters(data.incidents, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(m: MiRow) {
+    const overdue = m.next_update_due_at && m.next_update_due_at < now && m.status !== "resolved" && m.status !== "stood_down";
+    return (
+      <Link key={m.id} href={`/major-incidents/${m.id}`} style={{ display: "contents", textDecoration: "none" }}>
+        <Cell mono accent>{m.mi_number}</Cell>
+        <Cell><Drill onClick={() => f.set("sev", m.severity)}><SevBadge severity={m.severity} /></Drill></Cell>
+        <Cell>{m.title}</Cell>
+        <Cell muted>{m.commander?.full_name ?? "—"}</Cell>
+        <Cell mono style={overdue ? { color: "var(--st-critical)" } : { color: "var(--muted)" }}>{m.next_update_due_at ? new Date(m.next_update_due_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}{overdue ? <Icon name="alert" size={12} color="var(--st-critical)" style={{ marginLeft: 4, verticalAlign: "-2px" }} /> : ""}</Cell>
+        <Cell><MiStatusBadge status={m.status} /></Cell>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -28,26 +44,24 @@ export function MiList({ data }: { data: MiData }) {
         <Kpi label={t("mi.kpi.overdue")} value={String(data.stats.commsOverdue)} color={data.stats.commsOverdue > 0 ? "var(--st-critical-fg)" : undefined} />
       </div>
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 70px 1.6fr 130px 140px 120px", minWidth: 880 }}>
             {[t("mi.col.number"), t("mi.col.sev"), t("mi.col.title"), t("mi.col.commander"), t("mi.col.nextupdate"), t("mi.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("mi.empty")}</div>}
-            {f.filtered.map((m) => {
-              const overdue = m.next_update_due_at && m.next_update_due_at < now && m.status !== "resolved" && m.status !== "stood_down";
-              return (
-                <Link key={m.id} href={`/major-incidents/${m.id}`} style={{ display: "contents", textDecoration: "none" }}>
-                  <Cell mono accent>{m.mi_number}</Cell>
-                  <Cell><Drill onClick={() => f.set("sev", m.severity)}><SevBadge severity={m.severity} /></Drill></Cell>
-                  <Cell>{m.title}</Cell>
-                  <Cell muted>{m.commander?.full_name ?? "—"}</Cell>
-                  <Cell mono style={overdue ? { color: "var(--st-critical)" } : { color: "var(--muted)" }}>{m.next_update_due_at ? new Date(m.next_update_due_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}{overdue ? <Icon name="alert" size={12} color="var(--st-critical)" style={{ marginLeft: 4, verticalAlign: "-2px" }} /> : ""}</Cell>
-                  <Cell><MiStatusBadge status={m.status} /></Cell>
-                </Link>
-              );
-            })}
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
+                  </div>
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>

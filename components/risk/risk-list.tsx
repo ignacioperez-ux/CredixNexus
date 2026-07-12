@@ -6,7 +6,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { RiskData, RiskEventRow } from "@/lib/risk/queries";
 import { updateRiskStatus } from "@/lib/risk/actions";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
 
 const STATUSES = ["open", "assessing", "mitigating", "closed", "accepted"];
 const statusColor: Record<string, { fg: string; bg: string }> = {
@@ -35,6 +35,31 @@ export function RiskList({ data, canManage }: { data: RiskData; canManage: boole
     { key: "status", label: t("risk.col.status"), get: (e) => e.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("risk.rst." + v) as MessageKey) },
   ];
   const f = useListFilters(data.events, defs);
+  const g = useGrouping(f.filtered, defs);
+
+  function Line(e: RiskEventRow) {
+    const sc = statusColor[e.status] ?? statusColor.open;
+    const overdue = e.status !== "closed" && e.due_date && e.due_date < new Date().toISOString().slice(0, 10);
+    return (
+      <div key={e.id} style={{ display: "contents" }}>
+        <Cell mono accent>{e.event_number}</Cell>
+        <Cell muted>{e.risk_category}</Cell>
+        <Cell>
+          <div>{e.description}</div>
+          {e.incident && <Link href={`/incidents/${e.incident.id}`} style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--accent-2)", textDecoration: "none" }}>◂ {e.incident.incident_number}</Link>}
+        </Cell>
+        <Cell mono right>{fmt(Number(e.estimated_loss), e.currency)}</Cell>
+        <Cell mono right>{fmt(Number(e.actual_loss), e.currency)}</Cell>
+        <Cell mono muted style={overdue ? { color: "var(--st-critical)" } : undefined}>{e.due_date ?? "—"}</Cell>
+        <div style={{ ...cellSt }}>
+          <button onClick={() => canManage && cycle(e)} disabled={!canManage}
+            style={{ fontSize: 10.5, padding: "3px 10px", borderRadius: "var(--r-pill)", border: "none", cursor: canManage ? "pointer" : "default", color: sc.fg, background: sc.bg, fontWeight: 600 }}>
+            {t(("risk.rst." + e.status) as MessageKey)}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -45,7 +70,10 @@ export function RiskList({ data, canManage }: { data: RiskData; canManage: boole
         <Kpi label={t("risk.kpi.overdue")} value={String(data.stats.overdue)} danger={data.stats.overdue > 0} />
       </div>
 
-      <FilterBar defs={defs} filters={f} />
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <FilterBar defs={defs} filters={f} />
+        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+      </div>
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
@@ -54,29 +82,14 @@ export function RiskList({ data, canManage }: { data: RiskData; canManage: boole
               <div key={h} style={{ ...head, textAlign: i >= 3 && i <= 4 ? "right" : "left" }}>{h}</div>
             ))}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("risk.empty")}</div>}
-            {f.filtered.map((e) => {
-              const sc = statusColor[e.status] ?? statusColor.open;
-              const overdue = e.status !== "closed" && e.due_date && e.due_date < new Date().toISOString().slice(0, 10);
-              return (
-                <div key={e.id} style={{ display: "contents" }}>
-                  <Cell mono accent>{e.event_number}</Cell>
-                  <Cell muted>{e.risk_category}</Cell>
-                  <Cell>
-                    <div>{e.description}</div>
-                    {e.incident && <Link href={`/incidents/${e.incident.id}`} style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--accent-2)", textDecoration: "none" }}>◂ {e.incident.incident_number}</Link>}
-                  </Cell>
-                  <Cell mono right>{fmt(Number(e.estimated_loss), e.currency)}</Cell>
-                  <Cell mono right>{fmt(Number(e.actual_loss), e.currency)}</Cell>
-                  <Cell mono muted style={overdue ? { color: "var(--st-critical)" } : undefined}>{e.due_date ?? "—"}</Cell>
-                  <div style={{ ...cellSt }}>
-                    <button onClick={() => canManage && cycle(e)} disabled={!canManage}
-                      style={{ fontSize: 10.5, padding: "3px 10px", borderRadius: "var(--r-pill)", border: "none", cursor: canManage ? "pointer" : "default", color: sc.fg, background: sc.bg, fontWeight: 600 }}>
-                      {t(("risk.rst." + e.status) as MessageKey)}
-                    </button>
+            {g.groups
+              ? g.groups.map((grp) => (
+                  <div key={grp.value} style={{ display: "contents" }}>
+                    <GroupHeader label={grp.label} count={grp.rows.length} />
+                    {grp.rows.map(Line)}
                   </div>
-                </div>
-              );
-            })}
+                ))
+              : f.filtered.map(Line)}
           </div>
         </div>
       </div>
