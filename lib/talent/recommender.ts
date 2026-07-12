@@ -28,23 +28,24 @@ export async function suggestForIncident(supabase: SupabaseClient, incidentId: s
 
   const relatedSkillId = (inc.category as unknown as { related_skill_id: string | null } | null)?.related_skill_id ?? null;
 
-  const [membersRes, openIncRes] = await Promise.all([
+  // Todo depende solo de `inc`: se resuelve en paralelo (un solo hop) en vez de encadenado.
+  const [membersRes, openIncRes, expRes, skillRes] = await Promise.all([
     supabase.from("team_member").select("id, name, discipline, is_external").eq("status", "active"),
     supabase.from("incident").select("assigned_member_id, status"),
+    inc.affected_ci_id
+      ? supabase.from("member_expertise").select("member_id, level").eq("entity_type", "configuration_item").eq("entity_id", inc.affected_ci_id)
+      : Promise.resolve({ data: [] as { member_id: string; level: number }[] }),
+    relatedSkillId
+      ? supabase.from("member_skill").select("member_id, level").eq("skill_id", relatedSkillId)
+      : Promise.resolve({ data: [] as { member_id: string; level: number }[] }),
   ]);
   const members = (membersRes.data ?? []) as { id: string; name: string; discipline: string | null; is_external: boolean }[];
 
   const expByMember = new Map<string, number>();
-  if (inc.affected_ci_id) {
-    const { data } = await supabase.from("member_expertise").select("member_id, level").eq("entity_type", "configuration_item").eq("entity_id", inc.affected_ci_id);
-    (data ?? []).forEach((e) => expByMember.set(e.member_id as string, e.level as number));
-  }
+  ((expRes.data ?? []) as { member_id: string; level: number }[]).forEach((e) => expByMember.set(e.member_id, e.level));
 
   const skillByMember = new Map<string, number>();
-  if (relatedSkillId) {
-    const { data } = await supabase.from("member_skill").select("member_id, level").eq("skill_id", relatedSkillId);
-    (data ?? []).forEach((s) => skillByMember.set(s.member_id as string, s.level as number));
-  }
+  ((skillRes.data ?? []) as { member_id: string; level: number }[]).forEach((s) => skillByMember.set(s.member_id, s.level));
 
   const loadByMember = new Map<string, number>();
   ((openIncRes.data ?? []) as { assigned_member_id: string | null; status: string }[]).forEach((i) => {

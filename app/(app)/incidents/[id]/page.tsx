@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getContext, hasPermission } from "@/lib/auth/context";
+import { getContext } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { getIncident, getComments, getLedgerForEntity, getSuggestedKnowledge } from "@/lib/incidents/queries";
 import { getRiskEventForIncident } from "@/lib/risk/queries";
 import { getProblemsForIncident } from "@/lib/problems/queries";
@@ -24,37 +25,44 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const inc = await getIncident(ctx.supabase, id);
   if (!inc) notFound();
 
-  const [comments, ledger, knowledge, fit, riskEvent, canManageRisk, problems, canManageProblem, escalations, workflows, workflowDefs, canRunWorkflow, changes, canManageChange, majorIncident, canManageMi, vendor, canUpdateIncident, canTriage, effort, canLogWork, survey, canSubmitCsat, financialCase, canManageFraud, canManageDispute, attachments, tasks, members] = await Promise.all([
+  // Permisos desde la resolucion cacheada por request (session.ts): el layout ya llamo
+  // my_permissions/my_roles, asi que esto no agrega viajes. Antes eran 11 RPC has_permission
+  // dentro del Promise.all — el mayor costo de esta pagina.
+  const access = await getAccessControl();
+  const can = (code: string) => access.isAdmin || access.perms.includes(code);
+
+  const [comments, ledger, knowledge, fit, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members] = await Promise.all([
     getComments(ctx.supabase, id),
     getLedgerForEntity(ctx.supabase, id),
     getSuggestedKnowledge(ctx.supabase, (inc.category as string) ?? null, (inc.affected_ci_id as string) ?? null),
     suggestForIncident(ctx.supabase, id),
     getRiskEventForIncident(ctx.supabase, id),
-    hasPermission(ctx.supabase, "risk.manage"),
     getProblemsForIncident(ctx.supabase, id),
-    hasPermission(ctx.supabase, "problem.manage"),
     getEscalationsForIncident(ctx.supabase, id),
     getWorkflowsForIncident(ctx.supabase, id),
     getActiveDefinitions(ctx.supabase, "incident"),
-    hasPermission(ctx.supabase, "workflow.run"),
     getChangesForIncident(ctx.supabase, id),
-    hasPermission(ctx.supabase, "change.manage"),
     getMajorIncidentForIncident(ctx.supabase, id),
-    hasPermission(ctx.supabase, "major_incident.manage"),
     getVendorForIncidentCi(ctx.supabase, (inc.affected_ci_id as string) ?? null),
-    hasPermission(ctx.supabase, "incident.update"),
-    hasPermission(ctx.supabase, "triage.manage"),
     getIncidentEffort(ctx.supabase, id),
-    hasPermission(ctx.supabase, "worklog.manage"),
     getCsatForIncident(ctx.supabase, id),
-    hasPermission(ctx.supabase, "survey.submit"),
     getFinancialCaseForIncident(ctx.supabase, id),
-    hasPermission(ctx.supabase, "fraud.manage"),
-    hasPermission(ctx.supabase, "dispute.manage"),
     getAttachments(ctx.supabase, id),
     getTasks(ctx.supabase, id),
     getAssignableMembers(ctx.supabase),
   ]);
+
+  const canManageRisk = can("risk.manage");
+  const canManageProblem = can("problem.manage");
+  const canRunWorkflow = can("workflow.run");
+  const canManageChange = can("change.manage");
+  const canManageMi = can("major_incident.manage");
+  const canUpdateIncident = can("incident.update");
+  const canTriage = can("triage.manage");
+  const canLogWork = can("worklog.manage");
+  const canSubmitCsat = can("survey.submit");
+  const canManageFraud = can("fraud.manage");
+  const canManageDispute = can("dispute.manage");
 
   return (
     <IncidentDetail
