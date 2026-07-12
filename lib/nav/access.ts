@@ -55,7 +55,7 @@ export function requiredPermForPath(pathname: string): string | string[] | undef
 export const ROLE_PROFILES: Record<string, string[]> = {
   support_agent: ["nav.workspace", "nav.incidents", "nav.triage", "nav.sla", "nav.customers", "nav.knowledge", "nav.servicecatalog"],
   support_lead: ["nav.workspace", "nav.incidents", "nav.triage", "nav.sla", "nav.customers", "nav.analytics", "nav.majorincidents", "nav.problems", "nav.changes", "nav.frauddisputes", "nav.observability", "nav.vendors", "nav.knowledge", "nav.servicecatalog"],
-  product_owner: ["nav.dashboard", "nav.workspace", "nav.incidents", "nav.analytics", "nav.projects", "nav.squads", "nav.talent", "nav.resources", "nav.rules", "nav.workflows", "nav.aicenter", "nav.knowledge"],
+  product_owner: ["nav.dashboard", "nav.workspace", "nav.incidents", "nav.analytics", "nav.projects", "nav.squads", "nav.talent", "nav.resources", "nav.rules", "nav.workflows", "nav.knowledge"],
   squad_member: ["nav.projects", "nav.squads", "nav.resources", "nav.knowledge"],
   partner_user: ["nav.selfservice", "nav.knowledge", "nav.servicecatalog"],
   business_owner: ["nav.analytics", "nav.risk", "nav.processes", "nav.projects", "nav.knowledge"],
