@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getContext, hasPermission } from "@/lib/auth/context";
+import { getContext } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { getProblem, getLinkedIncidents, getLinkableIncidents } from "@/lib/problems/queries";
 import { getLedgerForEntity } from "@/lib/incidents/queries";
 import { getChangesForProblem } from "@/lib/changes/queries";
@@ -13,14 +14,15 @@ export default async function ProblemDetailPage({ params }: { params: Promise<{ 
   const problem = await getProblem(ctx.supabase, id);
   if (!problem) notFound();
 
-  const [linked, linkable, ledger, canManage, changes, canManageChange] = await Promise.all([
+  const [linked, linkable, ledger, changes, access] = await Promise.all([
     getLinkedIncidents(ctx.supabase, id),
     getLinkableIncidents(ctx.supabase, id),
     getLedgerForEntity(ctx.supabase, id),
-    hasPermission(ctx.supabase, "problem.manage"),
     getChangesForProblem(ctx.supabase, id),
-    hasPermission(ctx.supabase, "change.manage"),
+    getAccessControl(),
   ]);
+  const canManage = access.isAdmin || access.perms.includes("problem.manage");
+  const canManageChange = access.isAdmin || access.perms.includes("change.manage");
 
   return (
     <ProblemDetail

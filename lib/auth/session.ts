@@ -8,13 +8,23 @@ import { createClient } from "@/lib/supabase/server";
 /** Un cliente Supabase por request. */
 export const getSupabase = cache(async () => createClient());
 
-/** Usuario autenticado (una sola llamada a Auth por request). */
-export const getSessionUser = cache(async () => {
+export type SessionUser = { id: string; email: string | null };
+
+/** Usuario autenticado (deduplicado por request). Usa getClaims(): verifica el JWT
+ *  LOCALMENTE (sin viaje a Auth) cuando el proyecto usa llaves asimetricas; si no puede,
+ *  cae a getUser(). El middleware ya refresco el token, asi que el JWT de la cookie es valido.
+ *  Solo se usan id/email en toda la app. */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await getSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  try {
+    const { data } = await supabase.auth.getClaims();
+    const c = data?.claims as { sub?: string; email?: string } | undefined;
+    if (c?.sub) return { id: c.sub, email: c.email ?? null };
+  } catch {
+    /* cae al getUser de abajo */
+  }
+  const { data: { user } } = await supabase.auth.getUser();
+  return user ? { id: user.id, email: user.email ?? null } : null;
 });
 
 export type SessionAccount = {
@@ -45,16 +55,15 @@ export function tenantNameOf(account: SessionAccount | null): string {
   return name ?? "Credix Core";
 }
 
-/** Permisos + roles + flag admin del usuario (una sola resolucion por request). */
+/** Permisos + roles + flag admin del usuario (una sola resolucion por request).
+ *  Un solo viaje a Supabase via my_access() (antes eran 2: my_permissions + my_roles). */
 export const getAccessControl = cache(async () => {
   const supabase = await getSupabase();
-  const [{ data: perms }, { data: roles }] = await Promise.all([
-    supabase.rpc("my_permissions"),
-    supabase.rpc("my_roles"),
-  ]);
-  const roleList = (roles as string[] | null) ?? [];
+  const { data } = await supabase.rpc("my_access");
+  const d = (data as { perms?: string[]; roles?: string[] } | null) ?? {};
+  const roleList = d.roles ?? [];
   return {
-    perms: (perms as string[] | null) ?? [],
+    perms: d.perms ?? [],
     roles: roleList,
     isAdmin: roleList.includes("system_admin") || roleList.includes("tenant_admin"),
   };

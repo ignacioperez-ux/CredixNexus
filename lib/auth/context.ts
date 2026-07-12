@@ -1,10 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSupabase, getSessionUser, getSessionAccount } from "@/lib/auth/session";
+import { getSupabase, getSessionUser, getSessionAccount, getAccessControl } from "@/lib/auth/session";
 
-/** Verifica si el usuario autenticado tiene un permiso (via SQL has_permission). */
-export async function hasPermission(supabase: SupabaseClient, code: string): Promise<boolean> {
-  const { data } = await supabase.rpc("has_permission", { p_code: code });
-  return data === true;
+/** Verifica si el usuario autenticado tiene un permiso. Reutiliza la resolucion de acceso
+ *  cacheada por request (getAccessControl -> 1 sola RPC my_access) en vez de una RPC
+ *  has_permission por cada llamada. Incluye bypass admin (system_admin/tenant_admin),
+ *  consistente con el nav/guards. El parametro supabase se mantiene por compatibilidad. */
+export async function hasPermission(_supabase: SupabaseClient, code: string): Promise<boolean> {
+  const access = await getAccessControl();
+  return access.isAdmin || access.perms.includes(code);
 }
 
 /** Contexto de sesion server-side: cliente supabase, usuario, y su tenant/cuenta.

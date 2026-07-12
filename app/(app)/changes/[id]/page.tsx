@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getContext, hasPermission } from "@/lib/auth/context";
+import { getContext } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { getChange } from "@/lib/changes/queries";
 import { getLedgerForEntity } from "@/lib/incidents/queries";
 import { ChangeDetail } from "@/components/changes/change-detail";
@@ -12,11 +13,12 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ i
   const change = await getChange(ctx.supabase, id);
   if (!change) notFound();
 
-  const [ledger, canManage, canApprove] = await Promise.all([
+  const [ledger, access] = await Promise.all([
     getLedgerForEntity(ctx.supabase, id),
-    hasPermission(ctx.supabase, "change.manage"),
-    hasPermission(ctx.supabase, "change.approve"),
+    getAccessControl(),
   ]);
+  const canManage = access.isAdmin || access.perms.includes("change.manage");
+  const canApprove = access.isAdmin || access.perms.includes("change.approve");
 
   return <ChangeDetail change={change as never} ledger={ledger as never} canManage={canManage} canApprove={canApprove} />;
 }
