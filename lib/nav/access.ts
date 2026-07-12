@@ -9,6 +9,7 @@ export function canSeeNav(perm: string | string[] | undefined, perms: string[], 
 // Mapa ruta -> permiso requerido (espeja los permisos del sidebar). Fuente unica de verdad
 // para el guard de ruta del layout. Rutas sin entrada = accesibles a cualquier autenticado.
 export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = [
+  { prefix: "/dashboard", perm: "incident.read" },
   { prefix: "/workspace", perm: "incident.read" },
   { prefix: "/incidents", perm: "incident.read" },
   { prefix: "/triage", perm: "triage.manage" },
@@ -55,7 +56,7 @@ export const ROLE_PROFILES: Record<string, string[]> = {
   support_lead: ["nav.workspace", "nav.incidents", "nav.triage", "nav.sla", "nav.customers", "nav.analytics", "nav.majorincidents", "nav.problems", "nav.changes", "nav.frauddisputes", "nav.observability", "nav.vendors", "nav.knowledge", "nav.servicecatalog"],
   product_owner: ["nav.analytics", "nav.projects", "nav.squads", "nav.talent", "nav.resources", "nav.rules", "nav.workflows", "nav.aicenter", "nav.knowledge"],
   squad_member: ["nav.projects", "nav.squads", "nav.resources", "nav.knowledge"],
-  partner_user: ["nav.selfservice", "nav.partner", "nav.knowledge", "nav.servicecatalog"],
+  partner_user: ["nav.selfservice", "nav.knowledge", "nav.servicecatalog"],
   business_owner: ["nav.analytics", "nav.risk", "nav.processes", "nav.projects", "nav.knowledge"],
   grc_officer: ["nav.risk", "nav.ledger", "nav.processes", "nav.observability", "nav.changes", "nav.analytics"],
   change_manager: ["nav.changes", "nav.majorincidents", "nav.problems", "nav.workflows", "nav.dependencies", "nav.knowledge"],

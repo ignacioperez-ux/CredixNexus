@@ -19,7 +19,7 @@ const GROUPS: NavGroup[] = [
   {
     label: "nav.group.ops",
     items: [
-      { key: "nav.dashboard", href: "/dashboard", ready: true },
+      { key: "nav.dashboard", href: "/dashboard", ready: true, perm: "incident.read" },
       { key: "nav.workspace", href: "/workspace", ready: true, perm: "incident.read" },
       { key: "nav.incidents", href: "/incidents", ready: true, perm: "incident.read" },
       { key: "nav.triage", href: "/triage", ready: true, perm: "triage.manage" },

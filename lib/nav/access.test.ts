@@ -28,8 +28,10 @@ describe("requiredPermForPath", () => {
     expect(requiredPermForPath("/ledger")).toBe("audit.read");
     expect(requiredPermForPath("/fraud-disputes/fraud/x")).toEqual(["fraud.read", "dispute.read"]);
   });
+  it("dashboard requiere incident.read (no lo ve el usuario final)", () => {
+    expect(requiredPermForPath("/dashboard")).toBe("incident.read");
+  });
   it("rutas libres devuelven undefined", () => {
-    expect(requiredPermForPath("/dashboard")).toBeUndefined();
     expect(requiredPermForPath("/unauthorized")).toBeUndefined();
     expect(requiredPermForPath("/portal")).toBeUndefined();
   });

@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { PartnerPortal } from "@/lib/partner/queries";
 import { StatusPill } from "@/components/incidents/badges";
 
 export function PartnerPortalView({ data }: { data: PartnerPortal }) {
   const { t, locale } = useI18n();
-  const accent = data.party?.accent ?? "var(--teal)";
+  // Acento de marca Credix (rojo). Un partner real puede traer su propio brand_accent.
+  const accent = data.party?.accent ?? "var(--accent)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -21,7 +23,7 @@ export function PartnerPortalView({ data }: { data: PartnerPortal }) {
           </div>
           <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("pp.subtitle")}</div>
         </div>
-        <span style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: "var(--r-pill)", background: "var(--teal-soft)", color: "var(--teal)" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent-2)" }}>
           🔒 {t("pp.isolation")}
         </span>
       </div>
@@ -55,8 +57,8 @@ export function PartnerPortalView({ data }: { data: PartnerPortal }) {
         <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 14 }}>{t("pp.selfservice")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[t("pp.ss.newticket"), t("pp.ss.kb"), t("pp.ss.apikey"), t("pp.ss.apidocs")].map((s) => (
-              <div key={s} style={{ padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--paper)", fontSize: 13, color: "var(--text)", cursor: "pointer" }}>{s} →</div>
+            {[{ label: t("pp.ss.newticket"), href: "/portal" }, { label: t("pp.ss.kb"), href: "/knowledge" }].map((s) => (
+              <Link key={s.href} href={s.href} style={{ display: "block", padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--paper)", fontSize: 13, color: "var(--text)", cursor: "pointer", textDecoration: "none" }}>{s.label} →</Link>
             ))}
           </div>
           <p style={{ marginTop: 16, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.5 }}>{t("pp.governance")}</p>

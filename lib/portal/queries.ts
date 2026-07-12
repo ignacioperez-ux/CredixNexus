@@ -59,7 +59,25 @@ export async function searchKnowledge(supabase: SupabaseClient, query: string): 
     };
   });
 
-  return { articles: topMatches(articles, 5), cases: topMatches(cases, 5) };
+  // Umbral de relevancia: exige mas que una sola palabra en el cuerpo (evita "no relacionados").
+  const MIN = 2;
+  return {
+    articles: topMatches(articles.filter((a) => a.score >= MIN), 5),
+    cases: topMatches(cases.filter((c) => c.score >= MIN), 5),
+  };
+}
+
+/** Aplicaciones/sistemas (CIs) para el selector "Aplicacion afectada" del intake. */
+export type PortalApp = { id: string; name: string; ci_type: string };
+export async function listApplications(supabase: SupabaseClient): Promise<PortalApp[]> {
+  const { data, error } = await supabase
+    .from("configuration_item")
+    .select("id, name, ci_type")
+    .neq("status", "deleted")
+    .order("ci_type")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PortalApp[];
 }
 
 /** Casos que el propio usuario reporto (auto-scope por reported_by). RLS acota por tenant;
