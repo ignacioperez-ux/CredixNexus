@@ -1,9 +1,19 @@
-import { ErrorCode, required, firstError } from "@/lib/validation";
+import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 
 // Dominio de roster de squad. Logica pura para UI, acciones y pruebas.
 
 export const SQUAD_ROLES = ["lead", "product_owner", "tech_lead", "developer", "qa", "analyst", "scrum_master"] as const;
 export type SquadRole = (typeof SQUAD_ROLES)[number];
+
+export type SquadInput = { code: string; name: string; businessUnitId?: string; isTransversal: boolean; capacityPoints: number };
+
+export function validateSquad(i: SquadInput): string | null {
+  return firstError(
+    minLength(i.name, 3),
+    minLength(i.code, 2),
+    Number.isInteger(i.capacityPoints) && i.capacityPoints >= 1 && i.capacityPoints <= 999 ? null : ErrorCode.FORMAT,
+  );
+}
 
 export type SquadMemberInput = { memberId: string; squadRole: string; allocationPct: number };
 

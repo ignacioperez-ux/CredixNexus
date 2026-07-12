@@ -74,6 +74,12 @@ export async function getAssignableMembers(supabase: SupabaseClient, squadId: st
   return (data ?? []) as { id: string; name: string; discipline: string | null; is_external: boolean }[];
 }
 
+/** Unidades de negocio activas (para el selector al crear un squad). */
+export async function getBusinessUnitOptions(supabase: SupabaseClient) {
+  const { data } = await supabase.from("business_unit").select("id, name").eq("status", "active").order("name");
+  return (data ?? []) as { id: string; name: string }[];
+}
+
 /** Squads a los que pertenece un miembro (para la vista de talento). */
 export async function getSquadsForMember(supabase: SupabaseClient, memberId: string) {
   const { data, error } = await supabase
