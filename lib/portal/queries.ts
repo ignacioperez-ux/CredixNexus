@@ -62,6 +62,21 @@ export async function searchKnowledge(supabase: SupabaseClient, query: string): 
   return { articles: topMatches(articles, 5), cases: topMatches(cases, 5) };
 }
 
+/** Casos que el propio usuario reporto (auto-scope por reported_by). RLS acota por tenant;
+ *  aqui filtramos a los propios para dar al usuario final su "Mis casos" sin exponer el resto. */
+export type MyCase = { id: string; incident_number: string; title: string; status: string; opened_at: string };
+export async function getMyReportedCases(supabase: SupabaseClient, accountId: string | null): Promise<MyCase[]> {
+  if (!accountId) return [];
+  const { data, error } = await supabase
+    .from("incident")
+    .select("id, incident_number, title, status, opened_at")
+    .eq("reported_by_user_id", accountId)
+    .order("opened_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MyCase[];
+}
+
 /** Catalogo de categorias para el formulario de creacion de caso (cero hardcode). */
 export async function listPortalCategories(supabase: SupabaseClient): Promise<PortalCategory[]> {
   const { data, error } = await supabase

@@ -10,19 +10,21 @@ import { portalAssist, type PortalAssistResult } from "@/lib/portal/assist";
 import { createIncident } from "@/lib/incidents/actions";
 import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
-import type { PortalCategory } from "@/lib/portal/queries";
+import type { PortalCategory, MyCase } from "@/lib/portal/queries";
 import type { Urgency } from "@/lib/incidents/priority";
+import { statusKey } from "@/lib/incidents/labels";
 
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 
-export function Portal({ categories, canFeedback }: { categories: PortalCategory[]; canFeedback: boolean }) {
-  const { t } = useI18n();
+export function Portal({ categories, canFeedback, canViewIncidents = false, myCases = [] }: { categories: PortalCategory[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[] }) {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [res, setRes] = useState<PortalAssistResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [searching, startSearch] = useTransition();
   const [showCreate, setShowCreate] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
 
   function search() {
     setErr(null);
@@ -39,6 +41,34 @@ export function Portal({ categories, canFeedback }: { categories: PortalCategory
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 900 }}>
       <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("portal.intro")}</div>
+
+      {created && (
+        <div style={{ fontSize: 13, fontWeight: 600, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--st-low-bg)", color: "var(--st-low-fg)", display: "flex", alignItems: "center", gap: 8 }}>
+          ✓ {t("portal.created")} <span style={{ fontFamily: "var(--font-mono)" }}>{created}</span>
+        </div>
+      )}
+
+      {/* Mis casos: lo que el usuario reporto (auto-scope). Su "operacion" como usuario final. */}
+      {myCases.length > 0 && (
+        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 12 }}>{t("portal.mycases")} ({myCases.length})</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {myCases.map((c) => {
+              const row = (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{t(statusKey(c.status))}</span>
+                  <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
+                </div>
+              );
+              return canViewIncidents
+                ? <Link key={c.id} href={`/incidents/${c.id}`} style={{ textDecoration: "none" }}>{row}</Link>
+                : <div key={c.id}>{row}</div>;
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Buscador */}
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -119,7 +149,13 @@ export function Portal({ categories, canFeedback }: { categories: PortalCategory
                 suggestedCategoryId={res.suggestedCategoryId}
                 shownArticleIds={res.articles.map((a) => a.id)}
                 query={query}
-                onDone={(id) => router.push(`/incidents/${id}`)}
+                onDone={(id, number) => {
+                  if (canViewIncidents) { router.push(`/incidents/${id}`); return; }
+                  // Usuario final: no puede abrir la vista de agente; se queda en el portal,
+                  // ve su caso en "Mis casos" y una confirmacion con el numero.
+                  setShowCreate(false); setRes(null); setQuery(""); setCreated(number ?? "");
+                  router.refresh();
+                }}
               />
             )}
           </div>
@@ -131,7 +167,7 @@ export function Portal({ categories, canFeedback }: { categories: PortalCategory
 
 function CreateCaseForm({
   defaultTitle, defaultDescription, categories, suggestedCategoryId, shownArticleIds, query, onDone,
-}: { defaultTitle: string; defaultDescription: string; categories: PortalCategory[]; suggestedCategoryId?: string; shownArticleIds: string[]; query: string; onDone: (id: string) => void }) {
+}: { defaultTitle: string; defaultDescription: string; categories: PortalCategory[]; suggestedCategoryId?: string; shownArticleIds: string[]; query: string; onDone: (id: string, number?: string) => void }) {
   const { t } = useI18n();
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
@@ -147,7 +183,7 @@ function CreateCaseForm({
       if (!r.ok || !r.id) { setErr(r.error ?? "ERR_INVALID_FORMAT"); return; }
       // Los articulos mostrados no evitaron el caso: telemetria de escalacion (KB viva).
       await Promise.all(shownArticleIds.map((aid) => recordKbEvent(aid, "escalation", "portal", query)));
-      onDone(r.id);
+      onDone(r.id, r.number);
     });
   }
 

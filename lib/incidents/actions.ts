@@ -5,7 +5,7 @@ import { getContext } from "@/lib/auth/context";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 
-export type ActionResult = { ok: boolean; error?: string; id?: string };
+export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
 
 export type IncidentInput = {
   title: string;
@@ -94,12 +94,12 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
       status: "new",
       ...fintechCols(input),
     })
-    .select("id")
+    .select("id, incident_number")
     .single();
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/incidents");
-  return { ok: true, id: data.id as string };
+  return { ok: true, id: data.id as string, number: data.incident_number as string };
 }
 
 export async function updateIncident(id: string, input: IncidentInput): Promise<ActionResult> {
