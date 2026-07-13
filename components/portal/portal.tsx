@@ -179,13 +179,11 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
           {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err.startsWith("ERR_") ? t(("err." + err) as MessageKey) : err}</div>}
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={consult} disabled={searching || tooShort}
-              style={{ fontSize: 13, fontWeight: 600, padding: "9px 18px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: searching || tooShort ? "default" : "pointer", opacity: tooShort ? 0.6 : 1 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onClick={consult} disabled={searching || tooShort} className="cx-btn-outline">
               {searching ? t("portal.search.searching") : t("portal.consult")}
             </button>
-            <button onClick={register} disabled={registering || tooShort || !categoryId}
-              style={{ fontSize: 13, fontWeight: 600, padding: "9px 18px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: registering || tooShort || !categoryId ? "default" : "pointer", opacity: tooShort || !categoryId ? 0.6 : 1 }}>
+            <button onClick={register} disabled={registering || tooShort || !categoryId} className="cx-btn-primary">
               {registering ? t("portal.create.submitting") : t("portal.register")}
             </button>
           </div>

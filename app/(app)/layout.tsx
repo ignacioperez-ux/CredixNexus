@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Header } from "@/components/app-shell/header";
 import { CommandMenu } from "@/components/app-shell/command-menu";
+import { HelpFab } from "@/components/app-shell/help-fab";
 import { canSeeNav, requiredPermForPath } from "@/lib/nav/access";
 import { getSessionUser, getSessionAccount, getAccessControl, tenantNameOf } from "@/lib/auth/session";
 
@@ -35,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <CommandMenu perms={permList} isAdmin={isAdmin} />
+      <HelpFab />
     </div>
   );
 }
