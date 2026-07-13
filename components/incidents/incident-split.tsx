@@ -5,18 +5,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { IncidentRow, CaseTypeMeta } from "@/lib/incidents/queries";
-import { changeStatus, sendToEvolution } from "@/lib/incidents/actions";
+import type { AssignableMember } from "@/lib/talent/queries";
+import { changeStatus, sendToEvolution, setPriority } from "@/lib/incidents/actions";
+import { assignIncidentMember } from "@/lib/talent/actions";
+import { priorityKey } from "@/lib/incidents/labels";
 import { IncidentTable } from "./incident-table";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
 import { Icon } from "@/components/ui/icon";
+import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 const SETTLED = ["resolved", "closed", "cancelled"];
+const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
 
 // Split view (master-detail): la lista a la izquierda; al seleccionar una fila se abre un
 // panel de VISTA PREVIA a la derecha alimentado por los datos que la lista ya cargo (cero
-// queries nuevas). FASE 3.1: acciones contextuales (resolver / enviar a evolucion) por permiso.
-export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", canResolve = false, canEvolve = false }: {
-  rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; canResolve?: boolean; canEvolve?: boolean;
+// queries nuevas). FASE 3.1: acciones contextuales (prioridad, asignar, resolver, evolucion) por permiso.
+export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", canResolve = false, canEvolve = false, canPriority = false, canAssign = false, members = [] }: {
+  rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string;
+  canResolve?: boolean; canEvolve?: boolean; canPriority?: boolean; canAssign?: boolean; members?: AssignableMember[];
 }) {
   const [sel, setSel] = useState<IncidentRow | null>(null);
   return (
@@ -25,12 +31,15 @@ export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, default
         <IncidentTable rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView}
           onSelect={(r) => setSel((cur) => (cur?.id === r.id ? null : r))} selectedId={sel?.id ?? null} />
       </div>
-      {sel && <Preview row={sel} caseTypes={caseTypes} canResolve={canResolve} canEvolve={canEvolve} onClose={() => setSel(null)} />}
+      {sel && <Preview row={sel} caseTypes={caseTypes} canResolve={canResolve} canEvolve={canEvolve}
+        canPriority={canPriority} canAssign={canAssign} members={members} onClose={() => setSel(null)} />}
     </div>
   );
 }
 
-function Preview({ row, caseTypes, canResolve, canEvolve, onClose }: { row: IncidentRow; caseTypes: CaseTypeMeta; canResolve: boolean; canEvolve: boolean; onClose: () => void }) {
+function Preview({ row, caseTypes, canResolve, canEvolve, canPriority, canAssign, members, onClose }: {
+  row: IncidentRow; caseTypes: CaseTypeMeta; canResolve: boolean; canEvolve: boolean; canPriority: boolean; canAssign: boolean; members: AssignableMember[]; onClose: () => void;
+}) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -76,6 +85,22 @@ function Preview({ row, caseTypes, canResolve, canEvolve, onClose }: { row: Inci
         <Field label={t("inc.field.opened")} value={new Date(row.opened_at).toLocaleString(locale)} />
       </div>
 
+      {/* Quick-edit contextual (FASE 3.1): prioridad y asignacion por permiso */}
+      {open && (canPriority || canAssign) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
+          {canPriority && (
+            <QuickSelect label={t("inc.col.priority")} value={row.priority} disabled={pending}
+              onChange={(v) => run(() => setPriority(row.id, v))}
+              options={PRIORITIES.map((p) => ({ value: p, label: t(priorityKey(p) as MessageKey) }))} />
+          )}
+          {canAssign && (
+            <QuickSelect label={t("flt.responsible")} value={row.assigned_member_id ?? ""} disabled={pending}
+              onChange={(v) => v && run(() => assignIncidentMember(row.id, v))}
+              options={[{ value: "", label: t("inc.view.unassigned") }, ...members.map((m) => ({ value: m.id, label: m.name }))]} />
+          )}
+        </div>
+      )}
+
       {/* Acciones contextuales (FASE 3.1) — por permiso y estado */}
       {open && (canResolve || canEvolve) && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
@@ -100,6 +125,18 @@ function Preview({ row, caseTypes, canResolve, canEvolve, onClose }: { row: Inci
         <Icon name="chevron-right" size={15} color="var(--muted)" /> {t("inc.open")}
       </Link>
     </aside>
+  );
+}
+
+function QuickSelect({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; disabled?: boolean }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 11.5, color: "var(--muted)", width: 120, flexShrink: 0 }}>{label}</span>
+      <select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
+        style={{ flex: 1, minWidth: 0, fontSize: 12.5, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
   );
 }
 

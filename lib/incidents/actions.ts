@@ -1,11 +1,27 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getContext } from "@/lib/auth/context";
+import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
+
+const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
+
+/** Prioridad manual (override del gerente). FASE 3.1: valida permiso en servidor (incident.update);
+ *  auditado por trigger. La prioridad derivada de impacto/urgencia se mantiene salvo override. */
+export async function setPriority(incidentId: string, priority: string): Promise<ActionResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await hasPermission(ctx.supabase, "incident.update"))) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!PRIORITIES.includes(priority)) return { ok: false, error: ErrorCode.FORMAT };
+  const { error } = await ctx.supabase.from("incident").update({ priority }).eq("id", incidentId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/incidents/${incidentId}`);
+  revalidatePath("/incidents");
+  return { ok: true };
+}
 
 export type IncidentInput = {
   title: string;
