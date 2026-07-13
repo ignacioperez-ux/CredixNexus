@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Icon } from "@/components/ui/icon";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProcessRow, ProcessStats, ProductChannelMatrix } from "@/lib/process/queries";
@@ -32,7 +33,7 @@ export function ProcessGovernance({ rows, stats, matrix, canManage }: { rows: Pr
         <div style={{ flex: 1 }} />
         {canManage && tab === "processes" && (
           <Link href="/catalog/processes/new" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", fontWeight: 700, fontSize: 12.5, textDecoration: "none" }}>
-            <span style={{ color: "var(--cta-icon)" }}>+</span> {t("md.new")}
+            <Icon name="plus" size={14} color="var(--cta-icon)" /> {t("md.new")}
           </Link>
         )}
       </div>

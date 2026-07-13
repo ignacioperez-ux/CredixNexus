@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/provider";
 import { useTheme, type Theme } from "@/components/theme-provider";
+import { Icon } from "@/components/ui/icon";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
@@ -77,6 +78,17 @@ export function Header() {
         </div>
         <div style={{ fontSize: 12, color: "var(--muted)" }}>{t(meta.subtitle)}</div>
       </div>
+
+      {/* Buscador global / Command Menu (Cmd/Ctrl+K) */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent("cx:open-command"))}
+        title={t("cmd.open")}
+        style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 12px", borderRadius: "var(--r-md)", background: "var(--paper)", border: "1px solid var(--line)", color: "var(--muted)", cursor: "pointer", fontSize: 12.5, fontWeight: 600 }}
+      >
+        <Icon name="search" size={15} />
+        <span>{t("cmd.open")}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, border: "1px solid var(--line)", borderRadius: 5, padding: "1px 6px" }}>Ctrl K</span>
+      </button>
 
       {/* Toggle de tema Nexus / Claro */}
       <Segmented
