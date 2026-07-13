@@ -29,6 +29,7 @@ export function KpiGrid({ counts }: { counts: DashboardCounts }) {
           <Link
             key={c.key}
             href={c.href}
+            className="cx-lift"
             style={{
               display: "block",
               textDecoration: "none",

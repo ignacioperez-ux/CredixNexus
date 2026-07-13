@@ -77,7 +77,7 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
 function ProjectCard({ p, onSquad }: { p: ProjectRow; onSquad?: () => void }) {
   const roi = computeRoi(p.estimated_benefit_amount, p.estimated_cost_amount);
   return (
-    <Link href={`/projects/${p.id}`} style={{ display: "block", textDecoration: "none", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: 12 }}>
+    <Link href={`/projects/${p.id}`} className="cx-lift" style={{ display: "block", textDecoration: "none", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: 12, background: "var(--card)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.3 }}>{p.name}</span>
         <span title="WSJF" style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 500, color: "var(--accent-2)", flexShrink: 0 }}>{Number(p.wsjf).toFixed(1)}</span>

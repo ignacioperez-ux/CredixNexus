@@ -115,7 +115,7 @@ function Metric({ label, value, href, danger }: { label: string; value: number |
       <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: 24, letterSpacing: "-1px", color: danger ? "var(--st-critical-fg)" : "var(--text)" }}>{value}</div>
     </div>
   );
-  return href ? <Link href={href} style={{ textDecoration: "none" }}>{inner}</Link> : inner;
+  return href ? <Link href={href} className="cx-lift" style={{ textDecoration: "none", display: "block", borderRadius: "var(--r-xl)" }}>{inner}</Link> : inner;
 }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
@@ -190,7 +190,7 @@ function AreaChart({ points }: { points: { label: string; value: number }[] }) {
 }
 function ModuleCard({ title, href, rows }: { title: string; href: string; rows: [string, number | string][] }) {
   return (
-    <Link href={href} style={{ textDecoration: "none" }}>
+    <Link href={href} className="cx-lift" style={{ textDecoration: "none", display: "block", borderRadius: "var(--r-xl)" }}>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 }}>
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 12 }}>{title}</div>
         {rows.map(([k, v]) => (

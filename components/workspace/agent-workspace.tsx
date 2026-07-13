@@ -46,7 +46,7 @@ export function AgentWorkspace({ ws }: { ws: Workspace }) {
           const sel = active === q.key;
           const danger = q.danger && n > 0;
           return (
-            <button key={q.key} onClick={() => setActive(q.key)}
+            <button key={q.key} onClick={() => setActive(q.key)} className="cx-lift"
               style={{ textAlign: "left", cursor: "pointer", background: "var(--card)", border: sel ? "1px solid var(--accent)" : "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 14, boxShadow: sel ? "0 0 0 2px var(--accent-soft)" : "none" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>{t(q.label)}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: 24, letterSpacing: "-1px", color: danger ? "var(--st-critical-fg)" : "var(--text)" }}>{n}</div>
