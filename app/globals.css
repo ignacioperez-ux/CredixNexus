@@ -84,46 +84,59 @@
 }
 
 /* ============================================================================
-   TEMA CLARO — rojo Credix / sidebar claro (paleta de marca)
+   TEMA CLARO — lenguaje visual credix.com: blanco puro, muy aireado, texto en
+   gris carbon (NUNCA negro), rojo Credix SOLO en acciones/acentos, cero beige,
+   superficies planas, sombras apenas perceptibles.
    ============================================================================ */
 [data-theme="claro"] {
-  --bg: #FCFBF9;
-  --card: #FFFFFF;
-  --line: #E7E3DC;
-  --line-soft: #F1ECE4;
-  --text: #191A1C;
-  --muted: #5B5F66;
-  --paper: #F5F1EA;
-  --track: #EFEAE2;
-  --head-bg: #FAF7F2;
-  --row-hover: #FBF8F3;
-  --chart-bar: #E7DFD3;
+  --bg: #FFFFFF;            /* fondo de app: blanco puro */
+  --card: #FFFFFF;          /* tarjetas: blancas */
+  --line: #ECECEC;          /* hairlines muy sutiles (neutro, sin beige) */
+  --line-soft: #F3F3F3;
+  --text: #4A4A4A;          /* titulos y texto principal: gris carbon, nunca #000 */
+  --muted: #6B6B6B;         /* texto secundario / cuerpo */
+  --paper: #F6F6F6;         /* bandas de seccion / zonas alternas gris muy claro */
+  --track: #ECECEC;
+  --head-bg: #F6F6F6;
+  --row-hover: #F6F6F6;
+  --chart-bar: #E6E6E6;
 
-  --accent: #E4002B;
-  --accent-2: #B00021;
-  --accent-bright: #E4002B;
-  --accent-soft: rgba(228, 0, 43, .10);
+  --accent: #E30613;        /* ROJO Credix — solo acciones y acentos */
+  --accent-2: #C40410;      /* rojo un paso mas oscuro — IDs/enlaces */
+  --accent-bright: #E30613;
+  --accent-soft: rgba(227, 6, 19, .07);
   --on-accent: #FFFFFF;
+
+  /* Vocabulario del sitio (alias forward-compat sobre los mismos valores) */
+  --surface: #FFFFFF;
+  --surface-alt: #F6F6F6;
+  --ink: #4A4A4A;
+  --ink-strong: #3A3A3A;
+  --primary: #E30613;
+  --primary-hover: #C40410;
+  --on-primary: #FFFFFF;
 
   --teal: #0E8C86;
   --teal-soft: rgba(14, 140, 134, .08);
 
   --sb-bg: #FFFFFF;
-  --sb-fg: #5B5F66;
-  --sb-fg-active: #191A1C;
-  --sb-muted: #8A8F97;
-  --sb-label: #BCBDC1;
-  --sb-border: #EDE8E0;
-  --sb-hover: #F5F1EA;
+  --sb-fg: #4A4A4A;         /* nav items: gris carbon bold */
+  --sb-fg-active: #3A3A3A;  /* activo: gris mas fuerte (la barra activa es roja via --accent) */
+  --sb-muted: #9AA0A6;
+  --sb-label: #9AA0A6;
+  --sb-border: #ECECEC;
+  --sb-hover: #F6F6F6;      /* hover sutil, sin beige */
 
-  --cta-bg: #E4002B;
+  --cta-bg: #E30613;
   --cta-fg: #FFFFFF;
   --cta-icon: #FFFFFF;
 
-  --dark-surface: linear-gradient(135deg, #191A1C, #2A2C30);
-  --dark-surface-border: #3A3C40;
-  --dark-surface-fg: #EDEAE4;
+  --dark-surface: #3A3A3A;  /* superficie oscura sobre claro: plana, sin degradado calido */
+  --dark-surface-border: #4A4A4A;
+  --dark-surface-fg: #FFFFFF;
   --dark-chip: rgba(255, 255, 255, .08);
+
+  --sh-card: 0 1px 3px rgba(0, 0, 0, .05);  /* sombra apenas perceptible */
 
   /* Estado — paleta para fondo claro (texto oscuro sobre badge translucido) */
   --st-critical: #E0483B; --st-critical-fg: #991B1B; --st-critical-bg: rgba(224, 72, 59, .12);
