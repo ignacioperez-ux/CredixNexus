@@ -49,35 +49,9 @@ export function requiredPermForPath(pathname: string): string | string[] | undef
   return matches.sort((a, b) => b.prefix.length - a.prefix.length)[0].perm;
 }
 
-// Perfil de navegacion por rol: el "cockpit" curado de cada rol (sus opciones diarias).
-// El permiso sigue siendo el candado de seguridad; esto solo decide que se muestra por defecto
-// vs. lo que va a "Mas...". Un rol sin perfil (o admin) ve todo lo permitido como primario.
-export const ROLE_PROFILES: Record<string, string[]> = {
-  support_agent: ["nav.workspace", "nav.incidents", "nav.triage", "nav.sla", "nav.customers", "nav.knowledge", "nav.servicecatalog"],
-  support_lead: ["nav.workspace", "nav.incidents", "nav.triage", "nav.sla", "nav.customers", "nav.analytics", "nav.majorincidents", "nav.problems", "nav.changes", "nav.frauddisputes", "nav.observability", "nav.vendors", "nav.knowledge", "nav.servicecatalog"],
-  product_owner: ["nav.dashboard", "nav.workspace", "nav.incidents", "nav.analytics", "nav.projects", "nav.squads", "nav.talent", "nav.resources", "nav.rules", "nav.workflows", "nav.knowledge"],
-  squad_member: ["nav.projects", "nav.squads", "nav.resources", "nav.knowledge"],
-  partner_user: ["nav.selfservice", "nav.knowledge", "nav.servicecatalog"],
-  business_owner: ["nav.analytics", "nav.risk", "nav.processes", "nav.projects", "nav.knowledge"],
-  grc_officer: ["nav.risk", "nav.ledger", "nav.processes", "nav.observability", "nav.changes", "nav.analytics"],
-  change_manager: ["nav.changes", "nav.majorincidents", "nav.problems", "nav.workflows", "nav.dependencies", "nav.knowledge"],
-  auditor: ["nav.ledger", "nav.analytics", "nav.processes"],
-  people_lead: ["nav.talent", "nav.squads", "nav.resources"],
-  responsable_comercial: ["nav.customers", "nav.selfservice", "nav.servicecatalog", "nav.knowledge"],
-};
-
-/** Claves de nav primarias (cockpit) para los roles del usuario. null = todo primario
- *  (admin, o rol sin perfil: no ocultamos nada por las dudas). nav.dashboard siempre primario. */
-export function primaryNavKeys(roles: string[], isAdmin: boolean): Set<string> | null {
-  if (isAdmin) return null;
-  const keys = new Set<string>(["nav.dashboard"]);
-  let matched = false;
-  for (const r of roles) {
-    const profile = ROLE_PROFILES[r];
-    if (profile) { matched = true; for (const k of profile) keys.add(k); }
-  }
-  return matched ? keys : null;
-}
+// Nota: el "cockpit" por rol (que categorias se auto-expanden) vive ahora en lib/nav/role-ux.ts
+// (ROLE_UX / emphasisForRoles), fuente unica de la experiencia por rol. `perm` sigue siendo el
+// candado de visibilidad.
 
 /** Home por rol: a donde cae el usuario al ingresar segun su acceso real. */
 export function defaultHome(perms: string[], isAdmin: boolean): string {

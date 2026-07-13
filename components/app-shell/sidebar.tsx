@@ -6,8 +6,9 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import { Wordmark } from "./wordmark";
 import { Icon } from "@/components/ui/icon";
-import { canSeeNav, primaryNavKeys } from "@/lib/nav/access";
-import { MACRO_NAV, categoryOfPath, type NavigationItem, type NavCategory } from "@/lib/nav/navigation";
+import { canSeeNav } from "@/lib/nav/access";
+import { emphasisForRoles } from "@/lib/nav/role-ux";
+import { MACRO_NAV, categoryOfPath, type NavigationItem } from "@/lib/nav/navigation";
 
 // Sidebar de primer nivel = 8 categorias macro (Estructura Macro Aprobada - FASE 1).
 // El arbol vive en lib/nav/navigation.ts (config centralizada). Aqui solo se renderiza:
@@ -29,14 +30,9 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
 
   const activeCat = categoryOfPath(pathname);
 
-  // Enfasis por rol: se auto-expanden las categorias que contienen el cockpit del rol.
-  const primary = primaryNavKeys(roles, isAdmin); // null = admin / rol sin perfil
-  const emphasized = (c: NavCategory) => primary !== null && c.items.some((it) => primary.has(it.id));
-  const [open, setOpen] = useState<Set<string>>(() => {
-    const s = new Set<string>();
-    for (const { cat } of cats) if (emphasized(cat)) s.add(cat.id);
-    return s;
-  });
+  // Enfasis por rol (FASE 2): categorias macro del cockpit del rol -> auto-expandidas.
+  const emphasis = emphasisForRoles(roles, isAdmin);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(emphasis));
   const toggle = (id: string) => setOpen((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const isOpen = (id: string) => id === activeCat || open.has(id);
 

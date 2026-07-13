@@ -11,7 +11,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 // ---------------------------------------------------------------------------
 
 export type NavigationItem = {
-  id: string;                    // = clave i18n del label (tambien usada por ROLE_PROFILES)
+  id: string;                    // = clave i18n del label (estable)
   label: MessageKey;
   path: string;
   perm?: string | string[];      // permiso(s) requerido(s); any-of si es arreglo; sin perm = libre
