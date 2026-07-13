@@ -114,7 +114,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           {inc.intake_status === "discarded" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", background: "var(--paper)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.discarded")}</span>}
           {inc.classified_as && inc.intake_status === "accepted" && <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--st-info)", background: "var(--st-info-bg)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t(("tri.class." + inc.classified_as) as MessageKey)}</span>}
         </div>
-        <StatusActions incidentId={inc.id} status={inc.status} />
+        {(canUpdateIncident || canTriage) && <StatusActions incidentId={inc.id} status={inc.status} />}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
@@ -211,7 +211,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
           )}
           <EvaluatePanel incidentId={inc.id} />
-          <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />
+          {(canUpdateIncident || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
           <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")}>
             <Card title={t("inc.section.rca")}>
               <AiRca incidentId={inc.id} current={inc.root_cause_summary} />

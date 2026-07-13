@@ -2,10 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
+
+/** Guard de permiso: pasa si es admin o tiene AL MENOS uno de los codigos. Defense-in-depth
+ *  para las mutaciones de incidencia (antes solo dependian de RLS + gate de UI). */
+async function anyPerm(codes: string[]): Promise<boolean> {
+  const access = await getAccessControl();
+  return access.isAdmin || codes.some((c) => access.perms.includes(c));
+}
 
 const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
 
@@ -184,6 +192,7 @@ export async function addComment(
 export async function changeStatus(incidentId: string, status: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const patch: Record<string, unknown> = { status };
   if (status === "resolved") patch.resolved_at = new Date().toISOString();
   const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId);
@@ -198,6 +207,7 @@ export async function changeStatus(incidentId: string, status: string): Promise<
 export async function sendToEvolution(incidentId: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.update", "problem.manage", "project.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const { error } = await ctx.supabase
     .from("incident")
     .update({

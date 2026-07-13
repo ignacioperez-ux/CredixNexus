@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { ErrorCode } from "@/lib/validation";
 import { suggestForIncident, type FitSuggestion } from "@/lib/talent/recommender";
 import { validateMember, validateSkill, validateExpertise, validateEvaluation, type MemberInput, type SkillInput, type ExpertiseInput, type EvaluationInput } from "@/lib/talent/validation";
@@ -31,6 +32,10 @@ export async function assignIncidentMember(incidentId: string, memberId: string,
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
   if (!memberId) return { ok: false, error: ErrorCode.REQUIRED };
+  // Defense-in-depth: solo quien gestiona la asignacion (Operaciones/triage/talento).
+  const access = await getAccessControl();
+  const allowed = access.isAdmin || ["incident.assign", "incident.update", "triage.manage", "talent.manage"].some((c) => access.perms.includes(c));
+  if (!allowed) return { ok: false, error: ErrorCode.PERMISSION };
   const { data: member } = await ctx.supabase.from("team_member").select("name").eq("id", memberId).maybeSingle();
   const { error } = await ctx.supabase.from("incident").update({ assigned_member_id: memberId, status: "assigned" }).eq("id", incidentId);
   if (error) return { ok: false, error: error.message };
