@@ -30,6 +30,9 @@ const CHANNEL_TYPES = [
   "portal_partner", "phone", "whatsapp", "social", "chat", "kiosk", "assisted", "sms",
 ];
 const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
+// Espejan enums reales del esquema (impact_level, governance_type) -> permitido (§11).
+const IMPACT_LEVELS = ["critical", "high", "medium", "low"];
+const GOVERNANCE_TYPES = ["policy", "norm", "procedure", "process", "control"];
 
 export const CATALOGS: Catalog[] = [
   {
@@ -100,6 +103,42 @@ export const CATALOGS: Catalog[] = [
       { name: "parent_process_id", label: "md.f.parent_process", type: "fk", fkTable: "process" },
     ],
     listCols: ["process_level", "business_unit_id"],
+  },
+  {
+    // Sistemas / aplicaciones (CMDB). /cmdb es el explorador; aqui el alta/edicion.
+    // environment y data_classification usan su default (NOT NULL con default) -> se omiten.
+    key: "systems", table: "configuration_item", title: "md.cat.configuration_item",
+    fields: [
+      { name: "code", label: "md.f.code", type: "code", required: true },
+      { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
+      { name: "ci_type", label: "md.f.ci_type", type: "text", required: true, max: 60 },
+      { name: "criticality", label: "md.f.criticality", type: "enum", required: true, options: IMPACT_LEVELS },
+      { name: "service_id", label: "md.f.service", type: "fk", fkTable: "service" },
+      { name: "vendor_id", label: "md.f.vendor", type: "fk", fkTable: "vendor" },
+    ],
+    listCols: ["ci_type", "criticality"],
+  },
+  {
+    // Tipos de caso: clasificacion transversal. category y domain son NOT NULL (varchar libre).
+    key: "case-types", table: "case_type", title: "md.cat.case_type",
+    fields: [
+      { name: "code", label: "md.f.code", type: "code", required: true },
+      { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
+      { name: "category", label: "md.f.category", type: "text", required: true, max: 60 },
+      { name: "domain", label: "md.f.domain", type: "text", required: true, max: 60 },
+    ],
+    listCols: ["category", "domain"],
+  },
+  {
+    // Items de gobierno (GRC): politicas, normas, procedimientos, procesos, controles.
+    key: "governance-items", table: "governance_item", title: "md.cat.governance_item",
+    fields: [
+      { name: "item_type", label: "md.f.item_type", type: "enum", required: true, options: GOVERNANCE_TYPES },
+      { name: "code", label: "md.f.code", type: "code", required: true },
+      { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
+      { name: "description", label: "md.f.description", type: "text", max: 500 },
+    ],
+    listCols: ["item_type"],
   },
 ];
 
