@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { DisputeRow, DisputeStats } from "@/lib/fraud/queries";
 import { DisputeStatusBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 const OPEN = ["opened", "investigating", "awaiting_customer", "submitted"];
 
@@ -25,7 +25,7 @@ export function DisputeList({ rows, stats }: { rows: DisputeRow[]; stats: Disput
   function Line(r: DisputeRow) {
     const overdue = OPEN.includes(r.status) && r.due_date && r.due_date < today;
     return (
-      <Link key={r.id} href={`/fraud-disputes/dispute/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={r.id} href={`/fraud-disputes/dispute/${r.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{r.dispute_number}</Cell>
         <Cell>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -58,7 +58,7 @@ export function DisputeList({ rows, stats }: { rows: DisputeRow[]; stats: Disput
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 160px 120px 120px 120px", minWidth: 900 }}>
             {[t("dp.col.number"), t("fr.col.case"), t("fr.col.type"), t("dp.col.disputed"), t("dp.col.due"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("dp.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("dp.empty")} icon="shield" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

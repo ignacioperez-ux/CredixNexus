@@ -6,7 +6,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { RiskData, RiskEventRow } from "@/lib/risk/queries";
 import { updateRiskStatus } from "@/lib/risk/actions";
-import { useListFilters, FilterBar, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 const STATUSES = ["open", "assessing", "mitigating", "closed", "accepted"];
 const statusColor: Record<string, { fg: string; bg: string }> = {
@@ -41,7 +41,7 @@ export function RiskList({ data, canManage }: { data: RiskData; canManage: boole
     const sc = statusColor[e.status] ?? statusColor.open;
     const overdue = e.status !== "closed" && e.due_date && e.due_date < new Date().toISOString().slice(0, 10);
     return (
-      <div key={e.id} style={{ display: "contents" }}>
+      <div key={e.id} className="cx-row" style={{ display: "contents" }}>
         <Cell mono accent>{e.event_number}</Cell>
         <Cell muted>{e.risk_category}</Cell>
         <Cell>
@@ -81,7 +81,7 @@ export function RiskList({ data, canManage }: { data: RiskData; canManage: boole
             {[t("risk.col.number"), t("risk.col.category"), t("risk.col.desc"), t("risk.col.estimated"), t("risk.col.actual"), t("risk.col.due"), t("risk.col.status")].map((h, i) => (
               <div key={h} style={{ ...head, textAlign: i >= 3 && i <= 4 ? "right" : "left" }}>{h}</div>
             ))}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("risk.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("risk.empty")} icon="shield" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

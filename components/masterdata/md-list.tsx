@@ -8,7 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Catalog } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { setRecordStatus } from "@/lib/masterdata/actions";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
 type Rec = Record<string, unknown> & { id: string; code: string; name: string; status: string };
@@ -49,7 +49,7 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
 
   function Line(r: Rec) {
     return (
-      <div key={r.id} style={{ display: "contents" }}>
+      <div key={r.id} className="cx-row" style={{ display: "contents" }}>
         <Cell mono accent>{r.code}</Cell>
         <Cell bold>{r.name}</Cell>
         {extraFields.map((fld) => {
@@ -129,7 +129,7 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
               <Head>{t("md.col.status")}</Head>
               <Head right>·</Head>
 
-              {filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: "36px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("md.empty")}</div>}
+              {filtered.length === 0 && <EmptyState text={t("md.empty")} icon="database" />}
 
               {g.groups
                 ? g.groups.map((grp) => (

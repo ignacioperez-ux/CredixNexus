@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProblemData, ProblemRow } from "@/lib/problems/queries";
 import { ProblemStatusBadge, PROB_PRIORITY_COLOR } from "./badges";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 export function ProblemList({ data, canManage }: { data: ProblemData; canManage: boolean }) {
   const { t } = useI18n();
@@ -22,7 +22,7 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
   function Line(p: ProblemRow) {
     const pc = PROB_PRIORITY_COLOR[p.priority] ?? PROB_PRIORITY_COLOR.medium;
     return (
-      <Link key={p.id} href={`/problems/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={p.id} href={`/problems/${p.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{p.problem_number}</Cell>
         <Cell>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
@@ -65,7 +65,7 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
             {[t("prob.col.number"), t("prob.col.title"), t("prob.col.category"), t("prob.col.priority"), t("prob.col.linked"), t("prob.col.status")].map((h) => (
               <div key={h} style={head}>{h}</div>
             ))}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("prob.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("prob.empty")} icon="search" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

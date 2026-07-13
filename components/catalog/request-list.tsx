@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { RequestRow, RequestStats } from "@/lib/catalog/queries";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 const STATUS_COLOR: Record<string, { fg: string; bg: string }> = {
   open: { fg: "var(--st-high-fg)", bg: "var(--st-high-bg)" },
@@ -28,7 +28,7 @@ export function RequestList({ rows, stats }: { rows: RequestRow[]; stats: Reques
   function Line(r: RequestRow) {
     const overdue = r.status === "open" && r.sla_due_at && r.sla_due_at < now;
     return (
-      <Link key={r.id} href={`/service-catalog/requests/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={r.id} href={`/service-catalog/requests/${r.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{r.request_number}</Cell>
         <Cell><Drill onClick={() => f.set("item", r.item_name)}>{r.item_name}</Drill></Cell>
         <Cell mono muted>{r.incident_number}</Cell>
@@ -53,7 +53,7 @@ export function RequestList({ rows, stats }: { rows: RequestRow[]; stats: Reques
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 130px 150px 110px", minWidth: 820 }}>
             {[t("cat.col.number"), t("cat.col.item"), t("cat.col.case"), t("cat.col.due"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("cat.req.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("cat.req.empty")} icon="inbox" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

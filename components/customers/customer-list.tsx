@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { CustomerRow } from "@/lib/customers/queries";
 import { maskTaxId } from "@/lib/customers/queries";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 const riskColor: Record<string, { fg: string; bg: string }> = {
   critical: { fg: "var(--st-critical-fg)", bg: "var(--st-critical-bg)" },
@@ -28,7 +28,7 @@ export function CustomerList({ rows }: { rows: CustomerRow[] }) {
   function Line(c: CustomerRow) {
     const rc = riskColor[c.risk_level] ?? riskColor.low;
     return (
-      <div key={c.id} onClick={() => router.push(`/customers/${c.id}`)} style={{ display: "contents", cursor: "pointer" }}>
+      <div key={c.id} onClick={() => router.push(`/customers/${c.id}`)} className="cx-row" style={{ display: "contents", cursor: "pointer" }}>
         <Cell>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.display_name}</span>
@@ -63,7 +63,7 @@ export function CustomerList({ rows }: { rows: CustomerRow[] }) {
             <div style={{ ...head, textAlign: "right" }}>{t("cust.col.total")}</div>
             <div style={head}>{t("cust.col.last")}</div>
 
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("cust.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("cust.empty")} icon="user" />}
 
             {g.groups
               ? g.groups.map((grp) => (

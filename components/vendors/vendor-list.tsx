@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { VendorData, VendorRow } from "@/lib/vendors/queries";
 import { CriticalityBadge, VendorStatusBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 export function VendorList({ data, canManage }: { data: VendorData; canManage: boolean }) {
   const { t } = useI18n();
@@ -20,7 +20,7 @@ export function VendorList({ data, canManage }: { data: VendorData; canManage: b
 
   function Line(v: VendorRow) {
     return (
-      <Link key={v.id} href={`/vendors/${v.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={v.id} href={`/vendors/${v.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{v.code}</Cell>
         <Cell>{v.name}</Cell>
         <Cell muted><Drill onClick={() => f.set("cat", v.category)}>{t(("vnd.cat." + v.category) as MessageKey)}</Drill></Cell>
@@ -53,7 +53,7 @@ export function VendorList({ data, canManage }: { data: VendorData; canManage: b
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.6fr 150px 100px 90px 100px", minWidth: 840 }}>
             {[t("vnd.col.code"), t("vnd.col.name"), t("vnd.col.category"), t("vnd.col.criticality"), t("vnd.col.systems"), t("vnd.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("vnd.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("vnd.empty")} icon="database" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

@@ -2,6 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import { Icon } from "@/components/ui/icon";
+
+/** Estado vacio ilustrado y util para listas (icono + mensaje + pista opcional). */
+export function EmptyState({ text, hint, icon = "inbox" }: { text: string; hint?: string; icon?: string }) {
+  return (
+    <div className="cx-empty">
+      <Icon name={icon} size={34} strokeWidth={1.4} />
+      <div className="t">{text}</div>
+      {hint && <div className="h">{hint}</div>}
+    </div>
+  );
+}
 
 // Kit de filtros + drill-down reutilizable para listas. Las opciones se derivan
 // de los datos reales (cero hardcode). Un filtro activo se muestra como chip con

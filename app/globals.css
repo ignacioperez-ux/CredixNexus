@@ -162,6 +162,19 @@ body {
 /* Todo dato numerico en mono para alineacion tabular */
 .mono, .num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
 
+/* Filas de tabla con hover elegante. Los grids usan display:contents en cada fila
+   (Link o div), asi que resaltamos sus celdas hijas al pasar el mouse. */
+.cx-row { text-decoration: none; }
+.cx-row > * { transition: background var(--t-fast); }
+.cx-row:hover > * { background: var(--row-hover); }
+
+/* Empty state ilustrado y util (reemplaza el "Sin X" pelado). */
+.cx-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 46px 20px; text-align: center; color: var(--muted); }
+.cx-empty svg { opacity: .5; color: var(--muted); }
+.cx-empty .t { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.cx-empty .h { font-size: 12px; color: var(--muted); max-width: 42ch; }
+
 /* Animacion dot "en vivo" (ledger) */
 @keyframes cnpulse {
   0%, 100% { opacity: 1; transform: scale(1); }

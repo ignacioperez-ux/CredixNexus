@@ -6,7 +6,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ChangeData } from "@/lib/changes/queries";
 import type { ChangeRow } from "@/lib/changes/queries";
 import { ChangeStatusBadge, RiskBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 export function ChangeList({ data, canManage }: { data: ChangeData; canManage: boolean }) {
   const { t } = useI18n();
@@ -22,7 +22,7 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
 
   function Line(c: ChangeRow) {
     return (
-      <Link key={c.id} href={`/changes/${c.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={c.id} href={`/changes/${c.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{c.change_number}</Cell>
         <Cell>{c.title}</Cell>
         <Cell muted><Drill onClick={() => f.set("type", c.change_type)}>{t(("chg.type." + c.change_type) as MessageKey)}</Drill></Cell>
@@ -56,7 +56,7 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 110px 90px 120px 120px", minWidth: 880 }}>
             {[t("chg.col.number"), t("chg.col.title"), t("chg.col.type"), t("chg.col.risk"), t("chg.col.origin"), t("chg.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("chg.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("chg.empty")} icon="search" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

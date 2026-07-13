@@ -9,7 +9,7 @@ import type { TalentProfile } from "@/lib/talent/queries";
 import { createMember } from "@/lib/talent/actions";
 import { EXTERNAL_TYPES, DISCIPLINES, SENIORITIES } from "@/lib/talent/validation";
 import { scoreColor } from "@/lib/incidents/labels";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
 type Area = { id: string; code: string; name: string; lead_name: string | null };
@@ -50,7 +50,7 @@ export function TalentList({ profiles, areas = [], canManage = false }: { profil
 
   function Line(p: TalentProfile) {
     return (
-      <Link key={p.id} href={`/talent/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={p.id} href={`/talent/${p.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell>
           <span style={{ fontWeight: 600, color: "var(--text)" }}>{p.name}</span>
           {p.is_external && <span style={{ fontSize: 9.5, fontWeight: 700, marginLeft: 8, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--paper)", color: "var(--muted)" }}>{p.external_type ? t(("tal.ext." + p.external_type) as MessageKey) : t("tal.type.external")}</span>}
@@ -134,7 +134,7 @@ export function TalentList({ profiles, areas = [], canManage = false }: { profil
             {[t("tal.col.member"), t("tal.f.discipline"), t("tal.col.stream"), t("tal.load"), t("tal.col.effectiveness"), t("tal.col.empathy")].map((h, i) => (
               <div key={h} style={{ ...head, textAlign: i >= 3 ? "right" : "left" }}>{h}</div>
             ))}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("tal.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("tal.empty")} icon="users" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

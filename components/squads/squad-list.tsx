@@ -7,7 +7,7 @@ import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { SquadRow } from "@/lib/squads/queries";
 import { createSquad } from "@/lib/squads/actions";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
 type Bu = { id: string; name: string };
@@ -31,7 +31,7 @@ export function SquadList({ rows, businessUnits = [], canManage = false }: { row
 
   function Line(s: SquadRow) {
     return (
-      <Link key={s.id} href={`/squads/${s.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={s.id} href={`/squads/${s.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{s.code}</Cell>
         <Cell>{s.name}</Cell>
         <Cell muted>{s.business_unit?.name ? <Drill onClick={() => f.set("bu", s.business_unit!.name)}>{s.business_unit.name}</Drill> : "—"}</Cell>
@@ -109,7 +109,7 @@ export function SquadList({ rows, businessUnits = [], canManage = false }: { row
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "150px 1.4fr 1fr 90px 120px 110px", minWidth: 820 }}>
             {[t("sq.col.code"), t("sq.col.name"), t("sq.col.bu"), t("sq.col.members"), t("sq.col.allocation"), t("sq.col.type")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("sq.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("sq.empty")} icon="users" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProcessRow, ProcessStats } from "@/lib/process/queries";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 const COV: Record<string, { fg: string; bg: string }> = {
   covered: { fg: "var(--st-low-fg)", bg: "var(--st-low-bg)" },
@@ -25,7 +25,7 @@ export function ProcessList({ rows, stats }: { rows: ProcessRow[]; stats: Proces
 
   function Line(p: ProcessRow) {
     return (
-      <Link key={p.id} href={`/processes/${p.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={p.id} href={`/processes/${p.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell bold>{p.name}</Cell>
         <Cell><Drill onClick={() => f.set("level", p.process_level)}><span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: p.process_level === "macro" ? "var(--accent-2)" : "var(--muted)" }}>{t(("proc.level." + p.process_level) as MessageKey)}</span></Drill></Cell>
         <Cell muted>{p.business_unit ?? "—"}</Cell>
@@ -51,7 +51,7 @@ export function ProcessList({ rows, stats }: { rows: ProcessRow[]; stats: Proces
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 110px 160px 90px 130px", minWidth: 780 }}>
             {[t("proc.col.name"), t("proc.col.level"), t("proc.col.owner"), t("proc.col.systems"), t("proc.col.coverage")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("proc.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("proc.empty")} icon="activity" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

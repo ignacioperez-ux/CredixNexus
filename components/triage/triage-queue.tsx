@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { PendingCaseRow } from "@/lib/triage/queries";
-import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, EmptyState, type FilterDef } from "@/components/common/filters";
 
 export function TriageQueue({ rows }: { rows: PendingCaseRow[] }) {
   const { t, locale } = useI18n();
@@ -22,9 +22,9 @@ export function TriageQueue({ rows }: { rows: PendingCaseRow[] }) {
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 130px 130px 110px", minWidth: 820 }}>
             {[t("inc.col.number"), t("inc.col.title"), t("inc.col.category"), t("inc.col.app"), t("tri.queue.opened")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("tri.queue.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("tri.queue.empty")} icon="check" />}
             {f.filtered.map((r) => (
-              <Link key={r.id} href={`/incidents/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
+              <Link key={r.id} href={`/incidents/${r.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
                 <Cell mono accent>{r.incident_number}</Cell>
                 <Cell>{r.title}</Cell>
                 <Cell muted>{r.category?.name ? <Drill onClick={() => f.set("cat", r.category!.name)}>{r.category.name}</Drill> : "—"}</Cell>

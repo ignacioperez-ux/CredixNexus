@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { FraudRow, FraudStats } from "@/lib/fraud/queries";
 import { FraudStatusBadge } from "./badges";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, type FilterDef } from "@/components/common/filters";
+import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats }) {
   const { t, locale } = useI18n();
@@ -22,7 +22,7 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
 
   function Line(r: FraudRow) {
     return (
-      <Link key={r.id} href={`/fraud-disputes/fraud/${r.id}`} style={{ display: "contents", textDecoration: "none" }}>
+      <Link key={r.id} href={`/fraud-disputes/fraud/${r.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
         <Cell mono accent>{r.fraud_number}</Cell>
         <Cell>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -56,7 +56,7 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 150px 150px 90px 110px 120px", minWidth: 940 }}>
             {[t("fr.col.number"), t("fr.col.case"), t("fr.col.type"), t("fr.col.source"), t("fr.col.risk"), t("fr.col.exposed"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("fr.empty")}</div>}
+            {f.filtered.length === 0 && <EmptyState text={t("fr.empty")} icon="shield" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Workspace, WsCase } from "@/lib/workspace/queries";
 import { StatusPill, PriorityTag } from "@/components/incidents/badges";
+import { EmptyState } from "@/components/common/filters";
 
 type QueueKey = keyof Workspace["buckets"];
 
@@ -65,7 +66,7 @@ export function AgentWorkspace({ ws }: { ws: Workspace }) {
             {[t("inc.col.number"), t("inc.col.title"), t("inc.col.app"), t("inc.col.priority"), t("ws.col.sla"), t("inc.col.status")].map((h) => (
               <div key={h} style={head}>{h}</div>
             ))}
-            {cases.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("ws.empty")}</div>}
+            {cases.length === 0 && <EmptyState text={t("ws.empty")} icon="check" />}
             {cases.map((c) => <Row key={c.id} c={c} fmt={fmt} locale={locale} highImpact={active === "highImpact"} />)}
           </div>
         </div>
@@ -77,7 +78,7 @@ export function AgentWorkspace({ ws }: { ws: Workspace }) {
 function Row({ c, fmt, locale, highImpact }: { c: WsCase; fmt: (n: number) => string; locale: string; highImpact: boolean }) {
   const overdue = c.sla_resolution_due_at && new Date(c.sla_resolution_due_at).getTime() < Date.now() && !c.resolved_at;
   return (
-    <Link href={`/incidents/${c.id}`} style={{ display: "contents", textDecoration: "none" }}>
+    <Link href={`/incidents/${c.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
       <Cell mono accent>{c.incident_number}</Cell>
       <Cell>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>

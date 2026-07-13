@@ -7,7 +7,7 @@ import type { IncidentRow, CaseTypeMeta } from "@/lib/incidents/queries";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { priorityKey, statusKey } from "@/lib/incidents/labels";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
-import { useGrouping, GroupBar, type GroupDef } from "@/components/common/filters";
+import { useGrouping, GroupBar, EmptyState, type GroupDef } from "@/components/common/filters";
 
 const STATUS_FILTERS = ["all", "new", "triaged", "in_progress", "in_evolution", "resolved"];
 const DOMAIN_FILTERS = ["all", "business", "technology", "service"];
@@ -175,7 +175,7 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
           </div>
 
           {filtered.length === 0 ? (
-            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("inc.empty")}</div>
+            <EmptyState text={t("inc.empty")} icon="inbox" />
           ) : g.groups ? (
             g.groups.map((grp) => (
               <div key={grp.value}>
