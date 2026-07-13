@@ -4,7 +4,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 // por catálogo. Es metadata de esquema (no dato de negocio) -> no viola la regla de
 // no-hardcode. Los VALORES siempre vienen de la BD.
 
-export type FieldType = "text" | "code" | "number" | "bool" | "enum" | "fk";
+export type FieldType = "text" | "textarea" | "code" | "number" | "bool" | "enum" | "fk";
 
 export type Field = {
   name: string;
@@ -130,6 +130,17 @@ export const CATALOGS: Catalog[] = [
       { name: "domain", label: "md.f.domain", type: "text", required: true, max: 60 },
     ],
     listCols: ["category", "domain"],
+  },
+  {
+    // Macros / respuestas guardadas: texto reutilizable para comentarios (compartido por tenant).
+    key: "macros", table: "macro", title: "md.cat.macro", group: "md.grp.service",
+    fields: [
+      { name: "code", label: "md.f.code", type: "code", required: true },
+      { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 150 },
+      { name: "category", label: "md.f.category", type: "text", max: 60 },
+      { name: "body", label: "md.f.body", type: "textarea", required: true, max: 2000 },
+    ],
+    listCols: ["category"],
   },
   {
     // Items de gobierno (GRC): politicas, normas, procedimientos, procesos, controles.

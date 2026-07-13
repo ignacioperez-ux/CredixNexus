@@ -97,7 +97,10 @@ function FieldInput({ f, value, error, onChange, label, fkOptions }: { f: Field;
   return (
     <div>
       <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6, color: "var(--text)" }}>{label}{f.required ? " *" : ""}</label>
-      {f.type === "fk" ? (
+      {f.type === "textarea" ? (
+        <textarea value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} rows={5}
+          style={{ ...inp(!!error), minHeight: 96, resize: "vertical", fontFamily: "var(--font-ui)" }} />
+      ) : f.type === "fk" ? (
         <select value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} style={inp(!!error)}>
           <option value="">—</option>
           {(fkOptions ?? []).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}

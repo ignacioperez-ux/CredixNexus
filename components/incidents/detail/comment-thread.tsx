@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import { addComment } from "@/lib/incidents/actions";
+import type { Macro } from "@/lib/macros/queries";
 
 type Comment = {
   id: string;
@@ -14,7 +15,7 @@ type Comment = {
   author: { full_name: string } | null;
 };
 
-export function CommentThread({ incidentId, comments }: { incidentId: string; comments: Comment[] }) {
+export function CommentThread({ incidentId, comments, macros = [] }: { incidentId: string; comments: Comment[]; macros?: Macro[] }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -60,7 +61,15 @@ export function CommentThread({ incidentId, comments }: { incidentId: string; co
         placeholder={t("inc.comment.placeholder")}
         style={{ width: "100%", minHeight: 70, padding: "9px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-ui)", resize: "vertical" }}
       />
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+        {macros.length > 0 && (
+          <select value="" title={t("inc.comment.macro")}
+            onChange={(e) => { const m = macros.find((x) => x.id === e.target.value); if (m) setBody((b) => (b.trim() ? b + "\n" + m.body : m.body)); }}
+            style={{ padding: "7px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--muted)", fontSize: 12, maxWidth: 200 }}>
+            <option value="">{t("inc.comment.macro")}</option>
+            {macros.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        )}
         <select value={visibility} onChange={(e) => setVisibility(e.target.value as "internal" | "partner")}
           style={{ padding: "7px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontSize: 12 }}>
           <option value="internal">{t("inc.comment.internal")}</option>
