@@ -16,6 +16,10 @@ export default async function IncidentsPage() {
   ]);
   // El operador aterriza en su cola personal; el resto ve todo por defecto.
   const defaultView = myMemberId && access.roles.includes("support_agent") ? "mine" : "all";
+  // Acciones contextuales por permiso (matriz de responsabilidad): Operaciones resuelve;
+  // Evolucion convierte (envia a evolucion).
+  const canResolve = access.isAdmin || access.perms.includes("incident.resolve");
+  const canEvolve = access.isAdmin || access.perms.includes("problem.manage") || access.perms.includes("project.manage");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -23,7 +27,7 @@ export default async function IncidentsPage() {
         <NewIncidentButton />
       </div>
       <IncidentStats rows={rows} />
-      <IncidentSplit rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} />
+      <IncidentSplit rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} canResolve={canResolve} canEvolve={canEvolve} />
     </div>
   );
 }
