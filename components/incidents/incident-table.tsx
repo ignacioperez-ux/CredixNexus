@@ -8,15 +8,35 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { priorityKey, statusKey } from "@/lib/incidents/labels";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
 import { useGrouping, GroupBar, EmptyState, type GroupDef } from "@/components/common/filters";
+import { Icon } from "@/components/ui/icon";
 
 const STATUS_FILTERS = ["all", "new", "triaged", "in_progress", "in_evolution", "resolved"];
 const DOMAIN_FILTERS = ["all", "business", "technology", "service"];
 const PRIORITY_ORDER = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
+const OPEN_STATES = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
+const SETTLED_STATES = ["resolved", "closed", "cancelled"];
+
+/** SLA vencido: con fecha de vencimiento pasada, aun sin resolver y en estado abierto. */
+function slaBreached(r: IncidentRow, now: number): boolean {
+  return !!r.sla_resolution_due_at && !r.resolved_at && !SETTLED_STATES.includes(r.status)
+    && new Date(r.sla_resolution_due_at).getTime() < now;
+}
+
+// Vistas guardadas (presets semanticos del work-queue). Predicado puro sobre la fila.
+type ViewDef = { key: string; label: MessageKey; icon: string; needsMember?: boolean; pred: (r: IncidentRow, myMemberId: string | null, now: number) => boolean };
+const SAVED_VIEWS: ViewDef[] = [
+  { key: "all", label: "inc.view.all", icon: "inbox", pred: () => true },
+  { key: "mine", label: "inc.view.mine", icon: "user", needsMember: true, pred: (r, m) => !!m && r.assigned_member_id === m },
+  { key: "unassigned", label: "inc.view.unassigned", icon: "users", pred: (r) => !r.assignee && OPEN_STATES.includes(r.status) },
+  { key: "sla", label: "inc.view.sla", icon: "alert", pred: (r, _m, now) => slaBreached(r, now) },
+  { key: "candidates", label: "inc.view.candidates", icon: "zap", pred: (r) => r.transformation_candidate },
+];
 const domainColor: Record<string, string> = { business: "var(--accent-2)", technology: "var(--st-info)", service: "var(--teal)" };
 
-export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta }) {
+export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all" }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string }) {
   const { t } = useI18n();
   const router = useRouter();
+  const [view, setView] = useState(defaultView);
   const [filter, setFilter] = useState("all");
   const [domain, setDomain] = useState("all");
   const [bu, setBu] = useState("");
@@ -25,6 +45,9 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
   const [resp, setResp] = useState("");
 
   const domainOf = (r: IncidentRow) => caseTypes[r.case_type]?.domain ?? "business";
+  const now = useMemo(() => Date.now(), [rows]);
+  const views = useMemo(() => SAVED_VIEWS.filter((v) => !v.needsMember || myMemberId), [myMemberId]);
+  const viewPred = (views.find((v) => v.key === view) ?? SAVED_VIEWS[0]).pred;
 
   // Opciones de filtro derivadas de los datos reales (cero hardcode).
   const buOptions = useMemo(() => distinct(rows.map((r) => r.business_unit?.name)), [rows]);
@@ -34,6 +57,7 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
 
   const filtered = useMemo(
     () => rows.filter((r) =>
+      viewPred(r, myMemberId, now) &&
       (filter === "all" || r.status === filter) &&
       (domain === "all" || domainOf(r) === domain) &&
       (!bu || r.business_unit?.name === bu) &&
@@ -41,7 +65,7 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
       (!resp || r.assignee?.name === resp) &&
       (!prio || r.priority === prio)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, filter, domain, bu, app, prio, resp],
+    [rows, view, filter, domain, bu, app, prio, resp, myMemberId, now],
   );
 
   // Agrupacion por campo de maestro (estado, responsable, aplicacion, unidad, prioridad).
@@ -103,6 +127,24 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
 
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
+      {/* Vistas guardadas (work-queue): presets semanticos */}
+      <div style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line)", flexWrap: "wrap", alignItems: "center" }}>
+        {views.map((v) => {
+          const active = view === v.key;
+          const count = rows.filter((r) => v.pred(r, myMemberId, now)).length;
+          return (
+            <button key={v.key} onClick={() => setView(v.key)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
+                background: active ? "var(--accent-soft)" : "var(--card)", color: active ? "var(--accent-2)" : "var(--muted)", fontSize: 12.5, fontWeight: 600 }}>
+              <Icon name={v.icon} size={14} color={active ? "var(--accent-2)" : "var(--muted)"} />
+              {t(v.label)}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.7 }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filtro por dominio: Negocio vs TI vs Servicio */}
       <div style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line-soft)", flexWrap: "wrap", alignItems: "center" }}>
         <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700 }}>{t("inc.domain")}</span>
@@ -154,7 +196,7 @@ export function IncidentTable({ rows, caseTypes = {} }: { rows: IncidentRow[]; c
             <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, padding: "4px 6px 4px 11px", borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent-2)", fontWeight: 600 }}>
               <span style={{ opacity: 0.7 }}>{c.label}:</span> {c.value}
               <button onClick={c.clear} aria-label="quitar filtro"
-                style={{ display: "inline-flex", width: 16, height: 16, alignItems: "center", justifyContent: "center", borderRadius: "50%", border: "none", background: "transparent", color: "var(--accent-2)", cursor: "pointer", fontSize: 13, lineHeight: 1 }}>×</button>
+                style={{ display: "inline-flex", width: 16, height: 16, alignItems: "center", justifyContent: "center", borderRadius: "50%", border: "none", background: "transparent", color: "var(--accent-2)", cursor: "pointer" }}><Icon name="x" size={12} /></button>
             </span>
           ))}
           <button onClick={clearAll} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)", background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}>{t("inc.filter.clear")}</button>

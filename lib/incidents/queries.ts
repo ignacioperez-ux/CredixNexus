@@ -15,6 +15,7 @@ export type IncidentRow = {
   opened_at: string;
   resolved_at: string | null;
   sla_resolution_due_at: string | null;
+  assigned_member_id: string | null;
   category: { name: string } | null;
   ci: { name: string } | null;
   business_unit: { name: string } | null;
@@ -25,12 +26,19 @@ export async function listIncidents(supabase: SupabaseClient): Promise<IncidentR
   const { data, error } = await supabase
     .from("incident")
     .select(
-      "id, incident_number, title, status, priority, case_type, transformation_score, transformation_candidate, opened_at, resolved_at, sla_resolution_due_at, category:category_id(name), ci:affected_ci_id(name), business_unit:affected_business_unit_id(name), assignee:assigned_member_id(name)",
+      "id, incident_number, title, status, priority, case_type, transformation_score, transformation_candidate, opened_at, resolved_at, sla_resolution_due_at, assigned_member_id, category:category_id(name), ci:affected_ci_id(name), business_unit:affected_business_unit_id(name), assignee:assigned_member_id(name)",
     )
     .order("transformation_score", { ascending: false })
     .order("opened_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as IncidentRow[];
+}
+
+/** team_member.id del usuario actual (para la vista "Mis tickets"); null si no es un miembro. */
+export async function getMyMemberId(supabase: SupabaseClient, accountId: string | null): Promise<string | null> {
+  if (!accountId) return null;
+  const { data } = await supabase.from("team_member").select("id").eq("user_id", accountId).limit(1).maybeSingle();
+  return (data?.id as string | undefined) ?? null;
 }
 
 export type CaseTypeMeta = Record<string, { name: string; domain: string }>;
