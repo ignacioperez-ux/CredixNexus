@@ -21,6 +21,7 @@ export type Catalog = {
   key: string;
   table: string;
   title: MessageKey;
+  group: MessageKey;  // seccion del hub de datos maestros (agrupacion visual)
   fields: Field[];
   listCols: string[]; // campos a mostrar en la lista (ademas de code/name/status)
 };
@@ -36,7 +37,7 @@ const GOVERNANCE_TYPES = ["policy", "norm", "procedure", "process", "control"];
 
 export const CATALOGS: Catalog[] = [
   {
-    key: "business-units", table: "business_unit", title: "md.cat.business_unit",
+    key: "business-units", table: "business_unit", title: "md.cat.business_unit", group: "md.grp.org",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -44,7 +45,7 @@ export const CATALOGS: Catalog[] = [
     listCols: [],
   },
   {
-    key: "products", table: "product", title: "md.cat.product",
+    key: "products", table: "product", title: "md.cat.product", group: "md.grp.service",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 250 },
@@ -54,7 +55,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["product_family", "business_unit_id"],
   },
   {
-    key: "channels", table: "channel", title: "md.cat.channel",
+    key: "channels", table: "channel", title: "md.cat.channel", group: "md.grp.service",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -63,7 +64,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["channel_type"],
   },
   {
-    key: "skills", table: "skill", title: "md.cat.skill",
+    key: "skills", table: "skill", title: "md.cat.skill", group: "md.grp.org",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 150 },
@@ -72,7 +73,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["category"],
   },
   {
-    key: "incident-categories", table: "incident_category", title: "md.cat.incident_category",
+    key: "incident-categories", table: "incident_category", title: "md.cat.incident_category", group: "md.grp.service",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -84,7 +85,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["default_team", "default_priority"],
   },
   {
-    key: "squads", table: "squad", title: "md.cat.squad",
+    key: "squads", table: "squad", title: "md.cat.squad", group: "md.grp.org",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -94,7 +95,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["capacity_points", "business_unit_id"],
   },
   {
-    key: "processes", table: "process", title: "md.cat.process",
+    key: "processes", table: "process", title: "md.cat.process", group: "md.grp.governance",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 250 },
@@ -107,7 +108,7 @@ export const CATALOGS: Catalog[] = [
   {
     // Sistemas / aplicaciones (CMDB). /cmdb es el explorador; aqui el alta/edicion.
     // environment y data_classification usan su default (NOT NULL con default) -> se omiten.
-    key: "systems", table: "configuration_item", title: "md.cat.configuration_item",
+    key: "systems", table: "configuration_item", title: "md.cat.configuration_item", group: "md.grp.tech",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -120,7 +121,7 @@ export const CATALOGS: Catalog[] = [
   },
   {
     // Tipos de caso: clasificacion transversal. category y domain son NOT NULL (varchar libre).
-    key: "case-types", table: "case_type", title: "md.cat.case_type",
+    key: "case-types", table: "case_type", title: "md.cat.case_type", group: "md.grp.service",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -131,7 +132,7 @@ export const CATALOGS: Catalog[] = [
   },
   {
     // Items de gobierno (GRC): politicas, normas, procedimientos, procesos, controles.
-    key: "governance-items", table: "governance_item", title: "md.cat.governance_item",
+    key: "governance-items", table: "governance_item", title: "md.cat.governance_item", group: "md.grp.governance",
     fields: [
       { name: "item_type", label: "md.f.item_type", type: "enum", required: true, options: GOVERNANCE_TYPES },
       { name: "code", label: "md.f.code", type: "code", required: true },

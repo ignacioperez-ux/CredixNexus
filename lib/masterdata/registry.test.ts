@@ -41,10 +41,12 @@ describe("registry de datos maestros", () => {
     }
   });
 
-  it("cada titulo y label tiene traduccion en ES y EN", () => {
+  it("cada titulo, grupo y label tiene traduccion en ES y EN", () => {
     for (const c of CATALOGS) {
       expect(es[c.title], `ES ${c.title}`).toBeTruthy();
       expect(en[c.title], `EN ${c.title}`).toBeTruthy();
+      expect(es[c.group], `ES ${c.group}`).toBeTruthy();
+      expect(en[c.group], `EN ${c.group}`).toBeTruthy();
       for (const f of c.fields) {
         expect(es[f.label], `ES ${f.label}`).toBeTruthy();
         expect(en[f.label], `EN ${f.label}`).toBeTruthy();

@@ -636,6 +636,10 @@ export const dictionaries = {
 
     "md.title": "Datos maestros",
     "md.subtitle": "Catálogos gobernados · alta, edición, activación",
+    "md.grp.org": "Organización",
+    "md.grp.service": "Servicio y clasificación",
+    "md.grp.tech": "Tecnología",
+    "md.grp.governance": "Procesos y gobierno",
     "md.back": "Datos maestros",
     "md.filter.all": "Todos",
     "md.new": "Nuevo",
@@ -2254,6 +2258,10 @@ export const dictionaries = {
 
     "md.title": "Master data",
     "md.subtitle": "Governed catalogs · create, edit, activate",
+    "md.grp.org": "Organization",
+    "md.grp.service": "Service & classification",
+    "md.grp.tech": "Technology",
+    "md.grp.governance": "Processes & governance",
     "md.back": "Master data",
     "md.filter.all": "All",
     "md.new": "New",
