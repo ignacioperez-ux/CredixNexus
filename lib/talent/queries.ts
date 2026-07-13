@@ -45,7 +45,7 @@ export async function getTalentProfiles(supabase: SupabaseClient): Promise<Talen
     supabase.from("team_member").select("id, name, email, discipline, is_external, external_type, seniority, capacity_points, status, area:delivery_area_id(code, name, lead_name)").order("name"),
     supabase.from("member_skill").select("member_id, level, skill:skill_id(name)"),
     supabase.from("member_expertise").select("member_id"),
-    supabase.from("incident").select("assigned_member_id, status"),
+    supabase.from("incident").select("assigned_member_id").in("status", OPEN).not("assigned_member_id", "is", null),
     supabase.from("member_evaluation").select("member_id, performance_score, empathy_score"),
   ]);
 
@@ -56,7 +56,7 @@ export async function getTalentProfiles(supabase: SupabaseClient): Promise<Talen
   }[];
   const skills = (skillsRes.data ?? []) as unknown as { member_id: string; level: number; skill: { name: string } | null }[];
   const exp = (expRes.data ?? []) as { member_id: string }[];
-  const incidents = (incRes.data ?? []) as { assigned_member_id: string | null; status: string }[];
+  const incidents = (incRes.data ?? []) as { assigned_member_id: string | null }[];
   const evals = (evalRes.data ?? []) as { member_id: string; performance_score: number | null; empathy_score: number | null }[];
 
   return members.map((m) => {
@@ -68,7 +68,7 @@ export async function getTalentProfiles(supabase: SupabaseClient): Promise<Talen
       status: m.status, capacity_points: m.capacity_points,
       skills: skills.filter((s) => s.member_id === m.id).map((s) => ({ name: (s.skill as { name: string } | null)?.name ?? "—", level: s.level })),
       expertiseCount: exp.filter((e) => e.member_id === m.id).length,
-      openIncidents: incidents.filter((i) => i.assigned_member_id === m.id && OPEN.includes(i.status)).length,
+      openIncidents: incidents.filter((i) => i.assigned_member_id === m.id).length,
       effectiveness: avg(myEvals.map((e) => e.performance_score)),
       empathy: avg(myEvals.map((e) => e.empathy_score)),
       evalCount: myEvals.length,
@@ -110,17 +110,22 @@ export async function getMemberDetail(supabase: SupabaseClient, id: string): Pro
     supabase.from("member_skill").select("id, level, skill:skill_id(id, name, category)").eq("member_id", id),
     supabase.from("member_expertise").select("id, entity_type, entity_id, level").eq("member_id", id),
     supabase.from("member_evaluation").select("id, eval_type, performance_score, empathy_score, comment, behavior_note, strengths, development_areas, period, entity_type, entity_id, created_at, evaluator:evaluator_user_id(full_name)").eq("member_id", id).order("created_at", { ascending: false }),
-    supabase.from("incident").select("assigned_member_id, status"),
+    supabase.from("incident").select("*", { count: "exact", head: true }).eq("assigned_member_id", id).in("status", OPEN),
   ]);
 
-  const incidents = (incRes.data ?? []) as { assigned_member_id: string | null; status: string }[];
   return {
     member: m as unknown as MemberDetail["member"],
     skills: (skillsRes.data ?? []) as unknown as MemberSkillRow[],
     expertise: (expRes.data ?? []) as MemberExpertiseRow[],
     evaluations: (evalRes.data ?? []) as unknown as MemberEvalRow[],
-    openIncidents: incidents.filter((i) => i.assigned_member_id === id && OPEN.includes(i.status)).length,
+    openIncidents: incRes.count ?? 0,
   };
+}
+
+/** Solo los streams (delivery_area) para el selector de la lista. Evita cargar los 8 catalogos. */
+export async function getTalentAreas(supabase: SupabaseClient): Promise<TalentOptions["areas"]> {
+  const { data } = await supabase.from("delivery_area").select("id, code, name, lead_name").eq("status", "active").order("name");
+  return (data ?? []) as TalentOptions["areas"];
 }
 
 // ---- Opciones (catalogos reales) para formularios de Talento -----------------
