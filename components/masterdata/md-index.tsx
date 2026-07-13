@@ -26,7 +26,7 @@ export function MdIndex({ counts }: { counts: Record<string, number> }) {
           <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--muted)" }}>{t(s.group)}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 12 }}>
             {s.items.map((c) => (
-              <Link key={c.key} href={`/catalog/${c.key}`} className="cx-lift"
+              <Link key={c.key} href={c.explorerHref ?? `/catalog/${c.key}`} className="cx-lift"
                 style={{ display: "block", textDecoration: "none", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16 }}>
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, color: "var(--text)", marginBottom: 6 }}>{t(c.title)}</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>

@@ -22,6 +22,7 @@ export type Catalog = {
   table: string;
   title: MessageKey;
   group: MessageKey;  // seccion del hub de datos maestros (agrupacion visual)
+  explorerHref?: string; // si el maestro tiene explorador propio, el hub enlaza ahi (no al CRUD generico)
   fields: Field[];
   listCols: string[]; // campos a mostrar en la lista (ademas de code/name/status)
 };
@@ -85,7 +86,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["default_team", "default_priority"],
   },
   {
-    key: "squads", table: "squad", title: "md.cat.squad", group: "md.grp.org",
+    key: "squads", table: "squad", title: "md.cat.squad", group: "md.grp.org", explorerHref: "/squads",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 200 },
@@ -95,7 +96,7 @@ export const CATALOGS: Catalog[] = [
     listCols: ["capacity_points", "business_unit_id"],
   },
   {
-    key: "processes", table: "process", title: "md.cat.process", group: "md.grp.governance",
+    key: "processes", table: "process", title: "md.cat.process", group: "md.grp.governance", explorerHref: "/processes",
     fields: [
       { name: "code", label: "md.f.code", type: "code", required: true },
       { name: "name", label: "md.f.name", type: "text", required: true, min: 2, max: 250 },

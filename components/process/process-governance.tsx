@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProcessRow, ProcessStats, ProductChannelMatrix } from "@/lib/process/queries";
@@ -18,7 +19,7 @@ export function ProcessGovernance({ rows, stats, matrix, canManage }: { rows: Pr
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
+      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)", alignItems: "center" }}>
         {tabs.map((x) => {
           const active = tab === x.key;
           return (
@@ -28,6 +29,12 @@ export function ProcessGovernance({ rows, stats, matrix, canManage }: { rows: Pr
             </button>
           );
         })}
+        <div style={{ flex: 1 }} />
+        {canManage && tab === "processes" && (
+          <Link href="/catalog/processes/new" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", fontWeight: 700, fontSize: 12.5, textDecoration: "none" }}>
+            <span style={{ color: "var(--cta-icon)" }}>+</span> {t("md.new")}
+          </Link>
+        )}
       </div>
       {tab === "processes" ? <ProcessList rows={rows} stats={stats} /> : <ProductChannelMatrixView matrix={matrix} canManage={canManage} />}
     </div>

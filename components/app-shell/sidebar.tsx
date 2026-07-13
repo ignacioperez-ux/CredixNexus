@@ -10,7 +10,9 @@ import { canSeeNav, primaryNavKeys } from "@/lib/nav/access";
 
 // perm: permiso requerido para ver el item (string = exacto; array = any-of). Sin perm = visible
 // a cualquier autenticado. Los roles admin (system_admin/tenant_admin) ven todo (bypass).
-type NavItem = { key: MessageKey; href: string; ready: boolean; perm?: string | string[] };
+// absorbedInHub: el maestro vive tambien en el hub /catalog (Datos maestros). Se oculta del
+// sidebar SOLO para quien puede ver el hub (masterdata.manage/admin); el resto lo conserva aqui.
+type NavItem = { key: MessageKey; href: string; ready: boolean; perm?: string | string[]; absorbedInHub?: boolean };
 type NavGroup = { label: MessageKey; items: NavItem[] };
 
 // Navegacion agrupada por dominio (alineada al benchmark ITSM/ESM/Fintech). Todas las rutas
@@ -62,7 +64,7 @@ const GROUPS: NavGroup[] = [
     label: "nav.group.evolution",
     items: [
       { key: "nav.projects", href: "/projects", ready: true, perm: "project.read" },
-      { key: "nav.squads", href: "/squads", ready: true, perm: "squad.read" },
+      { key: "nav.squads", href: "/squads", ready: true, perm: "squad.read", absorbedInHub: true },
       { key: "nav.talent", href: "/talent", ready: true, perm: "talent.read" },
       { key: "nav.resources", href: "/workload", ready: true, perm: "squad.read" },
     ],
@@ -71,7 +73,7 @@ const GROUPS: NavGroup[] = [
     label: "nav.group.admin",
     items: [
       { key: "nav.admin", href: "/admin", ready: true, perm: "user.manage" },
-      { key: "nav.processes", href: "/processes", ready: true, perm: "process.read" },
+      { key: "nav.processes", href: "/processes", ready: true, perm: "process.read", absorbedInHub: true },
       { key: "nav.areas", href: "/delivery-areas", ready: true, perm: "area.read" },
       { key: "nav.ledger", href: "/ledger", ready: true, perm: "audit.read" },
       { key: "nav.catalog", href: "/catalog", ready: true, perm: "masterdata.manage" },
@@ -89,13 +91,16 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   // El permiso sigue siendo el candado: un item nunca aparece si no hay permiso.
   const primary = primaryNavKeys(roles, isAdmin); // null = todo primario (admin / rol sin perfil)
   const isPrimary = (it: NavItem) => primary === null || primary.has(it.key);
+  // Quien ve el hub de Datos maestros no necesita las entradas absorbidas (evita duplicar).
+  const hasHub = isAdmin || perms.includes("masterdata.manage");
+  const visible = (it: NavItem) => canSeeNav(it.perm, perms, isAdmin) && !(it.absorbedInHub && hasHub);
 
   const groups = GROUPS
-    .map((g) => ({ ...g, items: g.items.filter((it) => canSeeNav(it.perm, perms, isAdmin) && isPrimary(it)) }))
+    .map((g) => ({ ...g, items: g.items.filter((it) => visible(it) && isPrimary(it)) }))
     .filter((g) => g.items.length > 0);
 
   // Secundarios: permitidos pero fuera del cockpit del rol -> seccion "Mas..." colapsable.
-  const secondary = primary === null ? [] : GROUPS.flatMap((g) => g.items).filter((it) => canSeeNav(it.perm, perms, isAdmin) && !isPrimary(it));
+  const secondary = primary === null ? [] : GROUPS.flatMap((g) => g.items).filter((it) => visible(it) && !isPrimary(it));
 
   return (
     <aside

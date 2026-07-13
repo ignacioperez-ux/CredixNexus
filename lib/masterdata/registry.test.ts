@@ -62,4 +62,9 @@ describe("registry de datos maestros", () => {
     expect(getCatalog("case-types")?.table).toBe("case_type");
     expect(getCatalog("governance-items")?.table).toBe("governance_item");
   });
+
+  it("los maestros con explorador propio lo declaran (hub enlaza ahi)", () => {
+    expect(getCatalog("processes")?.explorerHref).toBe("/processes");
+    expect(getCatalog("squads")?.explorerHref).toBe("/squads");
+  });
 });

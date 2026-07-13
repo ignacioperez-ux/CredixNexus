@@ -45,6 +45,8 @@ export function ProcessCard({ detail, systems, canManage }: { detail: ProcessDet
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)" }}>{p.code}</span>
         <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: p.process_level === "macro" ? "var(--accent-2)" : "var(--muted)" }}>{t(("proc.level." + p.process_level) as MessageKey)}</span>
         {p.parent && <Link href={`/processes/${p.parent.id}`} style={{ fontSize: 11.5, color: "var(--muted)", textDecoration: "none" }}>↑ {p.parent.name}</Link>}
+        <div style={{ flex: 1 }} />
+        {canManage && <Link href={`/catalog/processes/${p.id}/edit`} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-2)", textDecoration: "none" }}>{t("common.edit")}</Link>}
       </div>
       <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--text)" }}>{p.name}</h1>
 
