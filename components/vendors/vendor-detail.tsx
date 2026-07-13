@@ -81,7 +81,7 @@ export function VendorDetail({ vendor, systems, incidents, canManage }: { vendor
           {incidents.length === 0 ? <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("vnd.noincidents")}</div> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {incidents.map((i) => (
-                <Link key={i.id} href={`/incidents/${i.id}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: "var(--r-md)", background: "var(--paper)", textDecoration: "none" }}>
+                <Link key={i.id} href={`/incidents/${i.id}`} className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: "var(--r-md)", background: "var(--paper)", textDecoration: "none" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{i.incident_number}</span>
                   <span style={{ fontSize: 12.5, color: "var(--text)", flex: 1 }}>{i.title}</span>
                   <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{i.status}</span>

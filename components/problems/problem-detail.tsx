@@ -112,7 +112,7 @@ export function ProblemDetail({ problem, linked, linkable, ledger, canManage, ch
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {linked.map((l) => l.incident && (
-                  <div key={l.link_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: "var(--r-md)", background: "var(--paper)" }}>
+                  <div key={l.link_id} className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: "var(--r-md)", background: "var(--paper)" }}>
                     <Link href={`/incidents/${l.incident.id}`} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)", textDecoration: "none" }}>{l.incident.incident_number}</Link>
                     <span style={{ fontSize: 12.5, color: "var(--text)", flex: 1 }}>{l.incident.title}</span>
                     <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{l.incident.status}</span>

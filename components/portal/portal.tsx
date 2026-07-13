@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { AiReport } from "@/components/ai/ai-report";
@@ -17,14 +17,24 @@ import { Icon } from "@/components/ui/icon";
 
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 const MIN_CHARS = 8;
+const SETTLED = ["resolved", "closed", "cancelled"];
+
+/** Tono semantico del estado (espeja el enum de incident.status; presentacion pura). */
+function caseTone(status: string): string {
+  if (status === "resolved" || status === "closed") return "var(--st-low-fg)";
+  if (status === "cancelled") return "var(--muted)";
+  if (status === "waiting" || status === "reopened") return "var(--st-high-fg)";
+  return "var(--accent-2)";
+}
 
 export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], userName = "" }: {
   categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; userName?: string;
 }) {
   const { t, locale } = useI18n();
   const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
-  const openCount = myCases.filter((c) => !["resolved", "closed", "cancelled"].includes(c.status)).length;
+  const openCount = myCases.filter((c) => !SETTLED.includes(c.status)).length;
   const router = useRouter();
+  const subjectRef = useRef<HTMLTextAreaElement>(null);
   const [subject, setSubject] = useState("");
   const [touched, setTouched] = useState(false);
   const [appId, setAppId] = useState("");
@@ -38,6 +48,14 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [created, setCreated] = useState<string | null>(null);
 
   const tooShort = subject.trim().length < MIN_CHARS;
+
+  function pickCategory(id: string) {
+    setCategoryId(id);
+    setAutoCat(false);
+    // Lleva el foco al intake para continuar el flujo sin friccion.
+    const el = subjectRef.current;
+    if (el) { el.focus(); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  }
 
   function consult() {
     setErr(null);
@@ -69,21 +87,22 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const apps = applications;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1120 }}>
-      {/* Saludo de bienvenida personalizado */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(120deg, var(--accent-soft), transparent 70%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "16px 20px" }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, flexShrink: 0 }}>{(firstName[0] ?? "U").toUpperCase()}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--text)" }}>
-            {t("portal.welcome")}{firstName ? `, ${firstName}` : ""}
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
-            {openCount > 0 ? t("portal.welcome.open").replace("{n}", String(openCount)) : t("portal.welcome.sub")}
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1120 }}>
+      {/* Hero de bienvenida */}
+      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(125deg, var(--accent-soft), transparent 62%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "22px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, flexShrink: 0 }}>{(firstName[0] ?? "U").toUpperCase()}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px", color: "var(--accent-2)", marginBottom: 3 }}>{t("portal.hero.tag")}</div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, color: "var(--text)", lineHeight: 1.15 }}>
+              {t("portal.welcome")}{firstName ? `, ${firstName}` : ""}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
+              {openCount > 0 ? t("portal.welcome.open").replace("{n}", String(openCount)) : t("portal.welcome.sub")}
+            </div>
           </div>
         </div>
       </div>
-
-      <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("portal.intro")}</div>
 
       {created && (
         <div style={{ fontSize: 13, fontWeight: 600, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--st-low-bg)", color: "var(--st-low-fg)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -91,23 +110,27 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
         </div>
       )}
 
-      {/* Mis casos */}
-      {myCases.length > 0 && (
-        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 12 }}>{t("portal.mycases")} ({myCases.length})</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {myCases.map((c) => {
-              const row = (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
-                  <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{t(statusKey(c.status))}</span>
-                  <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
-                </div>
+      {/* Explorar por categoria: seleccion rapida que alimenta el intake */}
+      {categories.length > 0 && (
+        <div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.browse.title")}</span>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("portal.browse.hint")}</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(158px, 1fr))", gap: 10 }}>
+            {categories.map((c) => {
+              const sel = categoryId === c.id;
+              return (
+                <button key={c.id} type="button" onClick={() => pickCategory(c.id)} className="cx-lift"
+                  style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "11px 12px", borderRadius: "var(--r-lg)", cursor: "pointer",
+                    background: sel ? "var(--accent-soft)" : "var(--card)", border: sel ? "1px solid var(--accent)" : "1px solid var(--line)" }}>
+                  <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{c.name.trim()[0]?.toUpperCase() ?? "?"}</span>
+                  <span style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 1 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                    <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", color: sel ? "var(--accent-2)" : "var(--muted)" }}>{sel ? t("portal.cat.picked") : c.code}</span>
+                  </span>
+                </button>
               );
-              return canViewIncidents
-                ? <Link key={c.id} href={`/incidents/${c.id}`} style={{ textDecoration: "none" }}>{row}</Link>
-                : <div key={c.id}>{row}</div>;
             })}
           </div>
         </div>
@@ -118,10 +141,11 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
         {/* Intake estructurado */}
         <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.intake.title")}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: -8 }}>{t("portal.intro")}</div>
 
           <div>
             <label style={lbl}>{t("portal.field.subject")}</label>
-            <textarea value={subject} onChange={(e) => setSubject(e.target.value)} onBlur={() => setTouched(true)} rows={3}
+            <textarea ref={subjectRef} value={subject} onChange={(e) => setSubject(e.target.value)} onBlur={() => setTouched(true)} rows={3}
               placeholder={t("portal.search.placeholder")}
               style={{ ...field, resize: "vertical", borderColor: touched && tooShort ? "var(--st-critical-fg)" : "var(--line)" }} />
             <div style={{ fontSize: 10.5, marginTop: 4, color: touched && tooShort ? "var(--st-critical-fg)" : "var(--muted)" }}>
@@ -193,7 +217,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
               {res.articles.map((a) => <KbCard key={a.id} id={a.id} number={a.article_number} title={a.title} summary={a.summary} content={a.content} canFeedback={canFeedback} />)}
 
               {res.cases.map((c) => (
-                <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
+                <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} className={canViewIncidents ? "cx-lift" : undefined} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
                   <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "11px 13px" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{c.incident_number}</span>
@@ -210,6 +234,35 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
             </>
           )}
         </div>
+      </div>
+
+      {/* Mis casos: tracking permanente del usuario */}
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.mycases")}</span>
+          {myCases.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "1px 8px", borderRadius: "var(--r-pill)" }}>{myCases.length}</span>}
+        </div>
+        {myCases.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "8px 2px" }}>{t("portal.mycases.empty")}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {myCases.map((c) => {
+              const tone = caseTone(c.status);
+              const row = (
+                <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: tone, flexShrink: 0 }} />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: tone }}>{t(statusKey(c.status))}</span>
+                  <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
+                </div>
+              );
+              return canViewIncidents
+                ? <Link key={c.id} href={`/incidents/${c.id}`} style={{ textDecoration: "none" }}>{row}</Link>
+                : <div key={c.id}>{row}</div>;
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
