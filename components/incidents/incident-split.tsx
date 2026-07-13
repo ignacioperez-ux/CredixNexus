@@ -29,6 +29,7 @@ export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, default
     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <IncidentTable rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} initialStatus={initialStatus} initialResp={initialResp}
+          canResolve={canResolve} canAssign={canAssign} members={members}
           onSelect={(r) => setSel((cur) => (cur?.id === r.id ? null : r))} selectedId={sel?.id ?? null} />
       </div>
       {sel && <Preview row={sel} caseTypes={caseTypes} canResolve={canResolve} canEvolve={canEvolve}

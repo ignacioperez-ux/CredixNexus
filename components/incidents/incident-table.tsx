@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { IncidentRow, CaseTypeMeta } from "@/lib/incidents/queries";
+import type { AssignableMember } from "@/lib/talent/queries";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { priorityKey, statusKey } from "@/lib/incidents/labels";
+import { changeStatus } from "@/lib/incidents/actions";
+import { assignIncidentMember } from "@/lib/talent/actions";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
 import { useGrouping, GroupBar, EmptyState, type GroupDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
@@ -33,7 +36,7 @@ const SAVED_VIEWS: ViewDef[] = [
 ];
 const domainColor: Record<string, string> = { business: "var(--accent-2)", technology: "var(--st-info)", service: "var(--teal)" };
 
-export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
+export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", canResolve = false, canAssign = false, members = [], onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string; canResolve?: boolean; canAssign?: boolean; members?: AssignableMember[]; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
   const { t } = useI18n();
   const router = useRouter();
   const [view, setView] = useState(defaultView);
@@ -43,6 +46,8 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const [app, setApp] = useState("");
   const [prio, setPrio] = useState("");
   const [resp, setResp] = useState(initialResp);
+  const [picked, setPicked] = useState<Set<string>>(new Set());  // seleccion para acciones en lote
+  const [pending, startBulk] = useTransition();
 
   const domainOf = (r: IncidentRow) => caseTypes[r.case_type]?.domain ?? "business";
   const now = useMemo(() => Date.now(), [rows]);
@@ -82,9 +87,12 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
     const sel = selectedId === r.id;
     return (
       <div key={r.id} onClick={() => (onSelect ? onSelect(r) : router.push(`/incidents/${r.id}`))}
-        style={{ ...gridStyle(false), cursor: "pointer", background: sel ? "var(--row-hover)" : "transparent" }}
+        style={{ ...gridStyle(false), cursor: "pointer", background: sel || picked.has(r.id) ? "var(--row-hover)" : "transparent" }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = sel ? "var(--row-hover)" : "transparent")}>
+        onMouseLeave={(e) => (e.currentTarget.style.background = sel || picked.has(r.id) ? "var(--row-hover)" : "transparent")}>
+        <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center" }}>
+          <input type="checkbox" checked={picked.has(r.id)} onChange={() => togglePick(r.id)} aria-label={t("inc.bulk.pick")} style={{ cursor: "pointer" }} />
+        </div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.incident_number}</div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</div>
@@ -125,6 +133,15 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   ].filter(Boolean) as { label: string; value: string; clear: () => void }[];
 
   function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); }
+
+  // --- Seleccion multiple + acciones en lote (FASE 3.1 pilar 5) ---
+  const filteredIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
+  const allPicked = filteredIds.length > 0 && filteredIds.every((id) => picked.has(id));
+  function togglePick(id: string) { setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+  function toggleAll() { setPicked((p) => { const n = new Set(p); if (allPicked) filteredIds.forEach((id) => n.delete(id)); else filteredIds.forEach((id) => n.add(id)); return n; }); }
+  function bulkRun(fn: (id: string) => Promise<{ ok: boolean; error?: string }>) {
+    startBulk(async () => { await Promise.all([...picked].map(fn)); setPicked(new Set()); router.refresh(); });
+  }
 
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
@@ -204,10 +221,36 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
         </div>
       )}
 
+      {/* Barra de acciones en lote (aparece con seleccion) */}
+      {picked.size > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 20px", background: "var(--accent-soft)", borderTop: "1px solid var(--line)", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--accent-2)" }}>{t("inc.bulk.selected").replace("{n}", String(picked.size))}</span>
+          {canResolve && (
+            <button onClick={() => bulkRun((id) => changeStatus(id, "resolved"))} disabled={pending}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", fontWeight: 700, fontSize: 12.5, cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}>
+              <Icon name="check" size={14} color="var(--cta-icon)" /> {t("inc.action.resolve")}
+            </button>
+          )}
+          {canAssign && members.length > 0 && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+              {t("inc.bulk.assign")}
+              <select disabled={pending} value="" onChange={(e) => e.target.value && bulkRun((id) => assignIncidentMember(id, e.target.value))}
+                style={{ fontSize: 12, padding: "6px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }}>
+                <option value="">—</option>
+                {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </label>
+          )}
+          <div style={{ flex: 1 }} />
+          <button onClick={() => setPicked(new Set())} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)", background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}>{t("inc.bulk.clear")}</button>
+        </div>
+      )}
+
       {/* Tabla */}
       <div style={{ borderTop: "1px solid var(--line)", overflowX: "auto" }}>
-        <div style={{ minWidth: 940 }}>
+        <div style={{ minWidth: 974 }}>
           <div style={gridStyle(true)}>
+            <div style={{ display: "flex", alignItems: "center" }}><input type="checkbox" checked={allPicked} onChange={toggleAll} aria-label={t("inc.bulk.all")} style={{ cursor: "pointer" }} /></div>
             <div>{t("inc.col.number")}</div>
             <div>{t("inc.col.title")}</div>
             <div>{t("inc.col.app")}</div>
@@ -272,7 +315,7 @@ function distinct(values: (string | null | undefined)[]): string[] {
 function gridStyle(header: boolean): React.CSSProperties {
   return {
     display: "grid",
-    gridTemplateColumns: "120px minmax(180px, 1fr) 150px 104px 100px 64px 128px",
+    gridTemplateColumns: "34px 120px minmax(180px, 1fr) 150px 104px 100px 64px 128px",
     gap: 12,
     alignItems: "center",
     padding: header ? "10px 20px" : "14px 20px",
