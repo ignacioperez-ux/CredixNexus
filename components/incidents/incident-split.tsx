@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
@@ -78,7 +78,12 @@ function Preview({ row, caseTypes, canResolve, canEvolve, canPriority, canAssign
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 1, borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
-        <Field label={t("inc.col.sla")}><SlaBadge dueAt={row.sla_resolution_due_at} resolvedAt={row.resolved_at} status={row.status} /></Field>
+        <Field label={t("inc.col.sla")}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <SlaBadge dueAt={row.sla_resolution_due_at} resolvedAt={row.resolved_at} status={row.status} />
+            <SlaCountdown dueAt={row.sla_resolution_due_at} resolvedAt={row.resolved_at} status={row.status} />
+          </span>
+        </Field>
         <Field label={t("flt.responsible")} value={row.assignee?.name ?? t("inc.view.unassigned")} />
         <Field label={t("inc.field.bu")} value={row.business_unit?.name ?? "—"} />
         <Field label={t("inc.field.app")} value={row.ci?.name ?? "—"} />
@@ -127,6 +132,26 @@ function Preview({ row, caseTypes, canResolve, canEvolve, canPriority, canAssign
       </Link>
     </aside>
   );
+}
+
+/** Countdown de SLA en vivo (FASE 3.1 pilar 5): se actualiza solo cada minuto. */
+function SlaCountdown({ dueAt, resolvedAt, status }: { dueAt: string | null; resolvedAt: string | null; status: string }) {
+  const { t } = useI18n();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const h = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(h); }, []);
+  if (!dueAt || resolvedAt || SETTLED.includes(status)) return null;
+  const diff = new Date(dueAt).getTime() - now;
+  const overdue = diff < 0;
+  const label = fmtDuration(Math.abs(diff));
+  const color = overdue ? "var(--st-critical-fg)" : diff < 4 * 3600000 ? "var(--st-high-fg)" : "var(--muted)";
+  return <span style={{ fontSize: 11.5, fontWeight: 600, color }}>{(overdue ? t("inc.sla.overdueBy") : t("inc.sla.dueIn")).replace("{t}", label)}</span>;
+}
+
+function fmtDuration(ms: number): string {
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${mm}m`;
+  return `${mm}m`;
 }
 
 function QuickSelect({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; disabled?: boolean }) {
