@@ -226,8 +226,8 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           </AiSuggestions>
 
           <Card title="SLA">
-            <Row label={t("inc.sla.response")} value={inc.sla_response_due_at ? new Date(inc.sla_response_due_at).toLocaleString(locale) : null} mono />
-            <Row label={t("inc.sla.resolution")} value={inc.sla_resolution_due_at ? new Date(inc.sla_resolution_due_at).toLocaleString(locale) : null} mono />
+            <SlaBar label={t("inc.sla.response")} dueAt={inc.sla_response_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} />
+            <SlaBar label={t("inc.sla.resolution")} dueAt={inc.sla_resolution_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} last />
           </Card>
 
           <Card title={t("sla.section.escalations")}>
@@ -303,6 +303,43 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
       <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 14, color: "var(--text)" }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+/** Barra de progreso de SLA: elapsed vs objetivo, con umbrales 75/90 y color semantico.
+ *  Si el caso esta resuelto/cerrado/en evolucion, se congela y marca cumplido. */
+function SlaBar({ label, dueAt, openedAt, resolvedAt, status, locale, last }: {
+  label: string; dueAt: string | null; openedAt: string; resolvedAt: string | null; status: string; locale: string; last?: boolean;
+}) {
+  const border = last ? {} : { borderBottom: "1px solid var(--line-soft)" };
+  if (!dueAt) {
+    return <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", ...border }}>
+      <span style={{ fontSize: 12, color: "var(--muted)" }}>{label}</span><span style={{ fontSize: 12.5, color: "var(--muted)" }}>—</span></div>;
+  }
+  const start = new Date(openedAt).getTime();
+  const due = new Date(dueAt).getTime();
+  const settled = !!resolvedAt || status === "resolved" || status === "closed" || status === "in_evolution";
+  const now = resolvedAt ? new Date(resolvedAt).getTime() : Date.now();
+  const pct = due > start ? ((now - start) / (due - start)) * 100 : (now >= due ? 100 : 0);
+  const clamped = Math.max(2, Math.min(100, pct));
+  const breached = !settled && pct >= 100;
+  const color = breached ? "var(--st-critical)" : settled ? "var(--st-low)" : pct >= 90 ? "var(--st-high)" : pct >= 75 ? "var(--st-medium)" : "var(--st-low)";
+  return (
+    <div style={{ padding: "9px 0", ...border }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+        <span style={{ color: "var(--muted)" }}>{label}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", color, fontWeight: 600 }}>
+          {settled ? <><Icon name="check" size={12} /> {Math.round(Math.min(100, pct))}%</> : `${Math.round(pct)}%`}
+        </span>
+      </div>
+      <div style={{ position: "relative", height: 7, borderRadius: 20, background: "var(--track)", overflow: "hidden", marginTop: 7 }}>
+        <div style={{ width: `${clamped}%`, height: "100%", background: color, borderRadius: 20 }} />
+        {/* umbrales 75 / 90 */}
+        <span style={{ position: "absolute", left: "75%", top: 0, bottom: 0, width: 1.5, background: "var(--card)", opacity: .8 }} />
+        <span style={{ position: "absolute", left: "90%", top: 0, bottom: 0, width: 1.5, background: "var(--card)", opacity: .8 }} />
+      </div>
+      <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 5, fontFamily: "var(--font-mono)" }}>{new Date(dueAt).toLocaleString(locale)}</div>
     </div>
   );
 }
