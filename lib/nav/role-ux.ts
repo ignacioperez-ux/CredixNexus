@@ -1,3 +1,4 @@
+import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { MACRO_NAV } from "./navigation";
 import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 
@@ -16,8 +17,22 @@ import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 // ---------------------------------------------------------------------------
 
 export type PrimaryAction =
-  | "assignTicket" | "takeNext" | "newTicket" | "newProject" | "openBacklog"
-  | "evaluate" | "verifyLedger" | "newRecord";
+  | "newTicket" | "newProject" | "newChange" | "takeNext" | "assignTicket"
+  | "openBacklog" | "reportCase" | "evaluate" | "verifyLedger";
+
+// Registro de la accion primaria: etiqueta i18n, destino real, permiso e icono lucide.
+export type PrimaryActionDef = { label: MessageKey; route: string; perm?: string; icon: string };
+export const PRIMARY_ACTIONS: Record<PrimaryAction, PrimaryActionDef> = {
+  newTicket:    { label: "pa.newTicket",    route: "/incidents/new", perm: "incident.create", icon: "plus" },
+  newProject:   { label: "pa.newProject",   route: "/projects/new",  perm: "project.manage",  icon: "plus" },
+  newChange:    { label: "pa.newChange",    route: "/changes/new",   perm: "change.manage",   icon: "plus" },
+  takeNext:     { label: "pa.takeNext",     route: "/workspace",     perm: "incident.read",   icon: "inbox" },
+  assignTicket: { label: "pa.assign",       route: "/triage",        perm: "triage.manage",   icon: "inbox" },
+  openBacklog:  { label: "pa.backlog",      route: "/projects",      perm: "project.read",    icon: "zap" },
+  reportCase:   { label: "pa.report",       route: "/portal",                                 icon: "plus" },
+  evaluate:     { label: "pa.evaluate",     route: "/talent",        perm: "talent.read",     icon: "users" },
+  verifyLedger: { label: "pa.verifyLedger", route: "/ledger",        perm: "audit.read",      icon: "shield" },
+};
 
 export type RoleUx = {
   emphasis: string[];        // ids de categoria macro a auto-expandir
@@ -28,24 +43,24 @@ export type RoleUx = {
 // Codigo de rol (tabla `role`) -> experiencia. Roles no listados => sin enfasis forzado.
 export const ROLE_UX: Record<string, RoleUx> = {
   // Admin: vista total, sin enfasis forzado (solo se abre la categoria activa).
-  system_admin: { emphasis: [], home: "/dashboard", primaryAction: "newRecord" },
-  tenant_admin: { emphasis: [], home: "/dashboard", primaryAction: "newRecord" },
+  system_admin: { emphasis: [], home: "/dashboard", primaryAction: "newTicket" },
+  tenant_admin: { emphasis: [], home: "/dashboard", primaryAction: "newTicket" },
 
-  // Gte. Operaciones -> Command Center
+  // Gte. Operaciones -> Command Center (gestiona incidencias)
   support_lead: { emphasis: ["tickets", "operaciones", "analitica"], home: "/dashboard", primaryAction: "assignTicket" },
   // Operador -> Work Queue
   support_agent: { emphasis: ["inicio", "tickets", "conocimiento"], home: "/workspace", primaryAction: "takeNext" },
-  // Gte. Evolucion/TI -> Transformation Hub
+  // Gte. Evolucion/TI -> Transformation Hub (gestiona mejoras y proyectos)
   product_owner: { emphasis: ["evolucion", "conocimiento", "analitica"], home: "/dashboard", primaryAction: "newProject" },
   // Squad -> Delivery Hub
   squad_member: { emphasis: ["evolucion", "conocimiento"], home: "/projects", primaryAction: "openBacklog" },
   // Usuario final -> Autoservicio simple
-  partner_user: { emphasis: ["tickets", "conocimiento"], home: "/portal", primaryAction: "newTicket" },
+  partner_user: { emphasis: ["tickets", "conocimiento"], home: "/portal", primaryAction: "reportCase" },
 
   // Roles adyacentes (heredan de la persona mas cercana)
   business_owner: { emphasis: ["operaciones", "analitica"], home: "/analytics" },
   grc_officer: { emphasis: ["operaciones", "analitica", "administracion"], home: "/analytics" },
-  change_manager: { emphasis: ["evolucion", "tickets"], home: "/changes", primaryAction: "newProject" },
+  change_manager: { emphasis: ["evolucion", "tickets"], home: "/changes", primaryAction: "newChange" },
   auditor: { emphasis: ["analitica", "administracion"], home: "/ledger", primaryAction: "verifyLedger" },
   people_lead: { emphasis: ["talento", "evolucion"], home: "/talent", primaryAction: "evaluate" },
   responsable_comercial: { emphasis: ["tickets", "operaciones", "conocimiento"], home: "/portal" },
@@ -71,6 +86,19 @@ export function resolveHome(roles: string[], perms: string[], isAdmin: boolean):
   const home = homeForRoles(roles);
   if (home && canSeeNav(requiredPermForPath(home), perms, isAdmin)) return home;
   return defaultHome(perms, isAdmin);
+}
+
+/** Accion primaria efectiva (CTA del header): la primera declarada por los roles del usuario
+ *  que este PERMITIDA; si ninguna aplica, cae a "Nuevo ticket"; si tampoco, no hay CTA. */
+export function resolvePrimaryAction(roles: string[], perms: string[], isAdmin: boolean): (PrimaryActionDef & { code: PrimaryAction }) | null {
+  const codes: PrimaryAction[] = [];
+  for (const r of roles) { const a = ROLE_UX[r]?.primaryAction; if (a) codes.push(a); }
+  codes.push("newTicket"); // fallback universal
+  for (const code of codes) {
+    const def = PRIMARY_ACTIONS[code];
+    if (def && canSeeNav(def.perm, perms, isAdmin)) return { code, ...def };
+  }
+  return null;
 }
 
 // Guard de coherencia: todos los ids de emphasis existen como categoria macro.

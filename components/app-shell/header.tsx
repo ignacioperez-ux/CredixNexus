@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/provider";
 import { useTheme, type Theme } from "@/components/theme-provider";
 import { Icon } from "@/components/ui/icon";
+import { resolvePrimaryAction } from "@/lib/nav/role-ux";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
@@ -42,7 +43,7 @@ const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
   { prefix: "/ai-center", title: "aic.title", subtitle: "aic.subtitle" },
 ];
 
-export function Header() {
+export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: string[]; perms?: string[]; isAdmin?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
@@ -52,6 +53,9 @@ export function Header() {
   const meta =
     TITLES.find((x) => pathname === x.prefix || pathname.startsWith(x.prefix + "/")) ??
     { title: "nav.dashboard" as MessageKey, subtitle: "app.tagline" as MessageKey };
+
+  // Accion primaria por rol (FASE 2): CTA de acento resuelta por ROLE_UX, filtrada por permiso.
+  const primary = resolvePrimaryAction(roles, perms, isAdmin);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -78,6 +82,17 @@ export function Header() {
         </div>
         <div style={{ fontSize: 12, color: "var(--muted)" }}>{t(meta.subtitle)}</div>
       </div>
+
+      {/* Accion primaria por rol */}
+      {primary && (
+        <button
+          onClick={() => router.push(primary.route)}
+          style={{ display: "flex", alignItems: "center", gap: 7, height: 40, padding: "0 16px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", border: "none", color: "var(--cta-fg)", cursor: "pointer", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}
+        >
+          <Icon name={primary.icon} size={15} color="var(--cta-icon)" />
+          <span>{t(primary.label)}</span>
+        </button>
+      )}
 
       {/* Buscador global / Command Menu (Cmd/Ctrl+K) */}
       <button

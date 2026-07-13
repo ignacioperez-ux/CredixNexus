@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { ROLE_UX, emphasisForRoles, homeForRoles, resolveHome, unknownEmphasisIds } from "./role-ux";
+import { ROLE_UX, PRIMARY_ACTIONS, emphasisForRoles, homeForRoles, resolveHome, resolvePrimaryAction, unknownEmphasisIds } from "./role-ux";
+import { dictionaries } from "@/lib/i18n/dictionaries";
 
 // Cockpit por rol (FASE 2): el enfasis se declara a nivel de categoria macro y controla
 // solo la auto-expansion; la visibilidad la sigue gobernando `perm`.
@@ -81,6 +82,43 @@ describe("ROLE_UX / emphasisForRoles", () => {
     });
     it("rol sin home declarado -> heuristico por permisos", () => {
       expect(resolveHome(["rol_x"], ["incident.read"], false)).toBe("/workspace");
+    });
+  });
+
+  describe("resolvePrimaryAction (CTA por rol con guardia y fallback)", () => {
+    it("admin -> Nuevo ticket", () => {
+      expect(resolvePrimaryAction(["system_admin"], [], true)?.code).toBe("newTicket");
+    });
+    it("Gte. Operaciones -> Ir a admision (asignar)", () => {
+      const a = resolvePrimaryAction(["support_lead"], ["triage.manage"], false)!;
+      expect(a.code).toBe("assignTicket");
+      expect(a.route).toBe("/triage");
+    });
+    it("Operador -> Tomar siguiente", () => {
+      expect(resolvePrimaryAction(["support_agent"], ["incident.read"], false)?.code).toBe("takeNext");
+    });
+    it("Gte. Evolucion -> Nuevo proyecto", () => {
+      expect(resolvePrimaryAction(["product_owner"], ["project.manage"], false)?.code).toBe("newProject");
+    });
+    it("Usuario final -> Crear ticket via portal (sin permiso requerido)", () => {
+      const a = resolvePrimaryAction(["partner_user"], [], false)!;
+      expect(a.code).toBe("reportCase");
+      expect(a.route).toBe("/portal");
+    });
+    it("cae a Nuevo ticket si la accion del rol no esta permitida", () => {
+      // support_lead sin triage.manage pero con incident.create -> fallback newTicket
+      expect(resolvePrimaryAction(["support_lead"], ["incident.create"], false)?.code).toBe("newTicket");
+    });
+    it("sin ninguna accion permitida -> null (no hay CTA)", () => {
+      expect(resolvePrimaryAction(["rol_x"], [], false)).toBeNull();
+    });
+    it("cada accion primaria tiene i18n ES y EN", () => {
+      const es = dictionaries.es as Record<string, string>;
+      const en = dictionaries.en as Record<string, string>;
+      for (const def of Object.values(PRIMARY_ACTIONS)) {
+        expect(es[def.label], `ES ${def.label}`).toBeTruthy();
+        expect(en[def.label], `EN ${def.label}`).toBeTruthy();
+      }
     });
   });
 });
