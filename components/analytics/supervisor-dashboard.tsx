@@ -8,6 +8,8 @@ import { statusKey } from "@/lib/incidents/labels";
 // Command Center del supervisor: control de backlog, aging, carga por agente,
 // vencidos, tareas, calidad de cierre y cuellos de botella. Todo sobre datos reales.
 
+const AGING_COLOR: Record<string, string> = { "0-1d": "var(--st-low)", "1-3d": "var(--st-medium)", "3-7d": "var(--st-high)", "7d+": "var(--st-critical)" };
+
 export function SupervisorDashboard({ s }: { s: Supervisor }) {
   const { t } = useI18n();
   const maxAge = Math.max(1, ...s.aging.map((a) => a.count));
@@ -32,14 +34,12 @@ export function SupervisorDashboard({ s }: { s: Supervisor }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {/* Aging del backlog */}
         <Panel title={t("sup.aging")}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 130, paddingTop: 10 }}>
             {s.aging.map((a) => (
-              <div key={a.bucket} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 11.5, color: "var(--muted)", width: 44, fontFamily: "var(--font-mono)" }}>{a.bucket}</span>
-                <div style={{ flex: 1, height: 10, background: "var(--paper)", borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${(a.count / maxAge) * 100}%`, height: "100%", background: a.bucket === "7d+" ? "var(--st-critical-fg)" : a.bucket === "3-7d" ? "var(--st-high-fg)" : "var(--accent)" }} />
-                </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text)", width: 26, textAlign: "right" }}>{a.count}</span>
+              <div key={a.bucket} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: AGING_COLOR[a.bucket] }}>{a.count}</span>
+                <div style={{ width: "100%", maxWidth: 48, height: `${Math.max(4, (a.count / maxAge) * 90)}px`, background: AGING_COLOR[a.bucket], borderRadius: "5px 5px 0 0", transition: "height var(--t-fast)" }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{a.bucket}</span>
               </div>
             ))}
           </div>
