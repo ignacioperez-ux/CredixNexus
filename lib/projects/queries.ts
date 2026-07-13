@@ -22,6 +22,17 @@ export async function listProjects(supabase: SupabaseClient): Promise<ProjectRow
   return (data ?? []) as unknown as ProjectRow[];
 }
 
+/** Proyectos de evolucion nacidos de un incidente (ancla §0: la mesa conserva el hilo). */
+export type IncidentProject = { id: string; project_code: string; name: string; status: string; squad: { name: string } | null };
+export async function getProjectsForIncident(supabase: SupabaseClient, incidentId: string): Promise<IncidentProject[]> {
+  const { data } = await supabase
+    .from("project")
+    .select("id, project_code, name, status, squad:squad_id(name)")
+    .eq("created_from_incident_id", incidentId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as unknown as IncidentProject[];
+}
+
 /** ROI = (beneficio - costo) / costo, en %. Null si no hay costo. */
 export function computeRoi(benefit: number, cost: number): number | null {
   if (!cost || cost <= 0) return benefit > 0 ? null : 0;

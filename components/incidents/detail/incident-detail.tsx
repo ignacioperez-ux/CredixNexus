@@ -30,6 +30,7 @@ import { ChangeLink } from "@/components/changes/change-link";
 import { DeclareMi } from "@/components/major-incidents/declare-mi";
 import { FinancialCaseLink, type FinancialCase } from "@/components/fraud/financial-case-link";
 import { Icon } from "@/components/ui/icon";
+import type { IncidentProject } from "@/lib/projects/queries";
 import { Attachments } from "./attachments";
 import { CaseTasks } from "./case-tasks";
 import type { Attachment, ChecklistData } from "@/lib/casework/queries";
@@ -91,7 +92,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean }) {
   const { t, locale } = useI18n();
 
   return (
@@ -166,6 +167,23 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           <Card title={t("chg.section.incident")}>
             <ChangeLink changes={changes} canManage={canManageChange} newHref={`/changes/new?incident=${inc.id}`} />
           </Card>
+
+          {/* Proyectos de Evolucion nacidos de este incidente: el ancla conserva el hilo (§0) */}
+          {projects.length > 0 && (
+            <Card title={t("inc.section.projects")}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {projects.map((p) => (
+                  <Link key={p.id} href={`/projects/${p.id}`} className="cx-lift"
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", borderRadius: "var(--r-md)", background: "var(--paper)", textDecoration: "none" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{p.project_code}</span>
+                    <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                    {p.squad?.name && <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{p.squad.name}</span>}
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{p.status}</span>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {(financialCase || canManageFraud || canManageDispute) && (
             <Card title={t("fc.section")}>
