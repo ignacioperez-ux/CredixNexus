@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ROLE_UX, emphasisForRoles, homeForRoles, unknownEmphasisIds } from "./role-ux";
+import { ROLE_UX, emphasisForRoles, homeForRoles, resolveHome, unknownEmphasisIds } from "./role-ux";
 
 // Cockpit por rol (FASE 2): el enfasis se declara a nivel de categoria macro y controla
 // solo la auto-expansion; la visibilidad la sigue gobernando `perm`.
@@ -65,5 +65,22 @@ describe("ROLE_UX / emphasisForRoles", () => {
     for (const r of ["system_admin", "support_lead", "support_agent", "product_owner", "squad_member", "partner_user"]) {
       expect(ROLE_UX[r], r).toBeDefined();
     }
+  });
+
+  describe("resolveHome (landing con guardia de permiso)", () => {
+    it("admin -> su home declarado", () => {
+      expect(resolveHome(["system_admin"], [], true)).toBe("/dashboard");
+    });
+    it("usa el home del rol si el usuario puede abrirlo", () => {
+      expect(resolveHome(["support_agent"], ["incident.read"], false)).toBe("/workspace");
+      expect(resolveHome(["squad_member"], ["project.read"], false)).toBe("/projects");
+    });
+    it("cae al heuristico si el home del rol no es accesible por permiso", () => {
+      // support_agent.home=/workspace exige incident.read; sin el, fallback -> /portal
+      expect(resolveHome(["support_agent"], [], false)).toBe("/portal");
+    });
+    it("rol sin home declarado -> heuristico por permisos", () => {
+      expect(resolveHome(["rol_x"], ["incident.read"], false)).toBe("/workspace");
+    });
   });
 });

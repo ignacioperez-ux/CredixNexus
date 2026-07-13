@@ -1,4 +1,5 @@
 import { MACRO_NAV } from "./navigation";
+import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 
 // ---------------------------------------------------------------------------
 // Experiencia de navegacion por rol (FASE 2). Fuente unica de como se comporta
@@ -62,6 +63,14 @@ export function emphasisForRoles(roles: string[], isAdmin: boolean): Set<string>
 export function homeForRoles(roles: string[]): string | null {
   for (const r of roles) { const h = ROLE_UX[r]?.home; if (h) return h; }
   return null;
+}
+
+/** Home efectivo al ingresar: usa el `home` del rol SOLO si el usuario puede abrirlo
+ *  (mismo candado de permiso que el guard de ruta); si no, cae al heuristico defaultHome. */
+export function resolveHome(roles: string[], perms: string[], isAdmin: boolean): string {
+  const home = homeForRoles(roles);
+  if (home && canSeeNav(requiredPermForPath(home), perms, isAdmin)) return home;
+  return defaultHome(perms, isAdmin);
 }
 
 // Guard de coherencia: todos los ids de emphasis existen como categoria macro.
