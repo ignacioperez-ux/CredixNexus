@@ -3,6 +3,7 @@ import { getContext } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
 import { getProject, getProjectTasks, getProjectValidations } from "@/lib/projects/queries";
 import { getWorkflowsForProject, getActiveDefinitions } from "@/lib/workflows/queries";
+import { getSquadRoster, type RosterRow } from "@/lib/squads/queries";
 import { ProjectDetail, type ProjectDetailData } from "@/components/projects/project-detail";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,16 +16,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   // Permisos desde la resolucion cacheada por request (session.ts): 0 viajes extra.
   const access = await getAccessControl();
   const can = (code: string) => access.isAdmin || access.perms.includes(code);
+  const squadId = (project as { squad_id?: string | null }).squad_id ?? null;
 
-  const [tasks, validations, workflows, workflowDefs] = await Promise.all([
+  const [tasks, validations, workflows, workflowDefs, roster] = await Promise.all([
     getProjectTasks(ctx.supabase, id),
     getProjectValidations(ctx.supabase, id),
     getWorkflowsForProject(ctx.supabase, id),
     getActiveDefinitions(ctx.supabase, "project"),
+    squadId ? getSquadRoster(ctx.supabase, squadId) : Promise.resolve([] as RosterRow[]),
   ]);
   const canValidate = can("project.validate");
   const canDeploy = can("project.deploy");
   const canRunWorkflow = can("workflow.run");
+  const squadMembers = (roster as RosterRow[])
+    .filter((r) => r.status === "active" && r.member)
+    .map((r) => ({ id: r.member!.id, name: r.member!.name }));
 
   return (
     <ProjectDetail
@@ -34,6 +40,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       workflows={workflows}
       workflowDefs={workflowDefs}
       qa={{ canValidate, canDeploy, canRunWorkflow }}
+      squadMembers={squadMembers}
+      canManageTalent={can("talent.manage")}
     />
   );
 }

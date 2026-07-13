@@ -61,6 +61,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const canSubmitCsat = can("survey.submit");
   const canManageFraud = can("fraud.manage");
   const canManageDispute = can("dispute.manage");
+  const canManageTalent = can("talent.manage");
 
   return (
     <IncidentDetail
@@ -93,6 +94,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       attachments={attachments}
       tasks={tasks}
       members={members}
+      canManageTalent={canManageTalent}
     />
   );
 }

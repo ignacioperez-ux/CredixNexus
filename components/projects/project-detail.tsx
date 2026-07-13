@@ -13,6 +13,7 @@ import { AiBusinessCase } from "./ai-business-case";
 import { BackButton } from "@/components/common/back-button";
 import { QaPanel } from "./qa-panel";
 import { ProjectStepper } from "./project-stepper";
+import { EvaluateMemberPanel } from "@/components/talent/evaluate-member-panel";
 
 type Named = { name: string } | null;
 export type ProjectDetailData = {
@@ -43,9 +44,10 @@ type Def = { id: string; code: string; name: string };
 
 const TASK_STATES = ["todo", "doing", "blocked", "done"];
 
-export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false } }: {
+export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false }: {
   project: ProjectDetailData; tasks: Task[]; validations?: ValidationRow[]; workflows?: Wf[]; workflowDefs?: Def[];
   qa?: { canValidate: boolean; canDeploy: boolean; canRunWorkflow: boolean };
+  squadMembers?: { id: string; name: string }[]; canManageTalent?: boolean;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -134,6 +136,9 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {project.status === "completed" && squadMembers.length > 0 && canManageTalent && (
+            <EvaluateMemberPanel members={squadMembers} entityType="project" entityId={project.id} title={t("eval.title.project")} />
+          )}
           <div style={{ background: "var(--dark-surface)", border: "1px solid var(--dark-surface-border)", borderRadius: "var(--r-xl)", padding: 18, color: "var(--dark-surface-fg)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{t("proj.wsjf")}</span>
