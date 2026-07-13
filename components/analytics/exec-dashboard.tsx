@@ -12,6 +12,13 @@ export function ExecDashboard({ o }: { o: Overview }) {
   const { t, locale } = useI18n();
   const health = serviceHealth({ p1Open: o.incidents.p1_open, slaBreached: o.incidents.sla_breached, sev1: o.major_incidents.sev1, unackEscalations: o.escalations.unack });
   const fmtMoney = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
+  const prio = [
+    { key: "p1", label: "P1", value: o.incidents.p1_open, color: "var(--st-critical)" },
+    { key: "p2", label: "P2", value: o.incidents.p2_open, color: "var(--st-high)" },
+    { key: "p3", label: "P3", value: o.incidents.p3_open, color: "var(--st-medium)" },
+    { key: "p4", label: "P4", value: o.incidents.p4_open, color: "var(--st-low)" },
+  ];
+  const prioTotal = prio.reduce((s, p) => s + p.value, 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -59,6 +66,35 @@ export function ExecDashboard({ o }: { o: Overview }) {
         </Panel>
       </div>
 
+      {/* Satisfaccion + distribucion por prioridad */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Panel title={t("an.csat.panel")}>
+          {o.csat.responses > 0 ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 8 }}>
+              <Ring pct={o.csat.satisfied_pct} color="var(--st-low)" center={`${o.csat.satisfied_pct}%`} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div><span style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 600, color: "var(--st-low-fg)" }}>{o.csat.avg}</span> <span style={{ color: "var(--st-medium)" }}>★</span></div>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{o.csat.responses} {t("an.responses")}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("an.satisfied")}</div>
+              </div>
+            </div>
+          ) : <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 8 }}>{t("an.noresp")}</div>}
+        </Panel>
+        <Panel title={t("an.byprio")}>
+          <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 8 }}>
+            <SegRing segs={prio.filter((p) => p.value > 0).map((p) => ({ value: p.value, color: p.color }))} center={String(prioTotal)} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {prio.map((p) => (
+                <span key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text)" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 2, background: p.color, flexShrink: 0 }} />
+                  {p.label} <b style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{p.value}</b>
+                </span>
+              ))}
+            </div>
+          </div>
+        </Panel>
+      </div>
+
       {/* Resumen por modulo */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         <ModuleCard title={t("nav.problems")} href="/problems" rows={[[t("an.open"), o.problems.open], [t("prob.knownerror"), o.problems.known_errors]]} />
@@ -84,6 +120,42 @@ function Metric({ label, value, href, danger }: { label: string; value: number |
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
     <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 6 }}>{title}</div>{children}</div>;
+}
+
+/** Anillo de progreso de un valor (0-100). Centro con el dato. */
+function Ring({ pct, color, center }: { pct: number; color: string; center: string }) {
+  const size = 96, stroke = 10, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const off = c * (1 - Math.min(100, Math.max(0, pct)) / 100);
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, color: "var(--text)" }}>{center}</div>
+    </div>
+  );
+}
+
+/** Anillo segmentado (distribucion). Centro con el total. */
+function SegRing({ segs, center }: { segs: { value: number; color: string }[]; center: string }) {
+  const size = 96, stroke = 10, r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const total = Math.max(1, segs.reduce((s, x) => s + x.value, 0));
+  let start = 0;
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
+        {segs.map((s, i) => {
+          const len = (s.value / total) * c;
+          const el = <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={stroke} strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-start} transform={`rotate(-90 ${size / 2} ${size / 2})`} />;
+          start += len;
+          return el;
+        })}
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 18, color: "var(--text)" }}>{center}</div>
+    </div>
+  );
 }
 
 /** Grafico de area: grid tenue + degradado + linea + endpoint enfatizado. Datos reales. */
