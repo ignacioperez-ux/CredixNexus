@@ -2,7 +2,7 @@ import { getContext } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
 import { listIncidents, getCaseTypeMeta, getMyMemberId } from "@/lib/incidents/queries";
 import { IncidentStats } from "@/components/incidents/incident-stats";
-import { IncidentTable } from "@/components/incidents/incident-table";
+import { IncidentSplit } from "@/components/incidents/incident-split";
 import { NewIncidentButton } from "@/components/incidents/new-incident-button";
 
 export default async function IncidentsPage() {
@@ -23,7 +23,7 @@ export default async function IncidentsPage() {
         <NewIncidentButton />
       </div>
       <IncidentStats rows={rows} />
-      <IncidentTable rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} />
+      <IncidentSplit rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} />
     </div>
   );
 }

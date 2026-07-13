@@ -33,7 +33,7 @@ const SAVED_VIEWS: ViewDef[] = [
 ];
 const domainColor: Record<string, string> = { business: "var(--accent-2)", technology: "var(--st-info)", service: "var(--teal)" };
 
-export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all" }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string }) {
+export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
   const { t } = useI18n();
   const router = useRouter();
   const [view, setView] = useState(defaultView);
@@ -79,11 +79,12 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const g = useGrouping(filtered, groupDefs);
 
   function Line(r: IncidentRow) {
+    const sel = selectedId === r.id;
     return (
-      <div key={r.id} onClick={() => router.push(`/incidents/${r.id}`)}
-        style={{ ...gridStyle(false), cursor: "pointer" }}
+      <div key={r.id} onClick={() => (onSelect ? onSelect(r) : router.push(`/incidents/${r.id}`))}
+        style={{ ...gridStyle(false), cursor: "pointer", background: sel ? "var(--row-hover)" : "transparent" }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+        onMouseLeave={(e) => (e.currentTarget.style.background = sel ? "var(--row-hover)" : "transparent")}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.incident_number}</div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</div>
