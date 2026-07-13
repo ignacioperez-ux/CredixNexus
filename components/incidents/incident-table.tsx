@@ -33,16 +33,16 @@ const SAVED_VIEWS: ViewDef[] = [
 ];
 const domainColor: Record<string, string> = { business: "var(--accent-2)", technology: "var(--st-info)", service: "var(--teal)" };
 
-export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
+export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
   const { t } = useI18n();
   const router = useRouter();
   const [view, setView] = useState(defaultView);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialStatus || "all");
   const [domain, setDomain] = useState("all");
   const [bu, setBu] = useState("");
   const [app, setApp] = useState("");
   const [prio, setPrio] = useState("");
-  const [resp, setResp] = useState("");
+  const [resp, setResp] = useState(initialResp);
 
   const domainOf = (r: IncidentRow) => caseTypes[r.case_type]?.domain ?? "business";
   const now = useMemo(() => Date.now(), [rows]);

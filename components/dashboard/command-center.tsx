@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Overview, Supervisor } from "@/lib/analytics/queries";
@@ -53,8 +54,8 @@ export function CommandCenter({ overview, supervisor, counts }: { overview: Over
           sub={<span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: delta > 0 ? "var(--st-critical-fg)" : delta < 0 ? "var(--st-low-fg)" : "var(--muted)" }}>
             {delta !== 0 && <Icon name={delta > 0 ? "chevron-up" : "chevron-down"} size={12} />}{today} {t("dash.today")}</span>}
           spark={inflow} />
-        <Kpi label={t("dash.unassigned")} value={supervisor.unassigned} color={supervisor.unassigned > 0 ? "var(--st-high-fg)" : undefined} sub={<span className="mut">{t("dash.totake")}</span>} />
-        <Kpi label={t("dash.slabreach")} value={inc.sla_breached} color={inc.sla_breached > 0 ? "var(--st-critical-fg)" : "var(--st-low-fg)"} sub={<span className="mut">{supervisor.overdue} {t("dash.overdue")}</span>} />
+        <Kpi label={t("dash.unassigned")} value={supervisor.unassigned} color={supervisor.unassigned > 0 ? "var(--st-high-fg)" : undefined} sub={<span className="mut">{t("dash.totake")}</span>} href="/incidents?view=unassigned" />
+        <Kpi label={t("dash.slabreach")} value={inc.sla_breached} color={inc.sla_breached > 0 ? "var(--st-critical-fg)" : "var(--st-low-fg)"} sub={<span className="mut">{supervisor.overdue} {t("dash.overdue")}</span>} href="/incidents?view=sla" />
         <Kpi label={t("dash.resolved30")} value={inc.resolved_30d} color="var(--st-low-fg)" sub={<span className="mut">{supervisor.quality.reopen_rate}% {t("dash.reopen")}</span>} />
       </div>
 
@@ -80,13 +81,13 @@ export function CommandCenter({ overview, supervisor, counts }: { overview: Over
           {funnel.length === 0 ? <Empty text={t("dash.opsempty")} /> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 4 }}>
               {funnel.map((f) => (
-                <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <RowLink key={f.key} href={`/incidents?status=${f.key}`}>
                   <span style={{ fontSize: 12, color: "var(--text)", width: 90, flexShrink: 0 }}>{t(("st." + f.key) as MessageKey)}</span>
                   <div style={{ flex: 1, height: 8, borderRadius: 20, background: "var(--track)", overflow: "hidden" }}>
                     <div style={{ width: `${(f.n / funnelMax) * 100}%`, height: "100%", background: f.color, borderRadius: 20 }} />
                   </div>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", width: 30, textAlign: "right" }}>{f.n}</span>
-                </div>
+                </RowLink>
               ))}
             </div>
           )}
@@ -99,14 +100,14 @@ export function CommandCenter({ overview, supervisor, counts }: { overview: Over
           {workload.length === 0 ? <Empty text={t("dash.opsempty")} /> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingTop: 4 }}>
               {workload.map((w) => (
-                <div key={w.agent} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <RowLink key={w.agent} href={`/incidents?assignee=${encodeURIComponent(w.agent)}`}>
                   <span style={{ fontSize: 12.5, color: "var(--text)", width: 130, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.agent}</span>
                   <div style={{ flex: 1, height: 8, borderRadius: 20, background: "var(--track)", overflow: "hidden" }}>
                     <div style={{ width: `${(w.open / wlMax) * 100}%`, height: "100%", background: "var(--accent-2)", borderRadius: 20 }} />
                   </div>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text)", width: 26, textAlign: "right" }}>{w.open}</span>
                   {w.overdue > 0 && <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--st-critical-fg)", width: 60 }}>{w.overdue} {t("dash.overdue")}</span>}
-                </div>
+                </RowLink>
               ))}
             </div>
           )}
@@ -133,15 +134,19 @@ export function CommandCenter({ overview, supervisor, counts }: { overview: Over
   );
 }
 
-function Kpi({ label, value, color, sub, spark }: { label: string; value: number; color?: string; sub?: React.ReactNode; spark?: number[] }) {
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16, position: "relative", overflow: "hidden" }}>
+function Kpi({ label, value, color, sub, spark, href }: { label: string; value: number; color?: string; sub?: React.ReactNode; spark?: number[]; href?: string }) {
+  const body = (
+    <>
       <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--muted)" }}>{label}</div>
       <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: 30, letterSpacing: "-1.5px", color: color ?? "var(--text)", marginTop: 8 }}>{value.toLocaleString()}</div>
       {sub && <div style={{ fontSize: 11.5, marginTop: 3, fontWeight: 600 }}>{sub}</div>}
       {spark && spark.some((n) => n > 0) && <div style={{ marginTop: 10 }}><Spark data={spark} /></div>}
-    </div>
+    </>
   );
+  const style: React.CSSProperties = { display: "block", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16, position: "relative", overflow: "hidden", textDecoration: "none" };
+  return href
+    ? <Link href={href} className="cx-lift" style={style}>{body}</Link>
+    : <div style={style}>{body}</div>;
 }
 
 /** Sparkline SVG del inflow real (area + linea + endpoint). */
@@ -157,6 +162,18 @@ function Spark({ data }: { data: number[] }) {
       <path d={line} fill="none" stroke="var(--accent)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
       <circle cx={last[0]} cy={last[1]} r="2.4" fill="var(--accent)" />
     </svg>
+  );
+}
+
+/** Fila-metrica clicable: drill accionable a la lista de incidentes ya filtrada. */
+function RowLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href}
+      style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit", padding: "4px 6px", margin: "0 -6px", borderRadius: "var(--r-sm)" }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+      {children}
+    </Link>
   );
 }
 

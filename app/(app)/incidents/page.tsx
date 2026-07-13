@@ -6,7 +6,8 @@ import { IncidentStats } from "@/components/incidents/incident-stats";
 import { IncidentSplit } from "@/components/incidents/incident-split";
 import { NewIncidentButton } from "@/components/incidents/new-incident-button";
 
-export default async function IncidentsPage() {
+export default async function IncidentsPage({ searchParams }: { searchParams: Promise<{ status?: string; assignee?: string; view?: string }> }) {
+  const sp = await searchParams;
   const ctx = await getContext();
   if (!ctx) return null;
   const [rows, caseTypes, myMemberId, access, members] = await Promise.all([
@@ -16,8 +17,10 @@ export default async function IncidentsPage() {
     getAccessControl(),
     getAssignableMembers(ctx.supabase),
   ]);
-  // El operador aterriza en su cola personal; el resto ve todo por defecto.
-  const defaultView = myMemberId && access.roles.includes("support_agent") ? "mine" : "all";
+  // Drill accionable desde el Command Center (parametros de URL) o cola del operador por defecto.
+  const defaultView = sp.view || (myMemberId && access.roles.includes("support_agent") ? "mine" : "all");
+  const initialStatus = sp.status ?? "";
+  const initialResp = sp.assignee ?? "";
   // Acciones contextuales por permiso (matriz de responsabilidad): Operaciones resuelve;
   // Evolucion convierte (envia a evolucion).
   const canResolve = access.isAdmin || access.perms.includes("incident.resolve");
@@ -31,7 +34,7 @@ export default async function IncidentsPage() {
         <NewIncidentButton />
       </div>
       <IncidentStats rows={rows} />
-      <IncidentSplit rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView}
+      <IncidentSplit rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} initialStatus={initialStatus} initialResp={initialResp}
         canResolve={canResolve} canEvolve={canEvolve} canPriority={canPriority} canAssign={canAssign} members={members} />
     </div>
   );

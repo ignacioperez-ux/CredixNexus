@@ -20,15 +20,15 @@ const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
 // Split view (master-detail): la lista a la izquierda; al seleccionar una fila se abre un
 // panel de VISTA PREVIA a la derecha alimentado por los datos que la lista ya cargo (cero
 // queries nuevas). FASE 3.1: acciones contextuales (prioridad, asignar, resolver, evolucion) por permiso.
-export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", canResolve = false, canEvolve = false, canPriority = false, canAssign = false, members = [] }: {
-  rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string;
+export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", canResolve = false, canEvolve = false, canPriority = false, canAssign = false, members = [] }: {
+  rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string;
   canResolve?: boolean; canEvolve?: boolean; canPriority?: boolean; canAssign?: boolean; members?: AssignableMember[];
 }) {
   const [sel, setSel] = useState<IncidentRow | null>(null);
   return (
     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <IncidentTable rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView}
+        <IncidentTable rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} initialStatus={initialStatus} initialResp={initialResp}
           onSelect={(r) => setSel((cur) => (cur?.id === r.id ? null : r))} selectedId={sel?.id ?? null} />
       </div>
       {sel && <Preview row={sel} caseTypes={caseTypes} canResolve={canResolve} canEvolve={canEvolve}
