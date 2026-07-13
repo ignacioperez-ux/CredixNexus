@@ -3,7 +3,7 @@
 /* ============================================================================
    CREDIX NEXUS — DESIGN TOKENS
    Fuente: CLAUDE DESIGN SPECIFICATIONS. Valores hex literales del prototipo.
-   Dos temas conmutables: Nexus (default, lima/carbon) y Claro (rojo Credix).
+   Dos temas conmutables: Nexus (oscuro) y Claro (claro), ambos con acento rojo Credix.
    Los componentes SOLO referencian var(--token), nunca hex directos
    (salvo colores semanticos de estado, que son globales).
    ============================================================================ */
@@ -25,6 +25,36 @@
   /* ---- Transiciones / z-index ---- */
   --t-fast: 120ms ease;
   --z-sidebar: 10; --z-drawer: 900; --z-modal: 1000; --z-toast: 1100;
+}
+
+/* ---- Escala de diseno (Fase 1.2 Bloque A). Aditivo: no altera color ni temas.
+       Acaba con los px/tiempos inline dispersos; base del Hub del Usuario. ---- */
+:root {
+  /* Tipografia */
+  --fs-1: 11px; --fs-2: 12.5px; --fs-3: 13px; --fs-4: 15px;
+  --fs-5: 18px; --fs-6: 22px; --fs-hero: 28px;
+  --lh-tight: 1.15; --lh-body: 1.55;
+
+  /* Espaciado 8pt + anchos legibles */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px; --sp-9: 56px;
+  --w-prose: 720px; --w-app: 1120px;
+
+  /* Motion (--t-fast se conserva tal cual) */
+  --t-base: 200ms cubic-bezier(.2, .7, .2, 1);
+  --t-slow: 320ms cubic-bezier(.2, .7, .2, 1);
+
+  /* Data-viz: anillo SLA, donut, sparkline. Los colores de estado siguen siendo --st-*
+     (status colors: color + icono/etiqueta + gap, nunca color solo). */
+  --viz-ring-track: var(--track);
+  --viz-ring-w: 6px;
+  --viz-seg-gap: 2px;
+  --viz-line-w: 2px;
+  --viz-secondary: var(--teal);
+  --viz-secondary-soft: var(--teal-soft);
+
+  /* Elevacion flotante (menus/drawers/tooltips) */
+  --sh-float: 0 12px 32px rgba(0, 0, 0, .18);
 }
 
 /* ============================================================================

@@ -236,8 +236,11 @@ pruebas; riesgos/pendientes/supuestos.
   versión queda inmutable y auditada.
 - **IA con gobierno:** un agente nunca aprueba cambios, borra datos, modifica reglas publicadas ni
   cruza tenants; toda acción de agente se registra (prompt, modelo, input/output, confianza).
-- **Design system:** dos temas conmutables (Nexus lima / Claro rojo), datos numéricos en JetBrains
-  Mono, tokens en `app/globals.css`. Detalle en `docs/DESIGN.md`.
+- **Design system:** dos temas conmutables **Nexus** (oscuro) y **Claro** (claro), **ambos con acento
+  rojo Credix** (credix.com: `#E4002B` Nexus / `#E30613` Claro; fuente de verdad = `app/globals.css`).
+  El **teal/lima** (`--teal`) es color de **dato secundario** (data-viz), NO acento de marca. El portal
+  del rol Usuario tiene a **Claro como tema por defecto**. Datos numéricos en JetBrains Mono. Detalle en
+  `docs/DESIGN.md`.
 - **Tenant != Product != Party-role (invariante de modelo):** el `tenant` es una figura amplia =
   **modo operativo/de entrega** (`operating_mode` ∈ saas|bpo|enterprise|internal|marketplace). NO es
   un producto (catálogo) ni un rol de party. Quién participa (originator, investor, buyer, merchant)

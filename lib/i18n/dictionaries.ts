@@ -1394,6 +1394,10 @@ export const dictionaries = {
     "portal.cat.choose": "Selecciona una categoría",
     "portal.create.submit": "Crear caso",
     "portal.create.submitting": "Creando…",
+    "portal.donut.title": "Casos por estado",
+    "portal.summary.inprogress": "En curso",
+    "portal.summary.resolved": "Resueltos",
+    "portal.summary.attention": "Requieren seguimiento",
 
     "dep.title": "Grafo de dependencias",
     "dep.subtitle": "Servicios, dependencias e impacto (blast radius) sobre casos y productos",
@@ -3075,6 +3079,10 @@ export const dictionaries = {
     "portal.cat.choose": "Select a category",
     "portal.create.submit": "Create case",
     "portal.create.submitting": "Creating…",
+    "portal.donut.title": "Cases by status",
+    "portal.summary.inprogress": "In progress",
+    "portal.summary.resolved": "Resolved",
+    "portal.summary.attention": "Need follow-up",
 
     "dep.title": "Dependency graph",
     "dep.subtitle": "Services, dependencies and impact (blast radius) on cases and products",

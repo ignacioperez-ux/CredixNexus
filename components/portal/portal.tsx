@@ -12,19 +12,26 @@ import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
 import type { PortalCategory, PortalApp, MyCase } from "@/lib/portal/queries";
 import type { Urgency } from "@/lib/incidents/priority";
-import { statusKey } from "@/lib/incidents/labels";
+import { statusKey, statusColors } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
+import { SlaRing, StatusDonut, type StatusSlice } from "@/components/portal/hub-viz";
 
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 const MIN_CHARS = 8;
 const SETTLED = ["resolved", "closed", "cancelled"];
+const ATTENTION = ["waiting", "reopened"]; // esperan respuesta del usuario
+// Orden canonico de estados para el donut/leyenda (espeja el enum incident.status).
+const STATUS_ORDER = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution", "resolved", "closed", "cancelled"];
 
-/** Tono semantico del estado (espeja el enum de incident.status; presentacion pura). */
-function caseTone(status: string): string {
-  if (status === "resolved" || status === "closed") return "var(--st-low-fg)";
-  if (status === "cancelled") return "var(--muted)";
-  if (status === "waiting" || status === "reopened") return "var(--st-high-fg)";
-  return "var(--accent-2)";
+/** Urgencia de ordenamiento: abiertos SIEMPRE antes que resueltos; dentro de cada grupo,
+ *  SLA mas proximo arriba y los sin-SLA al final del grupo. Magnitudes: due real ~1.7e12 ms;
+ *  sentinel sin-SLA 1e14 (tras cualquier due real); bucket resuelto 1e16 (domina todo). */
+const MISSING_DUE = 1e14;
+const SETTLED_BUCKET = 1e16;
+function sortKey(c: MyCase): number {
+  const settled = SETTLED.includes(c.status) ? SETTLED_BUCKET : 0;
+  const due = c.sla_resolution_due_at ? new Date(c.sla_resolution_due_at).getTime() : MISSING_DUE;
+  return settled + due;
 }
 
 export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], userName = "" }: {
@@ -33,6 +40,14 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const { t, locale } = useI18n();
   const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
   const openCount = myCases.filter((c) => !SETTLED.includes(c.status)).length;
+  const resolvedCount = myCases.filter((c) => c.status === "resolved" || c.status === "closed").length;
+  const attentionCount = myCases.filter((c) => ATTENTION.includes(c.status)).length;
+  const sortedCases = [...myCases].sort((a, b) => sortKey(a) - sortKey(b));
+
+  // Conteos por estado para el donut (solo estados presentes, en orden canonico).
+  const counts = myCases.reduce<Record<string, number>>((m, c) => { m[c.status] = (m[c.status] ?? 0) + 1; return m; }, {});
+  const slices: StatusSlice[] = STATUS_ORDER.filter((s) => counts[s]).map((s) => ({ status: s, count: counts[s] }));
+
   const router = useRouter();
   const subjectRef = useRef<HTMLTextAreaElement>(null);
   const [subject, setSubject] = useState("");
@@ -84,17 +99,19 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
   const field: React.CSSProperties = { fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%" };
   const lbl: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "var(--text)", marginBottom: 5, display: "block" };
+  const cardBox: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)" };
+  const sectionTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", color: "var(--text)" };
   const apps = applications;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1120 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
       {/* Hero de bienvenida */}
       <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(125deg, var(--accent-soft), transparent 62%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "22px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
           <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, flexShrink: 0 }}>{(firstName[0] ?? "U").toUpperCase()}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px", color: "var(--accent-2)", marginBottom: 3 }}>{t("portal.hero.tag")}</div>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, color: "var(--text)", lineHeight: 1.15 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-6)", color: "var(--text)", lineHeight: "var(--lh-tight)" }}>
               {t("portal.welcome")}{firstName ? `, ${firstName}` : ""}
             </div>
             <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
@@ -110,11 +127,26 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
         </div>
       )}
 
+      {/* Tu resumen: el estado del hilo en < 3s (donut + stat tiles). Sustituye contadores planos. */}
+      {myCases.length > 0 && (
+        <div style={{ ...cardBox, padding: "var(--sp-5)", display: "flex", gap: "var(--sp-6)", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-3)" }}>
+            <span style={sectionTitle}>{t("portal.donut.title")}</span>
+            <StatusDonut slices={slices} total={myCases.length} labelOf={(s) => t(statusKey(s))} />
+          </div>
+          <div style={{ display: "flex", gap: "var(--sp-3)", flexWrap: "wrap" }}>
+            <StatTile label={t("portal.summary.inprogress")} value={openCount} />
+            <StatTile label={t("portal.summary.resolved")} value={resolvedCount} tone={resolvedCount > 0 ? "var(--st-low-fg)" : undefined} />
+            <StatTile label={t("portal.summary.attention")} value={attentionCount} tone={attentionCount > 0 ? "var(--st-high-fg)" : undefined} icon={attentionCount > 0 ? "alert" : undefined} />
+          </div>
+        </div>
+      )}
+
       {/* Explorar por categoria: seleccion rapida que alimenta el intake */}
       {categories.length > 0 && (
         <div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.browse.title")}</span>
+            <span style={sectionTitle}>{t("portal.browse.title")}</span>
             <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("portal.browse.hint")}</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(158px, 1fr))", gap: 10 }}>
@@ -139,8 +171,8 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
       {/* Dos columnas: intake (izq) + sugerencias (der) */}
       <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 18, alignItems: "start" }}>
         {/* Intake estructurado */}
-        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.intake.title")}</div>
+        <div style={{ ...cardBox, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={sectionTitle}>{t("portal.intake.title")}</div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: -8 }}>{t("portal.intro")}</div>
 
           <div>
@@ -192,7 +224,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
         {/* Sugerencias (derecha) */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.suggest.title")}</div>
+            <div style={sectionTitle}>{t("portal.suggest.title")}</div>
             <div style={{ fontSize: 11, color: "var(--muted)" }}>{t("portal.suggest.caption")}</div>
           </div>
 
@@ -203,7 +235,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
               {!res.aiConfigured && <div style={{ fontSize: 11.5, color: "var(--muted)", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "8px 11px" }}>{t("portal.ai.off")}</div>}
 
               {res.guidance && (
-                <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: 14 }}>
+                <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>{t("portal.guidance.title")}</span>
                     {typeof res.confidence === "number" && <span style={{ fontSize: 10.5, color: "var(--muted)" }}>· {res.confidence}%</span>}
@@ -216,7 +248,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
               {res.cases.map((c) => (
                 <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} className={canViewIncidents ? "cx-lift" : undefined} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
-                  <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "11px 13px" }}>
+                  <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: "11px 13px" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{c.incident_number}</span>
                       <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>{c.title}</span>
@@ -234,24 +266,26 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
         </div>
       </div>
 
-      {/* Mis casos: tracking permanente del usuario */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 }}>
+      {/* Mis casos: tracking permanente del usuario, con anillo SLA vivo */}
+      <div style={{ ...cardBox, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t("portal.mycases")}</span>
+          <span style={sectionTitle}>{t("portal.mycases")}</span>
           {myCases.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "1px 8px", borderRadius: "var(--r-pill)" }}>{myCases.length}</span>}
         </div>
         {myCases.length === 0 ? (
           <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "8px 2px" }}>{t("portal.mycases.empty")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {myCases.map((c) => {
-              const tone = caseTone(c.status);
+            {sortedCases.map((c) => {
+              const sc = statusColors(c.status);
               const row = (
-                <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: tone, flexShrink: 0 }} />
+                <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
+                  <SlaRing openedAt={c.opened_at} dueAt={c.sla_resolution_due_at} resolvedAt={c.resolved_at} status={c.status} size={38} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
                   <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: tone }}>{t(statusKey(c.status))}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(c.status))}
+                  </span>
                   <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
                 </div>
               );
@@ -262,6 +296,17 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function StatTile({ label, value, tone, icon }: { label: string; value: number; tone?: string; icon?: string }) {
+  return (
+    <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "12px 16px", minWidth: 108 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
+        {icon && <Icon name={icon} size={12} color={tone ?? "var(--muted)"} />}{label}
+      </div>
+      <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "var(--fs-hero)", letterSpacing: "-1px", color: tone ?? "var(--text)" }}>{value}</div>
     </div>
   );
 }
