@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Overview } from "@/lib/analytics/queries";
-import { serviceHealth, trendMax } from "@/lib/analytics/format";
+import { serviceHealth } from "@/lib/analytics/format";
 
 const HEALTH_COLOR: Record<string, string> = { healthy: "var(--st-low-fg)", degraded: "var(--st-high-fg)", critical: "var(--st-critical-fg)" };
 
@@ -12,7 +12,6 @@ export function ExecDashboard({ o }: { o: Overview }) {
   const { t, locale } = useI18n();
   const health = serviceHealth({ p1Open: o.incidents.p1_open, slaBreached: o.incidents.sla_breached, sev1: o.major_incidents.sev1, unackEscalations: o.escalations.unack });
   const fmtMoney = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
-  const tmax = trendMax(o.trend);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -40,14 +39,7 @@ export function ExecDashboard({ o }: { o: Overview }) {
       {/* Tendencia + top categorias */}
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
         <Panel title={t("an.trend")}>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 120, marginTop: 8 }}>
-            {o.trend.map((d) => (
-              <div key={d.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div title={`${d.day}: ${d.count}`} style={{ width: "100%", height: `${(d.count / tmax) * 100}%`, minHeight: d.count > 0 ? 4 : 0, background: "var(--accent)", borderRadius: 3 }} />
-                <div style={{ fontSize: 8.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{d.day.slice(8)}</div>
-              </div>
-            ))}
-          </div>
+          <AreaChart points={o.trend.map((d) => ({ label: d.day, value: d.count }))} />
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8 }}>{t("an.trend.hint")}</div>
         </Panel>
         <Panel title={t("an.topcat")}>
@@ -91,7 +83,38 @@ function Metric({ label, value, href, danger }: { label: string; value: number |
 }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
-    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{title}</div>{children}</div>;
+    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 6 }}>{title}</div>{children}</div>;
+}
+
+/** Grafico de area: grid tenue + degradado + linea + endpoint enfatizado. Datos reales. */
+function AreaChart({ points }: { points: { label: string; value: number }[] }) {
+  if (points.length === 0) return <div style={{ fontSize: 12.5, color: "var(--muted)" }}>—</div>;
+  const W = 600, H = 150, pad = 8;
+  const max = Math.max(1, ...points.map((p) => p.value));
+  const x = (i: number) => (points.length <= 1 ? W / 2 : (i / (points.length - 1)) * W);
+  const y = (v: number) => H - pad - (v / max) * (H - pad * 2);
+  const line = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(" ");
+  const area = `${line} L${W} ${H} L0 ${H} Z`;
+  const last = points[points.length - 1];
+  const grid = [0.25, 0.5, 0.75].map((g) => H - pad - g * (H - pad * 2));
+  const lbl = (s: string) => s.length >= 10 ? s.slice(5) : s; // MM-DD
+  return (
+    <div style={{ marginTop: 4 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block", height: "auto", overflow: "visible" }} role="img" aria-label="Tendencia">
+        <defs><linearGradient id="cxarea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--accent)" stopOpacity=".26" /><stop offset="1" stopColor="var(--accent)" stopOpacity="0" /></linearGradient></defs>
+        {grid.map((gy, i) => <line key={i} x1="0" y1={gy} x2={W} y2={gy} stroke="var(--line-soft)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
+        <path d={area} fill="url(#cxarea)" />
+        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        <circle cx={x(points.length - 1)} cy={y(last.value)} r="4" fill="var(--accent)" />
+        <circle cx={x(points.length - 1)} cy={y(last.value)} r="8" fill="var(--accent-soft)" />
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)" }}>
+        <span>{lbl(points[0].label)}</span>
+        {points.length > 2 && <span>{lbl(points[Math.floor(points.length / 2)].label)}</span>}
+        <span style={{ color: "var(--accent-2)", fontWeight: 700 }}>{lbl(last.label)} · {last.value}</span>
+      </div>
+    </div>
+  );
 }
 function ModuleCard({ title, href, rows }: { title: string; href: string; rows: [string, number | string][] }) {
   return (
