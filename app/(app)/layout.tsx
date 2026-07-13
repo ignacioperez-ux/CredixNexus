@@ -26,11 +26,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
       <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} roles={roleList} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
         <Header roles={roleList} perms={permList} isAdmin={isAdmin} />
-        <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>
+        <main style={{ flex: 1, minHeight: 0, overflowY: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>
           {children}
         </main>
       </div>

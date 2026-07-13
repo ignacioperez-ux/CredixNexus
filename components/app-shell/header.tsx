@@ -1,11 +1,11 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/provider";
 import { useTheme, type Theme } from "@/components/theme-provider";
 import { Icon } from "@/components/ui/icon";
 import { resolvePrimaryAction } from "@/lib/nav/role-ux";
+import { signOutAction } from "@/lib/auth/actions";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
@@ -48,7 +48,6 @@ export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: st
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
-  const supabase = createClient();
 
   const meta =
     TITLES.find((x) => pathname === x.prefix || pathname.startsWith(x.prefix + "/")) ??
@@ -56,12 +55,6 @@ export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: st
 
   // Accion primaria por rol (FASE 2): CTA de acento resuelta por ROLE_UX, filtrada por permiso.
   const primary = resolvePrimaryAction(roles, perms, isAdmin);
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <header
@@ -77,10 +70,10 @@ export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: st
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", color: "var(--text)" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {t(meta.title)}
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted)" }}>{t(meta.subtitle)}</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t(meta.subtitle)}</div>
       </div>
 
       {/* Accion primaria por rol */}
@@ -125,22 +118,26 @@ export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: st
         onChange={(v) => setLocale(v as "es" | "en")}
       />
 
-      <button
-        onClick={signOut}
-        style={{
-          height: 40,
-          padding: "0 14px",
-          borderRadius: "var(--r-md)",
-          background: "var(--card)",
-          border: "1px solid var(--line)",
-          color: "var(--text)",
-          fontSize: 12.5,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
-        {t("common.signout")}
-      </button>
+      {/* Cierre de sesion server-side (limpia cookies de verdad) */}
+      <form action={signOutAction}>
+        <button
+          type="submit"
+          style={{
+            height: 40,
+            padding: "0 14px",
+            borderRadius: "var(--r-md)",
+            background: "var(--card)",
+            border: "1px solid var(--line)",
+            color: "var(--text)",
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {t("common.signout")}
+        </button>
+      </form>
     </header>
   );
 }
