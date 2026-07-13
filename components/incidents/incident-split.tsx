@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { IncidentRow, CaseTypeMeta } from "@/lib/incidents/queries";
 import type { AssignableMember } from "@/lib/talent/queries";
+import type { SavedView } from "@/lib/views/queries";
 import { changeStatus, sendToEvolution, setPriority } from "@/lib/incidents/actions";
 import { assignIncidentMember } from "@/lib/talent/actions";
 import { priorityKey } from "@/lib/incidents/labels";
@@ -20,16 +21,16 @@ const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
 // Split view (master-detail): la lista a la izquierda; al seleccionar una fila se abre un
 // panel de VISTA PREVIA a la derecha alimentado por los datos que la lista ya cargo (cero
 // queries nuevas). FASE 3.1: acciones contextuales (prioridad, asignar, resolver, evolucion) por permiso.
-export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", canResolve = false, canEvolve = false, canPriority = false, canAssign = false, members = [] }: {
+export function IncidentSplit({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", canResolve = false, canEvolve = false, canPriority = false, canAssign = false, members = [], savedViews = [] }: {
   rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string;
-  canResolve?: boolean; canEvolve?: boolean; canPriority?: boolean; canAssign?: boolean; members?: AssignableMember[];
+  canResolve?: boolean; canEvolve?: boolean; canPriority?: boolean; canAssign?: boolean; members?: AssignableMember[]; savedViews?: SavedView[];
 }) {
   const [sel, setSel] = useState<IncidentRow | null>(null);
   return (
     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <IncidentTable rows={rows} caseTypes={caseTypes} myMemberId={myMemberId} defaultView={defaultView} initialStatus={initialStatus} initialResp={initialResp}
-          canResolve={canResolve} canAssign={canAssign} members={members}
+          canResolve={canResolve} canAssign={canAssign} members={members} savedViews={savedViews}
           onSelect={(r) => setSel((cur) => (cur?.id === r.id ? null : r))} selectedId={sel?.id ?? null} />
       </div>
       {sel && <Preview row={sel} caseTypes={caseTypes} canResolve={canResolve} canEvolve={canEvolve}

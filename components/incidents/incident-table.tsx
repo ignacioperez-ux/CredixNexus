@@ -9,6 +9,8 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { priorityKey, statusKey } from "@/lib/incidents/labels";
 import { changeStatus } from "@/lib/incidents/actions";
 import { assignIncidentMember } from "@/lib/talent/actions";
+import { saveView, deleteSavedView } from "@/lib/views/actions";
+import type { SavedView } from "@/lib/views/queries";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
 import { useGrouping, GroupBar, EmptyState, type GroupDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
@@ -36,7 +38,7 @@ const SAVED_VIEWS: ViewDef[] = [
 ];
 const domainColor: Record<string, string> = { business: "var(--accent-2)", technology: "var(--st-info)", service: "var(--teal)" };
 
-export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", canResolve = false, canAssign = false, members = [], onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string; canResolve?: boolean; canAssign?: boolean; members?: AssignableMember[]; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
+export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, defaultView = "all", initialStatus = "", initialResp = "", canResolve = false, canAssign = false, members = [], savedViews = [], onSelect, selectedId }: { rows: IncidentRow[]; caseTypes?: CaseTypeMeta; myMemberId?: string | null; defaultView?: string; initialStatus?: string; initialResp?: string; canResolve?: boolean; canAssign?: boolean; members?: AssignableMember[]; savedViews?: SavedView[]; onSelect?: (r: IncidentRow) => void; selectedId?: string | null }) {
   const { t } = useI18n();
   const router = useRouter();
   const [view, setView] = useState(defaultView);
@@ -143,6 +145,22 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
     startBulk(async () => { await Promise.all([...picked].map(fn)); setPicked(new Set()); router.refresh(); });
   }
 
+  // --- Vistas guardadas por usuario (persistentes) ---
+  const currentFilters = { view, filter, domain, bu, app, prio, resp };
+  function saveCurrentView() {
+    const name = window.prompt(t("view.name.prompt"));
+    if (!name || !name.trim()) return;
+    startBulk(async () => { await saveView("incidents", name, currentFilters); router.refresh(); });
+  }
+  function loadView(f: Record<string, unknown>) {
+    setView((f.view as string) ?? "all"); setFilter((f.filter as string) ?? "all"); setDomain((f.domain as string) ?? "all");
+    setBu((f.bu as string) ?? ""); setApp((f.app as string) ?? ""); setPrio((f.prio as string) ?? ""); setResp((f.resp as string) ?? "");
+  }
+  function removeView(id: string) {
+    if (!window.confirm(t("view.delete.confirm"))) return;
+    startBulk(async () => { await deleteSavedView(id); router.refresh(); });
+  }
+
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
       {/* Vistas guardadas (work-queue): presets semanticos */}
@@ -161,6 +179,18 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
             </button>
           );
         })}
+
+        {savedViews.length > 0 && <span style={{ width: 1, height: 20, background: "var(--line)", margin: "0 2px" }} />}
+        {savedViews.map((sv) => (
+          <span key={sv.id} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 6px 6px 12px", borderRadius: "var(--r-pill)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--muted)", fontSize: 12.5, fontWeight: 600 }}>
+            <button onClick={() => loadView(sv.filters)} style={{ border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 12.5, fontWeight: 600, padding: 0 }}>{sv.name}</button>
+            <button onClick={() => removeView(sv.id)} disabled={pending} aria-label={t("view.delete")} style={{ display: "inline-flex", width: 16, height: 16, alignItems: "center", justifyContent: "center", borderRadius: "50%", border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer" }}><Icon name="x" size={11} /></button>
+          </span>
+        ))}
+        <button onClick={saveCurrentView} disabled={pending} title={t("view.save")}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: "var(--r-pill)", border: "1px dashed var(--line)", background: "transparent", color: "var(--accent-2)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+          <Icon name="plus" size={13} /> {t("view.save")}
+        </button>
       </div>
 
       {/* Filtro por dominio: Negocio vs TI vs Servicio */}
