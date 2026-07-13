@@ -13,9 +13,10 @@ type Tab = "catalog" | "requests" | "admin";
 export function ServiceCatalog({ items, requests, stats, canRequest, canManage, allItems }: { items: CatalogItem[]; requests: RequestRow[]; stats: RequestStats; canRequest: boolean; canManage: boolean; allItems: CatalogItem[] }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("catalog");
+  // Rotulo honesto: el gestor ve "Solicitudes" (todas); el solicitante, "Mis solicitudes" (propias).
   const tabs: { key: Tab; label: MessageKey }[] = [
     { key: "catalog", label: "cat.tab.catalog" },
-    { key: "requests", label: "cat.tab.requests" },
+    { key: "requests", label: canManage ? "cat.tab.requests.all" : "cat.tab.requests" },
     ...(canManage ? [{ key: "admin" as Tab, label: "cat.tab.admin" as MessageKey }] : []),
   ];
   return (
@@ -32,7 +33,7 @@ export function ServiceCatalog({ items, requests, stats, canRequest, canManage, 
         })}
       </div>
       {tab === "catalog" && <CatalogGrid items={items} canRequest={canRequest} />}
-      {tab === "requests" && <RequestList rows={requests} stats={stats} />}
+      {tab === "requests" && <RequestList rows={requests} stats={stats} ownOnly={!canManage} />}
       {tab === "admin" && canManage && <ItemManager items={allItems} />}
     </div>
   );

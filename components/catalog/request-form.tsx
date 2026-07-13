@@ -36,6 +36,10 @@ export function RequestForm({ item, onCancel }: { item: CatalogItem; onCancel: (
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 6 }}>
+      {/* Explainability: el usuario sabe que se creara un caso con seguimiento y SLA. */}
+      <div style={{ fontSize: 11.5, color: "var(--muted)", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "8px 11px" }}>
+        {t("cat.form.slanote").replace("{h}", String(item.sla_hours))}
+      </div>
       {item.form_schema.map((f: FormField) => (
         <div key={f.key}>
           <label style={lbl}>{f.label}{f.required && <span style={{ color: "var(--accent-2)" }}> *</span>}</label>

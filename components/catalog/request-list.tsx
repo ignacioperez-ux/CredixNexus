@@ -12,15 +12,16 @@ const STATUS_COLOR: Record<string, { fg: string; bg: string }> = {
   cancelled: { fg: "var(--muted)", bg: "var(--paper)" },
 };
 
-export function RequestList({ rows, stats }: { rows: RequestRow[]; stats: RequestStats }) {
+export function RequestList({ rows, stats, ownOnly = true }: { rows: RequestRow[]; stats: RequestStats; ownOnly?: boolean }) {
   const { t, locale } = useI18n();
   const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };
   const now = new Date().toISOString();
 
+  // El filtro por solicitante solo aporta cuando se ven solicitudes de varios (gestor).
   const defs: FilterDef<RequestRow>[] = [
     { key: "status", label: t("obs.col.status"), get: (r) => r.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("cat.st." + v) as MessageKey) },
     { key: "item", label: t("cat.col.item"), get: (r) => r.item_name, allLabel: t("md.filter.all") },
-    { key: "req", label: t("flt.responsible"), get: (r) => r.requester_name, allLabel: t("flt.allresp") },
+    ...(ownOnly ? [] : [{ key: "req", label: t("flt.responsible"), get: (r: RequestRow) => r.requester_name, allLabel: t("flt.allresp") }]),
   ];
   const f = useListFilters(rows, defs);
   const g = useGrouping(f.filtered, defs);
@@ -53,7 +54,7 @@ export function RequestList({ rows, stats }: { rows: RequestRow[]; stats: Reques
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 130px 150px 110px", minWidth: 820 }}>
             {[t("cat.col.number"), t("cat.col.item"), t("cat.col.case"), t("cat.col.due"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <EmptyState text={t("cat.req.empty")} icon="inbox" />}
+            {f.filtered.length === 0 && <EmptyState text={t(ownOnly ? "cat.req.empty" : "cat.req.empty.all")} icon="inbox" />}
             {g.groups
               ? g.groups.map((grp) => (
                   <div key={grp.value} style={{ display: "contents" }}>

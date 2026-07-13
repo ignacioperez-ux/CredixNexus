@@ -47,11 +47,19 @@ export type RequestRow = {
 };
 export type RequestStats = { open: number; fulfilled: number; overdue: number };
 
-export async function listRequests(supabase: SupabaseClient): Promise<{ rows: RequestRow[]; stats: RequestStats }> {
-  const { data, error } = await supabase
+export async function listRequests(
+  supabase: SupabaseClient,
+  opts: { ownerId?: string | null; ownOnly?: boolean } = {},
+): Promise<{ rows: RequestRow[]; stats: RequestStats }> {
+  // Seguridad (P3 / UX-002): un solicitante sin gestion ve SOLO sus solicitudes, no todo el
+  // tenant. Los gestores (service_catalog.manage) ven todas. Refuerza la RLS por propietario.
+  if (opts.ownOnly && !opts.ownerId) return { rows: [], stats: { open: 0, fulfilled: 0, overdue: 0 } };
+  let q = supabase
     .from("service_request")
     .select("id, request_number, status, sla_due_at, created_at, item:item_id(name), incident:incident_id(id, incident_number, status), requester:requested_by_user_id(full_name)")
     .order("created_at", { ascending: false });
+  if (opts.ownOnly && opts.ownerId) q = q.eq("requested_by_user_id", opts.ownerId);
+  const { data, error } = await q;
   if (error) throw new Error(error.message);
   const now = new Date().toISOString();
   const rows: RequestRow[] = (data ?? []).map((r) => {

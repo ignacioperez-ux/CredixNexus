@@ -3,22 +3,42 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { CatalogItem } from "@/lib/catalog/queries";
+import { Icon } from "@/components/ui/icon";
 import { RequestForm } from "./request-form";
 
 export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRequest: boolean }) {
   const { t } = useI18n();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (q ? items.filter((i) => `${i.name} ${i.description ?? ""} ${i.category}`.toLowerCase().includes(q)) : items),
+    [items, q],
+  );
 
   const byCategory = useMemo(() => {
     const m = new Map<string, CatalogItem[]>();
-    for (const i of items) { const l = m.get(i.category) ?? []; l.push(i); m.set(i.category, l); }
+    for (const i of filtered) { const l = m.get(i.category) ?? []; l.push(i); m.set(i.category, l); }
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [items]);
+  }, [filtered]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("cat.intro")}</div>
+
+      {/* Buscador: descubribilidad (sustituye el scroll ciego por grid). */}
+      {items.length > 0 && (
+        <div style={{ position: "relative", maxWidth: 420 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--muted)" }}><Icon name="search" size={15} /></span>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("cat.search.placeholder")}
+            style={{ width: "100%", fontSize: 13, padding: "10px 12px 10px 34px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
+        </div>
+      )}
+
       {items.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("cat.empty")}</div>}
+      {items.length > 0 && byCategory.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("cat.noresults")}</div>}
+
       {byCategory.map(([category, list]) => (
         <div key={category} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--muted)" }}>{category}</div>
@@ -26,10 +46,10 @@ export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRe
             {list.map((item) => {
               const open = openId === item.id;
               return (
-                <div key={item.id} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-xl)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div key={item.id} className={open ? undefined : "cx-lift"} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-xl)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, color: "var(--text)" }}>{item.name}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{t("cat.sla")}: {item.sla_hours}h</span>
+                    <span title={`${t("cat.sla")} ${item.sla_hours}h`} style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: "var(--accent-2)", background: "var(--accent-soft)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{t("cat.sla")} {item.sla_hours}h</span>
                   </div>
                   {item.description && <div style={{ fontSize: 12, color: "var(--muted)" }}>{item.description}</div>}
                   {!open ? (

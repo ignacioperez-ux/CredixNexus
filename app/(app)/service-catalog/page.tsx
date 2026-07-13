@@ -6,13 +6,14 @@ import { ServiceCatalog } from "@/components/catalog/service-catalog";
 export default async function ServiceCatalogPage() {
   const ctx = await getContext();
   if (!ctx) return null;
-  const [items, requests, access] = await Promise.all([
-    listCatalogItems(ctx.supabase),
-    listRequests(ctx.supabase),
-    getAccessControl(),
-  ]);
+  const access = await getAccessControl();
   const canRequest = access.isAdmin || access.perms.includes("service_catalog.request");
   const canManage = access.isAdmin || access.perms.includes("service_catalog.manage");
-  const allItems = canManage ? await listCatalogItems(ctx.supabase, true) : [];
+  // Solicitante sin gestion: solo sus solicitudes (P3). Gestor: todas.
+  const [items, requests, allItems] = await Promise.all([
+    listCatalogItems(ctx.supabase),
+    listRequests(ctx.supabase, { ownerId: ctx.accountId, ownOnly: !canManage }),
+    canManage ? listCatalogItems(ctx.supabase, true) : Promise.resolve([]),
+  ]);
   return <ServiceCatalog items={items} requests={requests.rows} stats={requests.stats} canRequest={canRequest} canManage={canManage} allItems={allItems} />;
 }
