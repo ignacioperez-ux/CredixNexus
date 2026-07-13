@@ -52,6 +52,21 @@ export async function getSupervisor(supabase: SupabaseClient): Promise<Superviso
   return data as Supervisor;
 }
 
+/** Inflow diario por categoria (ultimos N dias) para sparklines por fila. RLS por tenant, dato real. */
+export async function getCategoryTrends(supabase: SupabaseClient, days = 14): Promise<Record<string, number[]>> {
+  const startDay = new Date(Date.now() - (days - 1) * 86400000);
+  startDay.setHours(0, 0, 0, 0);
+  const { data } = await supabase.from("incident").select("category, opened_at").gte("opened_at", startDay.toISOString());
+  const base = startDay.getTime();
+  const out: Record<string, number[]> = {};
+  ((data ?? []) as { category: string | null; opened_at: string }[]).forEach((r) => {
+    const cat = r.category ?? "—";
+    const idx = Math.floor((new Date(r.opened_at).getTime() - base) / 86400000);
+    if (idx >= 0 && idx < days) (out[cat] ??= new Array(days).fill(0))[idx]++;
+  });
+  return out;
+}
+
 // ---- Reportes: datasets exportables (RLS filtra por tenant) --------------------
 export type ReportDataset = "incidents" | "changes" | "risk" | "problems";
 

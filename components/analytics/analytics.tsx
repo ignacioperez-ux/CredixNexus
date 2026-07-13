@@ -11,7 +11,7 @@ import { SupervisorDashboard } from "./supervisor-dashboard";
 
 type Tab = "exec" | "supervisor" | "performance" | "reports";
 
-export function Analytics({ overview, performance, supervisor }: { overview: Overview; performance: Performance; supervisor: Supervisor }) {
+export function Analytics({ overview, performance, supervisor, categoryTrends = {} }: { overview: Overview; performance: Performance; supervisor: Supervisor; categoryTrends?: Record<string, number[]> }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("exec");
   const tabs: { key: Tab; label: MessageKey }[] = [
@@ -34,7 +34,7 @@ export function Analytics({ overview, performance, supervisor }: { overview: Ove
           );
         })}
       </div>
-      {tab === "exec" && <ExecDashboard o={overview} />}
+      {tab === "exec" && <ExecDashboard o={overview} trends={categoryTrends} />}
       {tab === "supervisor" && <SupervisorDashboard s={supervisor} />}
       {tab === "performance" && <PerformanceTab p={performance} />}
       {tab === "reports" && <ReportExport />}

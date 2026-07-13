@@ -8,7 +8,7 @@ import { serviceHealth } from "@/lib/analytics/format";
 
 const HEALTH_COLOR: Record<string, string> = { healthy: "var(--st-low-fg)", degraded: "var(--st-high-fg)", critical: "var(--st-critical-fg)" };
 
-export function ExecDashboard({ o }: { o: Overview }) {
+export function ExecDashboard({ o, trends = {} }: { o: Overview; trends?: Record<string, number[]> }) {
   const { t, locale } = useI18n();
   const health = serviceHealth({ p1Open: o.incidents.p1_open, slaBreached: o.incidents.sla_breached, sev1: o.major_incidents.sev1, unackEscalations: o.escalations.unack });
   const fmtMoney = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
@@ -57,7 +57,11 @@ export function ExecDashboard({ o }: { o: Overview }) {
               return (
                 <div key={c.category} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 12, color: "var(--text)", width: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.category}</span>
-                  <div style={{ flex: 1, height: 8, background: "var(--paper)", borderRadius: 4, overflow: "hidden" }}><div style={{ width: `${(c.count / max) * 100}%`, height: "100%", background: "var(--accent-2)" }} /></div>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", height: 26 }}>
+                    {(trends[c.category] ?? []).some((n) => n > 0)
+                      ? <Spark data={trends[c.category]} />
+                      : <div style={{ flex: 1, height: 8, background: "var(--paper)", borderRadius: 4, overflow: "hidden" }}><div style={{ width: `${(c.count / max) * 100}%`, height: "100%", background: "var(--accent-2)" }} /></div>}
+                  </div>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", width: 20, textAlign: "right" }}>{c.count}</span>
                 </div>
               );
@@ -120,6 +124,21 @@ function Metric({ label, value, href, danger }: { label: string; value: number |
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
     <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 6 }}>{title}</div>{children}</div>;
+}
+
+/** Mini-sparkline (inflow por fila): area + linea + endpoint. */
+function Spark({ data }: { data: number[] }) {
+  const W = 120, H = 24, max = Math.max(1, ...data);
+  const pts = data.map((n, i) => [(i / Math.max(1, data.length - 1)) * W, H - (n / max) * (H - 3) - 1.5]);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden style={{ display: "block", overflow: "visible" }}>
+      <path d={`${line} L${W} ${H} L0 ${H} Z`} fill="var(--accent-soft)" />
+      <path d={line} fill="none" stroke="var(--accent-2)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      <circle cx={last[0]} cy={last[1]} r="2" fill="var(--accent-2)" />
+    </svg>
+  );
 }
 
 /** Anillo de progreso de un valor (0-100). Centro con el dato. */
