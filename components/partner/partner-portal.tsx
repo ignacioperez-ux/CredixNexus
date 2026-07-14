@@ -11,6 +11,24 @@ export function PartnerPortalView({ data }: { data: PartnerPortal }) {
   // Acento de marca Credix (rojo). Un partner real puede traer su propio brand_accent.
   const accent = data.party?.accent ?? "var(--accent)";
 
+  // Sin organización vinculada: estado honesto (no se fabrican datos demo). El usuario final
+  // usa su portal de autoservicio como hub único (UX-007/UX-019).
+  if (!data.party) {
+    return (
+      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 28, textAlign: "center", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "grid", placeItems: "center", marginBottom: 4 }}><Icon name="lock" size={22} color="var(--muted)" /></div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>{t("pp.noorg.title")}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>{t("pp.noorg.body")}</div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 8 }}>
+            <Link href="/portal" style={{ padding: "10px 16px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>{t("pp.ss.newticket")} →</Link>
+            <Link href="/knowledge" style={{ padding: "10px 16px", borderRadius: "var(--r-md)", background: "var(--paper)", color: "var(--text)", fontSize: 13, fontWeight: 600, textDecoration: "none", border: "1px solid var(--line)" }}>{t("pp.ss.kb")} →</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Branding del partner */}

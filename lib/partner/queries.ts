@@ -13,13 +13,9 @@ export type PartnerPortal = {
  *  campos seguros del partner: nunca transformation_score, ledger ni datos internos.
  *  En producción el party se resuelve del usuario partner autenticado. */
 export async function getPartnerPortal(supabase: SupabaseClient, userPartyId?: string | null): Promise<PartnerPortal> {
-  // Partner del usuario autenticado; si no tiene party (usuario interno en preview),
-  // cae al partner demo (organización con rol originador).
-  let partyId = userPartyId ?? undefined;
-  if (!partyId) {
-    const { data: roleRow } = await supabase.from("party_role").select("party_id").eq("role_type", "originator").limit(1).maybeSingle();
-    partyId = roleRow?.party_id as string | undefined;
-  }
+  // Solo la organización (party) del usuario autenticado. SIN fallback a datos demo (UX-019): en
+  // producción nunca se muestra información de otra party; si no hay organización, estado vacío honesto.
+  const partyId = userPartyId ?? undefined;
   if (!partyId) return { party: null, tickets: [], kpis: { open: 0, resolved: 0, total: 0 } };
 
   const [partyRes, ticketsRes] = await Promise.all([

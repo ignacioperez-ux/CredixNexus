@@ -44,7 +44,8 @@ export const MACRO_NAV: NavCategory[] = [
       { id: "nav.majorincidents", label: "nav.majorincidents", path: "/major-incidents", perm: "major_incident.read" },
       { id: "nav.servicecatalog", label: "nav.servicecatalog", path: "/service-catalog", perm: "service_catalog.read" },
       { id: "nav.selfservice", label: "nav.selfservice", path: "/portal" },
-      { id: "nav.partner", label: "nav.partner", path: "/partner" },
+      // nav.partner retirado (UX-007): el usuario final tiene UN solo hub (/portal). El portal de
+      // partner externo (por organizacion/party) se reintroducira con gating por party en su fase.
     ],
   },
   {
