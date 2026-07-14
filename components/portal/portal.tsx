@@ -11,12 +11,15 @@ import { createIncident } from "@/lib/incidents/actions";
 import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
 import type { PortalCategory, PortalApp, MyCase } from "@/lib/portal/queries";
-import type { Urgency } from "@/lib/incidents/priority";
-import { statusKey, statusColors } from "@/lib/incidents/labels";
+import { derivePriority, type Urgency, type Impact } from "@/lib/incidents/priority";
+import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
 import { SlaRing, StatusDonut, type StatusSlice } from "@/components/portal/hub-viz";
 
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
+// Impacto estimado del autoservicio: el usuario reporta su propio caso (impacto acotado). Se hace
+// EXPLICITO y explicable (no silencioso); la mesa puede ajustarlo. Espeja el enum de la BD.
+const INTAKE_IMPACT: Impact = "medium";
 const MIN_CHARS = 8;
 const SETTLED = ["resolved", "closed", "cancelled"];
 const ATTENTION = ["waiting", "reopened"]; // esperan respuesta del usuario
@@ -63,6 +66,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [created, setCreated] = useState<string | null>(null);
 
   const tooShort = subject.trim().length < MIN_CHARS;
+  const estPriority = derivePriority(INTAKE_IMPACT, urgency); // prioridad estimada, explicable (UX-011)
 
   function pickCategory(id: string) {
     setCategoryId(id);
@@ -88,7 +92,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
     if (tooShort) { setTouched(true); return; }
     if (!categoryId) { setErr("ERR_REQUIRED_FIELD"); return; }
     startReg(async () => {
-      const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId, affectedCiId: appId || undefined, impact: "medium", urgency });
+      const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId, affectedCiId: appId || undefined, impact: INTAKE_IMPACT, urgency });
       if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
       if (res) await Promise.all(res.articles.map((a) => recordKbEvent(a.id, "escalation", "portal", subject)));
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
@@ -202,11 +206,21 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
             </div>
           </div>
 
-          <div style={{ maxWidth: 220 }}>
+          <div>
             <label style={lbl}>{t("portal.create.field.urgency")}</label>
-            <select value={urgency} onChange={(e) => setUrgency(e.target.value as Urgency)} style={field}>
-              {URGENCIES.map((u) => <option key={u} value={u}>{t(("lvl." + u) as MessageKey)}</option>)}
-            </select>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={urgency} onChange={(e) => setUrgency(e.target.value as Urgency)} style={{ ...field, maxWidth: 220 }}>
+                {URGENCIES.map((u) => <option key={u} value={u}>{t(("lvl." + u) as MessageKey)}</option>)}
+              </select>
+              {/* Prioridad estimada en vivo, explicable (UX-011) — sustituye el impacto "medium" silencioso */}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--muted)" }}>
+                {t("portal.priority.est")}
+                <span title={t("portal.priority.note")} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600, color: priorityColor(estPriority), background: "var(--paper)", border: "1px solid var(--line)", padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "help" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: priorityColor(estPriority) }} />{t(priorityKey(estPriority))}
+                </span>
+              </span>
+            </div>
+            <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 5 }}>{t("portal.priority.note")}</div>
           </div>
 
           {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err.startsWith("ERR_") ? t(("err." + err) as MessageKey) : err}</div>}
