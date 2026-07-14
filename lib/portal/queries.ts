@@ -6,7 +6,7 @@ import { tokenize, scoreCandidate, topMatches } from "@/lib/portal/match";
 
 export type KbHit = { id: string; article_number: string; title: string; category: string; summary: string | null; content: string; score: number };
 export type CaseHit = { id: string; incident_number: string; title: string; category: string; resolution: string | null; score: number };
-export type PortalCategory = { id: string; code: string; name: string };
+export type PortalCategory = { id: string; code: string; name: string; name_en: string | null };
 export type SearchResult = { articles: KbHit[]; cases: CaseHit[] };
 
 type ArticleVersion = { version_number: number; content_markdown: string | null; summary: string | null };
@@ -103,7 +103,7 @@ export async function getMyReportedCases(supabase: SupabaseClient, accountId: st
 export async function listPortalCategories(supabase: SupabaseClient): Promise<PortalCategory[]> {
   const { data, error } = await supabase
     .from("incident_category")
-    .select("id, code, name")
+    .select("id, code, name, name_en")
     .eq("status", "active")
     .order("name");
   if (error) throw new Error(error.message);

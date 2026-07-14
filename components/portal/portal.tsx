@@ -42,6 +42,8 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 }) {
   const { t, locale } = useI18n();
   const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
+  // Nombre de categoria localizado (i18n del maestro incident_category); fallback al espanol.
+  const catLabel = (c: PortalCategory) => (locale === "en" ? c.name_en : c.name) ?? c.name;
   const openCount = myCases.filter((c) => !SETTLED.includes(c.status)).length;
   const resolvedCount = myCases.filter((c) => c.status === "resolved" || c.status === "closed").length;
   const attentionCount = myCases.filter((c) => ATTENTION.includes(c.status)).length;
@@ -160,9 +162,9 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
                 <button key={c.id} type="button" onClick={() => pickCategory(c.id)} className="cx-lift"
                   style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "11px 12px", borderRadius: "var(--r-lg)", cursor: "pointer",
                     background: sel ? "var(--accent-soft)" : "var(--card)", border: sel ? "1px solid var(--accent)" : "1px solid var(--line)" }}>
-                  <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{c.name.trim()[0]?.toUpperCase() ?? "?"}</span>
+                  <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{catLabel(c).trim()[0]?.toUpperCase() ?? "?"}</span>
                   <span style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 1 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{catLabel(c)}</span>
                     <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", color: sel ? "var(--accent-2)" : "var(--muted)" }}>{sel ? t("portal.cat.picked") : c.code}</span>
                   </span>
                 </button>
@@ -201,7 +203,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
               <label style={lbl}>{t("portal.create.field.cat")}{autoCat && <span style={{ color: "var(--accent-2)", fontWeight: 500 }}> · {t("portal.cat.auto")}</span>}</label>
               <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setAutoCat(false); }} style={field}>
                 <option value="">{t("portal.cat.choose")}</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {categories.map((c) => <option key={c.id} value={c.id}>{catLabel(c)}</option>)}
               </select>
             </div>
           </div>
