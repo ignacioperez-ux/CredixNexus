@@ -55,6 +55,21 @@
 
   /* Elevacion flotante (menus/drawers/tooltips) */
   --sh-float: 0 12px 32px rgba(0, 0, 0, .18);
+
+  /* Alias forward-compat en AMBOS temas (UX-015): antes solo existian en Claro; su uso sin
+     fallback rompia Nexus. Referencian los tokens semanticos (resuelven por tema). */
+  --primary: var(--accent);
+  --primary-hover: var(--accent-2);
+  --on-primary: #fff;
+  --surface: var(--card);
+  --surface-alt: var(--paper);
+  --ink: var(--text);
+  --ink-strong: var(--text);
+
+  /* Overlays y sombras tokenizadas (UX-016): evita hex sueltos en componentes. */
+  --overlay: rgba(0, 0, 0, .42);
+  --sh-modal: 0 24px 60px -20px rgba(0, 0, 0, .5);
+  --sh-fab: 0 8px 22px -6px rgba(227, 6, 19, .5);
 }
 
 /* ============================================================================

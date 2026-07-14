@@ -159,9 +159,9 @@ export function CommandMenu({ perms = [], isAdmin = false }: { perms?: string[];
 
   return (
     <div onClick={() => setOpenMenu(false)}
-      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,.42)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "12vh" }}>
+      style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--overlay)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "12vh" }}>
       <div onClick={(e) => e.stopPropagation()} onKeyDown={onListKey}
-        style={{ width: "min(640px, 92vw)", maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "0 24px 60px -20px rgba(0,0,0,.5)", overflow: "hidden" }}>
+        style={{ width: "min(640px, 92vw)", maxHeight: "70vh", display: "flex", flexDirection: "column", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-modal)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", borderBottom: "1px solid var(--line)" }}>
           <Icon name="search" size={17} color="var(--muted)" />
           <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("cmd.placeholder")}

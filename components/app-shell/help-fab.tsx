@@ -17,7 +17,7 @@ export function HelpFab() {
         width: 52, height: 52, borderRadius: "50%",
         background: "var(--cta-bg)", color: "var(--cta-fg)", border: "none",
         cursor: "pointer", display: "grid", placeItems: "center",
-        boxShadow: "0 8px 22px -6px rgba(227,6,19,.5)",
+        boxShadow: "var(--sh-fab)",
       }}
     >
       <Icon name="help" size={24} color="var(--cta-icon)" />
