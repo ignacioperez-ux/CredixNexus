@@ -7,21 +7,24 @@ import { Icon } from "@/components/ui/icon";
 import { RequestForm } from "./request-form";
 
 export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRequest: boolean }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [openId, setOpenId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  // Nombre de categoria localizado desde el maestro (i18n §10); fallback al texto legacy.
+  const catName = (i: CatalogItem) => (locale === "en" ? i.category_name_en : i.category_name_es) ?? i.category;
+
   const q = query.trim().toLowerCase();
   const filtered = useMemo(
-    () => (q ? items.filter((i) => `${i.name} ${i.description ?? ""} ${i.category}`.toLowerCase().includes(q)) : items),
+    () => (q ? items.filter((i) => `${i.name} ${i.description ?? ""} ${i.category_name_es ?? ""} ${i.category_name_en ?? ""} ${i.category}`.toLowerCase().includes(q)) : items),
     [items, q],
   );
 
   const byCategory = useMemo(() => {
     const m = new Map<string, CatalogItem[]>();
-    for (const i of filtered) { const l = m.get(i.category) ?? []; l.push(i); m.set(i.category, l); }
+    for (const i of filtered) { const k = catName(i); const l = m.get(k) ?? []; l.push(i); m.set(k, l); }
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [filtered]);
+  }, [filtered, locale]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

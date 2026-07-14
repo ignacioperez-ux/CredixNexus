@@ -5,29 +5,30 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { FormField } from "@/lib/catalog/validation";
+import type { ServiceCategory } from "@/lib/catalog/queries";
 import { createItem } from "@/lib/catalog/actions";
 import { FormBuilder } from "./form-builder";
 
-export function ItemForm({ onDone }: { onDone: () => void }) {
-  const { t } = useI18n();
+export function ItemForm({ onDone, categories }: { onDone: () => void; categories: ServiceCategory[] }) {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [slaHours, setSlaHours] = useState("24");
   const [schema, setSchema] = useState<FormField[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
   const schemaValid = schema.every((f) => f.key.trim() && f.label.trim() && (f.type !== "select" || (f.options ?? []).length > 0));
   const noDupKeys = new Set(schema.map((f) => f.key.trim())).size === schema.length;
-  const valid = code.trim().length >= 2 && name.trim().length >= 3 && Number(slaHours) > 0 && schemaValid && noDupKeys;
+  const valid = code.trim().length >= 2 && name.trim().length >= 3 && !!categoryId && Number(slaHours) > 0 && schemaValid && noDupKeys;
 
   function submit() {
     setErr(null);
     start(async () => {
-      const r = await createItem({ code: code.trim(), name: name.trim(), description: description.trim() || undefined, category: category.trim() || "general", slaHours: Number(slaHours), formSchema: schema });
+      const r = await createItem({ code: code.trim(), name: name.trim(), description: description.trim() || undefined, categoryId, slaHours: Number(slaHours), formSchema: schema });
       if (!r.ok) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
       onDone();
       router.refresh();
@@ -47,7 +48,12 @@ export function ItemForm({ onDone }: { onDone: () => void }) {
       </div>
       <div><label style={lbl}>{t("cat.item.description")}</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={{ ...field, resize: "vertical" }} /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div><label style={lbl}>{t("cat.item.category")}</label><input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="acceso" style={field} /></div>
+        <div><label style={lbl}>{t("cat.item.category")}</label>
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={field}>
+            {categories.length === 0 && <option value="">—</option>}
+            {categories.map((c) => <option key={c.id} value={c.id}>{locale === "en" ? c.name_en : c.name_es}</option>)}
+          </select>
+        </div>
         <div><label style={lbl}>{t("cat.item.sla")}</label><input type="number" min={1} value={slaHours} onChange={(e) => setSlaHours(e.target.value)} style={field} /></div>
       </div>
 

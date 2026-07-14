@@ -5,39 +5,46 @@ import type { FormField } from "@/lib/catalog/validation";
 
 export type CatalogItem = {
   id: string; code: string; name: string; description: string | null; category: string;
+  category_code: string | null; category_name_es: string | null; category_name_en: string | null;
   form_schema: FormField[]; sla_hours: number; status: string; has_workflow: boolean;
 };
 
-export async function listCatalogItems(supabase: SupabaseClient, includeInactive = false): Promise<CatalogItem[]> {
-  let q = supabase.from("service_item").select("id, code, name, description, category, form_schema, sla_hours, status, workflow_definition_id").order("name");
-  if (!includeInactive) q = q.eq("status", "active");
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => {
-    const row = r as Record<string, unknown>;
-    return {
-      id: row.id as string, code: row.code as string, name: row.name as string,
-      description: (row.description as string | null) ?? null, category: row.category as string,
-      form_schema: (row.form_schema as FormField[]) ?? [], sla_hours: row.sla_hours as number,
-      status: row.status as string, has_workflow: !!row.workflow_definition_id,
-    };
-  });
-}
+const ITEM_SELECT = "id, code, name, description, category, form_schema, sla_hours, status, workflow_definition_id, cat:category_id(code, name_es, name_en)";
 
-export async function getCatalogItem(supabase: SupabaseClient, id: string): Promise<CatalogItem | null> {
-  const { data, error } = await supabase
-    .from("service_item")
-    .select("id, code, name, description, category, form_schema, sla_hours, status, workflow_definition_id")
-    .eq("id", id).maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) return null;
-  const row = data as Record<string, unknown>;
+function decorateItem(row: Record<string, unknown>): CatalogItem {
+  const cat = row.cat as { code: string; name_es: string; name_en: string } | null;
   return {
     id: row.id as string, code: row.code as string, name: row.name as string,
     description: (row.description as string | null) ?? null, category: row.category as string,
+    category_code: cat?.code ?? null, category_name_es: cat?.name_es ?? null, category_name_en: cat?.name_en ?? null,
     form_schema: (row.form_schema as FormField[]) ?? [], sla_hours: row.sla_hours as number,
     status: row.status as string, has_workflow: !!row.workflow_definition_id,
   };
+}
+
+export async function listCatalogItems(supabase: SupabaseClient, includeInactive = false): Promise<CatalogItem[]> {
+  let q = supabase.from("service_item").select(ITEM_SELECT).order("name");
+  if (!includeInactive) q = q.eq("status", "active");
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => decorateItem(r as Record<string, unknown>));
+}
+
+export async function getCatalogItem(supabase: SupabaseClient, id: string): Promise<CatalogItem | null> {
+  const { data, error } = await supabase.from("service_item").select(ITEM_SELECT).eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return decorateItem(data as Record<string, unknown>);
+}
+
+/** Maestro de categorias del catalogo (datos maestros §10, i18n ES/EN). */
+export type ServiceCategory = { id: string; code: string; name_es: string; name_en: string; status: string; sort_order: number };
+export async function listServiceCategories(supabase: SupabaseClient, includeInactive = false): Promise<ServiceCategory[]> {
+  let q = supabase.from("service_category").select("id, code, name_es, name_en, status, sort_order").order("sort_order").order("name_es");
+  if (!includeInactive) q = q.eq("status", "active");
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ServiceCategory[];
 }
 
 export type RequestRow = {

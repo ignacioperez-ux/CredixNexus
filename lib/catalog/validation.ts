@@ -52,16 +52,28 @@ export function summarizeFormData(schema: FormField[], data: Record<string, unkn
 }
 
 // ---- Validacion del item de catalogo (admin) ----
-export type ItemInput = { code: string; name: string; category: string; slaHours: number; formSchema: FormField[] };
+// categoryId referencia el maestro service_category (datos maestros §10, no texto libre).
+export type ItemInput = { code: string; name: string; categoryId: string; slaHours: number; formSchema: FormField[] };
 
 export function validateItem(i: ItemInput): string | null {
   if (!i.code || i.code.trim().length < 2) return ErrorCode.MIN_LENGTH;
   if (!i.name || i.name.trim().length < 3) return ErrorCode.MIN_LENGTH;
+  if (!i.categoryId || i.categoryId.trim().length === 0) return ErrorCode.REQUIRED;
   if (!(i.slaHours > 0 && i.slaHours <= 8760)) return ErrorCode.FORMAT;
   for (const f of i.formSchema) {
     if (!f.key || !f.label) return ErrorCode.REQUIRED;
     if (!(FIELD_TYPES as readonly string[]).includes(f.type)) return ErrorCode.FORMAT;
     if (f.type === "select" && (!f.options || f.options.length === 0)) return ErrorCode.FORMAT;
   }
+  return null;
+}
+
+// ---- Validacion de la categoria de catalogo (maestro con i18n) ----
+export type CategoryInput = { code: string; nameEs: string; nameEn: string };
+
+export function validateCategory(c: CategoryInput): string | null {
+  if (!c.code || c.code.trim().length < 2) return ErrorCode.MIN_LENGTH;
+  if (!c.nameEs || c.nameEs.trim().length < 2) return ErrorCode.REQUIRED;
+  if (!c.nameEn || c.nameEn.trim().length < 2) return ErrorCode.REQUIRED;
   return null;
 }

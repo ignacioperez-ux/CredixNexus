@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import type { CatalogItem, RequestRow, RequestStats } from "@/lib/catalog/queries";
+import type { CatalogItem, RequestRow, RequestStats, ServiceCategory } from "@/lib/catalog/queries";
 import { CatalogGrid } from "./catalog-grid";
 import { RequestList } from "./request-list";
 import { ItemManager } from "./item-manager";
 
 type Tab = "catalog" | "requests" | "admin";
 
-export function ServiceCatalog({ items, requests, stats, canRequest, canManage, allItems }: { items: CatalogItem[]; requests: RequestRow[]; stats: RequestStats; canRequest: boolean; canManage: boolean; allItems: CatalogItem[] }) {
+export function ServiceCatalog({ items, requests, stats, canRequest, canManage, allItems, categories = [] }: { items: CatalogItem[]; requests: RequestRow[]; stats: RequestStats; canRequest: boolean; canManage: boolean; allItems: CatalogItem[]; categories?: ServiceCategory[] }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("catalog");
   // Rotulo honesto: el gestor ve "Solicitudes" (todas); el solicitante, "Mis solicitudes" (propias).
@@ -34,7 +34,7 @@ export function ServiceCatalog({ items, requests, stats, canRequest, canManage, 
       </div>
       {tab === "catalog" && <CatalogGrid items={items} canRequest={canRequest} />}
       {tab === "requests" && <RequestList rows={requests} stats={stats} ownOnly={!canManage} />}
-      {tab === "admin" && canManage && <ItemManager items={allItems} />}
+      {tab === "admin" && canManage && <ItemManager items={allItems} categories={categories} />}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode } from "@/lib/validation";
-import { validateFormData, hasErrors, summarizeFormData, validateItem, type FormField, type ItemInput } from "@/lib/catalog/validation";
+import { validateFormData, hasErrors, summarizeFormData, validateItem, validateCategory, type FormField, type ItemInput, type CategoryInput } from "@/lib/catalog/validation";
 
 export type CatalogResult = { ok: boolean; error?: string; id?: string; requestId?: string; fieldErrors?: Record<string, string> };
 
@@ -96,16 +96,43 @@ export async function createItem(input: ItemInput & { description?: string }): P
   if (!ctx) return { ok: false, error: err! };
   const v = validateItem(input);
   if (v) return { ok: false, error: v };
+  // La categoria viene del maestro (categoryId); se resuelve su code para compat con `category`.
+  const { data: cat } = await ctx.supabase.from("service_category").select("code").eq("id", input.categoryId).maybeSingle();
+  if (!cat) return { ok: false, error: ErrorCode.INVALID_REFERENCE };
   const { data, error } = await ctx.supabase
     .from("service_item")
     .insert({
       tenant_id: ctx.tenantId, code: input.code.trim(), name: input.name.trim(), description: input.description?.trim() || null,
-      category: input.category.trim() || "general", form_schema: input.formSchema, sla_hours: input.slaHours, created_by: ctx.accountId,
+      category: cat.code as string, category_id: input.categoryId, form_schema: input.formSchema, sla_hours: input.slaHours, created_by: ctx.accountId,
     })
     .select("id").single();
   if (error) return { ok: false, error: error.code === "23505" ? ErrorCode.DUPLICATE : error.message };
   revalidatePath("/service-catalog");
   return { ok: true, id: data.id as string };
+}
+
+// ---- Admin de categorias (maestro con i18n, §10.5) ----
+export async function createCategory(input: CategoryInput): Promise<CatalogResult> {
+  const { ctx, err } = await guard("service_catalog.manage");
+  if (!ctx) return { ok: false, error: err! };
+  const v = validateCategory(input);
+  if (v) return { ok: false, error: v };
+  const { data, error } = await ctx.supabase
+    .from("service_category")
+    .insert({ tenant_id: ctx.tenantId, code: input.code.trim().toLowerCase(), name_es: input.nameEs.trim(), name_en: input.nameEn.trim(), created_by: ctx.accountId })
+    .select("id").single();
+  if (error) return { ok: false, error: error.code === "23505" ? ErrorCode.DUPLICATE : error.message };
+  revalidatePath("/service-catalog");
+  return { ok: true, id: data.id as string };
+}
+
+export async function setCategoryStatus(id: string, active: boolean): Promise<CatalogResult> {
+  const { ctx, err } = await guard("service_catalog.manage");
+  if (!ctx) return { ok: false, error: err! };
+  const { error } = await ctx.supabase.from("service_category").update({ status: active ? "active" : "inactive", updated_by: ctx.accountId }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/service-catalog");
+  return { ok: true, id };
 }
 
 export async function setItemStatus(id: string, active: boolean): Promise<CatalogResult> {

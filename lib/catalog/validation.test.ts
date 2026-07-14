@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateFormData, hasErrors, summarizeFormData, validateItem, type FormField } from "./validation";
+import { validateFormData, hasErrors, summarizeFormData, validateItem, validateCategory, type FormField } from "./validation";
 import { ErrorCode } from "@/lib/validation";
 
 const schema: FormField[] = [
@@ -39,7 +39,7 @@ describe("summarizeFormData", () => {
 });
 
 describe("validateItem", () => {
-  const base = { code: "SR_X", name: "Item X", category: "acceso", slaHours: 8, formSchema: schema };
+  const base = { code: "SR_X", name: "Item X", categoryId: "cat-1", slaHours: 8, formSchema: schema };
   it("acepta item valido", () => {
     expect(validateItem(base)).toBeNull();
   });
@@ -47,7 +47,24 @@ describe("validateItem", () => {
     expect(validateItem({ ...base, slaHours: 0 })).toBe(ErrorCode.FORMAT);
     expect(validateItem({ ...base, code: "X" })).toBe(ErrorCode.MIN_LENGTH);
   });
+  it("rechaza sin categoria (maestro requerido)", () => {
+    expect(validateItem({ ...base, categoryId: "" })).toBe(ErrorCode.REQUIRED);
+  });
   it("rechaza select sin opciones", () => {
     expect(validateItem({ ...base, formSchema: [{ key: "r", label: "R", type: "select" }] })).toBe(ErrorCode.FORMAT);
+  });
+});
+
+describe("validateCategory", () => {
+  const c = { code: "acceso", nameEs: "Acceso", nameEn: "Access" };
+  it("acepta categoria valida", () => {
+    expect(validateCategory(c)).toBeNull();
+  });
+  it("rechaza codigo corto", () => {
+    expect(validateCategory({ ...c, code: "a" })).toBe(ErrorCode.MIN_LENGTH);
+  });
+  it("rechaza nombres i18n faltantes", () => {
+    expect(validateCategory({ ...c, nameEs: "" })).toBe(ErrorCode.REQUIRED);
+    expect(validateCategory({ ...c, nameEn: "" })).toBe(ErrorCode.REQUIRED);
   });
 });
