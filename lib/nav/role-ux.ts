@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { MACRO_NAV } from "./navigation";
+import { MACRO_NAV, EVOLUTION_NAV } from "./navigation";
 import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 
 // ---------------------------------------------------------------------------
@@ -52,7 +52,10 @@ export const ROLE_UX: Record<string, RoleUx> = {
   support_agent: { emphasis: ["inicio", "tickets", "conocimiento"], home: "/workspace", primaryAction: "takeNext" },
   // Gte. Evolucion/TI -> Transformation Hub (gestiona mejoras y proyectos)
   // Gerente de Evolucion: home en Proyectos (portafolio); ya no ve el dashboard operativo (segregacion 1.1).
-  product_owner: { emphasis: ["evolucion", "conocimiento", "analitica"], home: "/projects", primaryAction: "newProject" },
+  // Navegacion de persona (EVOLUTION_NAV, 1.2): auto-expande sus bloques "ev.evolucion"/"ev.gobierno".
+  // Se conservan los ids MACRO ("evolucion"/"conocimiento"/"analitica") para el caso multi-rol que
+  // renderiza MACRO_NAV (p.ej. product_owner + support_agent), donde el overlay no aplica.
+  product_owner: { emphasis: ["evolucion", "conocimiento", "analitica", "ev.evolucion", "ev.gobierno"], home: "/projects", primaryAction: "newProject" },
   // Squad -> Delivery Hub
   squad_member: { emphasis: ["evolucion", "conocimiento"], home: "/projects", primaryAction: "openBacklog" },
   // Usuario final -> Autoservicio simple
@@ -104,8 +107,8 @@ export function resolvePrimaryAction(roles: string[], perms: string[], isAdmin: 
   return null;
 }
 
-// Guard de coherencia: todos los ids de emphasis existen como categoria macro.
-const CATEGORY_IDS = new Set(MACRO_NAV.map((c) => c.id));
+// Guard de coherencia: todos los ids de emphasis existen como categoria (macro o de persona).
+const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV].map((c) => c.id));
 export function unknownEmphasisIds(): string[] {
   const bad: string[] = [];
   for (const ux of Object.values(ROLE_UX)) for (const id of ux.emphasis) if (!CATEGORY_IDS.has(id)) bad.push(id);

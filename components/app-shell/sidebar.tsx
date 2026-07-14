@@ -8,7 +8,7 @@ import { Wordmark } from "./wordmark";
 import { Icon } from "@/components/ui/icon";
 import { canSeeNav } from "@/lib/nav/access";
 import { emphasisForRoles } from "@/lib/nav/role-ux";
-import { MACRO_NAV, categoryOfPath, type NavigationItem } from "@/lib/nav/navigation";
+import { navForRoles, type NavigationItem, type NavCategory } from "@/lib/nav/navigation";
 
 // Sidebar de primer nivel = 8 categorias macro (Estructura Macro Aprobada - FASE 1).
 // El arbol vive en lib/nav/navigation.ts (config centralizada). Aqui solo se renderiza:
@@ -23,12 +23,17 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   const hasHub = isAdmin || perms.includes("masterdata.manage");
   const visible = (it: NavigationItem) => canSeeNav(it.perm, perms, isAdmin) && !(it.absorbedInHub && hasHub);
 
+  // Arbol segun rol: overlay de persona para el Gerente de Evolucion, MACRO_NAV para el resto.
+  const tree = navForRoles(roles, isAdmin);
+
   // Solo categorias con al menos un item permitido.
-  const cats = MACRO_NAV
+  const cats = tree
     .map((c) => ({ cat: c, items: c.items.filter(visible) }))
     .filter((g) => g.items.length > 0);
 
-  const activeCat = categoryOfPath(pathname);
+  // Categoria activa calculada sobre el arbol RENDERIZADO (no el global): el prefijo mas
+  // especifico que contiene la ruta actual. Vale para MACRO_NAV y para el overlay de persona.
+  const activeCat = activeCategoryId(cats, pathname);
 
   // Enfasis por rol (FASE 2): categorias macro del cockpit del rol -> auto-expandidas.
   const emphasis = emphasisForRoles(roles, isAdmin);
@@ -64,7 +69,7 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
                 <div style={{ marginTop: 2, marginBottom: 6 }}>
                   {items.map((item) => {
                     const active = pathname === item.path || pathname.startsWith(item.path + "/");
-                    return <NavLink key={item.id} href={item.path} active={active} label={t(item.label)} />;
+                    return <NavLink key={item.id} href={item.path} active={active} label={t(item.label)} readOnly={item.readOnly} readOnlyLabel={t("nav.readonly")} />;
                   })}
                 </div>
               )}
@@ -88,13 +93,32 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   );
 }
 
-function NavLink({ href, active, label }: { href: string; active: boolean; label: string }) {
+function NavLink({ href, active, label, readOnly, readOnlyLabel }: { href: string; active: boolean; label: string; readOnly?: boolean; readOnlyLabel?: string }) {
   return (
-    <Link href={href} style={{ display: "flex", alignItems: "center", padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-hover)" : "transparent" }}>
+    <Link href={href} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-hover)" : "transparent" }}>
       {active && <span style={{ position: "absolute", left: 16, top: 9, bottom: 9, width: 3, borderRadius: 3, background: "var(--accent)" }} />}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {readOnly && (
+        <span title={readOnlyLabel} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 5, padding: "1px 5px" }}>
+          <Icon name="lock" size={9} color="var(--sb-muted)" />
+          {readOnlyLabel}
+        </span>
+      )}
     </Link>
   );
+}
+
+/** Categoria (del arbol renderizado) que contiene la ruta activa, por prefijo mas especifico. */
+function activeCategoryId(cats: { cat: NavCategory; items: NavigationItem[] }[], pathname: string): string | null {
+  let best: { id: string; len: number } | null = null;
+  for (const { cat, items } of cats) {
+    for (const it of items) {
+      if (pathname === it.path || pathname.startsWith(it.path + "/")) {
+        if (!best || it.path.length > best.len) best = { id: cat.id, len: it.path.length };
+      }
+    }
+  }
+  return best?.id ?? null;
 }
 
 function initials(name: string): string {

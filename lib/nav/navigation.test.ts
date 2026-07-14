@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MACRO_NAV, ALL_NAV_ITEMS, QUICK_ACTIONS, categoryOfPath } from "./navigation";
+import { MACRO_NAV, ALL_NAV_ITEMS, QUICK_ACTIONS, categoryOfPath, EVOLUTION_NAV, navForRoles } from "./navigation";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 
 // Integridad de la navegacion macro (FASE 1): 8 categorias, i18n ES/EN completo,
@@ -53,5 +53,45 @@ describe("navegacion macro", () => {
     expect(categoryOfPath("/projects")).toBe("evolucion");
     expect(categoryOfPath("/catalog")).toBe("administracion");
     expect(categoryOfPath("/no-existe")).toBeNull();
+  });
+});
+
+// Navegacion de persona (Fase Evolucion 1.2): overlay del Gerente de Evolucion.
+describe("navegacion de persona (EVOLUTION_NAV / navForRoles)", () => {
+  const ITEM_BY_ID = Object.fromEntries(ALL_NAV_ITEMS.map((i) => [i.id, i]));
+
+  it("cada item del overlay reusa un item canonico (mismo path y perm; nada inventado)", () => {
+    for (const cat of EVOLUTION_NAV) {
+      for (const it of cat.items) {
+        const base = ITEM_BY_ID[it.id];
+        expect(base, it.id).toBeDefined();
+        expect(it.path).toBe(base.path);
+        expect(it.perm).toEqual(base.perm);
+      }
+    }
+  });
+
+  it("las categorias del overlay tienen i18n ES/EN", () => {
+    for (const c of EVOLUTION_NAV) {
+      expect(es[c.label], `ES ${c.label}`).toBeTruthy();
+      expect(en[c.label], `EN ${c.label}`).toBeTruthy();
+    }
+    expect(es["nav.readonly"]).toBeTruthy();
+    expect(en["nav.readonly"]).toBeTruthy();
+  });
+
+  it("problemas y cambios son solo-lectura; incidentes mayores accionable (ambas areas)", () => {
+    const casos = EVOLUTION_NAV.find((c) => c.id === "ev.casos")!;
+    expect(casos.items.find((i) => i.id === "nav.problems")?.readOnly).toBe(true);
+    expect(casos.items.find((i) => i.id === "nav.changes")?.readOnly).toBe(true);
+    expect(casos.items.find((i) => i.id === "nav.majorincidents")?.readOnly).toBeFalsy();
+  });
+
+  it("navForRoles: product_owner puro -> overlay; admin y multi-rol operativo -> MACRO_NAV", () => {
+    expect(navForRoles(["product_owner"], false)).toBe(EVOLUTION_NAV);
+    expect(navForRoles(["product_owner"], true)).toBe(MACRO_NAV);            // admin ve todo
+    expect(navForRoles(["product_owner", "support_agent"], false)).toBe(MACRO_NAV); // no degradar multi-rol
+    expect(navForRoles(["support_lead"], false)).toBe(MACRO_NAV);
+    expect(navForRoles(["partner_user"], false)).toBe(MACRO_NAV);
   });
 });

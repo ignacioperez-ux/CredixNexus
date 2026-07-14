@@ -18,6 +18,7 @@ export type NavigationItem = {
   absorbedInHub?: boolean;       // maestro que vive tambien en /catalog: se oculta para quien ve el hub
   badgeKey?: string;             // contador/indicador (Fase 2)
   phase?: "mvp" | "advanced";
+  readOnly?: boolean;            // marca de "solo lectura" para el rol que lo consulta (badge en sidebar)
 };
 
 export type NavCategory = {
@@ -106,6 +107,66 @@ export const MACRO_NAV: NavCategory[] = [
 
 /** Todos los items en un arreglo plano (para el Command Menu y validaciones). */
 export const ALL_NAV_ITEMS: NavigationItem[] = MACRO_NAV.flatMap((c) => c.items);
+
+// ---------------------------------------------------------------------------
+// Navegacion por rol (FASE Evolucion 1.2). El sidebar es global (MACRO_NAV) para casi
+// todos los roles; el Gerente de Evolucion recibe un REAGRUPAMIENTO especifico de su
+// persona (mismos items = mismos paths/permisos; NADA se elimina ni se crea). Se construye
+// por referencia a los ids canonicos de MACRO_NAV para que paths/perms nunca diverjan (§11
+// cero hardcode). canSeeNav sigue filtrando por permiso: el rol solo ve lo que puede abrir.
+// ---------------------------------------------------------------------------
+
+const ITEM_BY_ID: Record<string, NavigationItem> = Object.fromEntries(ALL_NAV_ITEMS.map((i) => [i.id, i]));
+
+type RoleNavRef = { id: string; readOnly?: boolean };
+type RoleNavSpec = { id: string; label: MessageKey; icon: string; items: RoleNavRef[] };
+
+function buildRoleNav(spec: RoleNavSpec[]): NavCategory[] {
+  return spec.map((c) => ({
+    id: c.id,
+    label: c.label,
+    icon: c.icon,
+    items: c.items.map((ref) => {
+      const base = ITEM_BY_ID[ref.id];
+      if (!base) throw new Error(`nav de rol: referencia desconocida "${ref.id}"`);
+      return ref.readOnly ? { ...base, readOnly: true } : base;
+    }),
+  }));
+}
+
+// Persona "Gerente de Evolucion" (product_owner). Cuatro bloques:
+//  - EVOLUCION: el trabajo del squad (portafolio, squads, capacidad, talento, proveedores).
+//  - GOBIERNO Y ANALISIS: motor de reglas, IA, arquitectura, conocimiento y ANALISIS proactivo
+//    de comportamiento de casos (agregado). Aqui vive la vista de analisis (1.3).
+//  - CASOS Y COORDINACION: incidentes mayores (ACCIONABLE por ambas areas) + problemas y cambios
+//    (SOLO LECTURA: el rol lee/vincula pero no edita; badge lo indica).
+//  - AYUDA: catalogo y autoservicio (mis solicitudes como cualquier usuario).
+export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
+  { id: "ev.evolucion", label: "nav.ev.evolucion", icon: "zap", items: [
+    { id: "nav.projects" }, { id: "nav.squads" }, { id: "nav.resources" }, { id: "nav.talent" }, { id: "nav.vendors" },
+  ] },
+  { id: "ev.gobierno", label: "nav.ev.gobierno", icon: "shield", items: [
+    { id: "nav.analytics" }, { id: "nav.aicenter" }, { id: "nav.rules" }, { id: "nav.workflows" }, { id: "nav.processes" }, { id: "nav.knowledge" },
+  ] },
+  { id: "ev.casos", label: "nav.ev.casos", icon: "search", items: [
+    { id: "nav.majorincidents" }, { id: "nav.problems", readOnly: true }, { id: "nav.changes", readOnly: true },
+  ] },
+  { id: "ev.ayuda", label: "nav.ev.ayuda", icon: "help", items: [
+    { id: "nav.servicecatalog" }, { id: "nav.selfservice" },
+  ] },
+]);
+
+// Roles con navegacion completa (MACRO_NAV) aunque tambien tengan product_owner: no degradar
+// a un multi-rol operativo/admin. Solo el product_owner "puro" recibe el overlay de persona.
+const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin", "support_agent", "support_lead"]);
+
+/** Arbol de navegacion para un conjunto de roles: overlay de persona para el Gerente de
+ *  Evolucion puro; MACRO_NAV para el resto (y para admin). */
+export function navForRoles(roles: string[], isAdmin: boolean): NavCategory[] {
+  if (isAdmin) return MACRO_NAV;
+  if (roles.includes("product_owner") && !roles.some((r) => FULL_NAV_ROLES.has(r))) return EVOLUTION_NAV;
+  return MACRO_NAV;
+}
 
 /** Categoria que contiene una ruta (por prefijo mas especifico). */
 export function categoryOfPath(pathname: string): string | null {
