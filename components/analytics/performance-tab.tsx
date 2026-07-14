@@ -7,7 +7,6 @@ import { csatLabel, satisfiedLabel, isLowCsat } from "@/lib/analytics/csat";
 export function PerformanceTab({ p }: { p: Performance }) {
   const { t } = useI18n();
   const hours = (h: number) => (h > 0 ? `${h}h` : "—");
-  const eff = (m: number) => (m > 0 ? `${Math.round((m / 60) * 10) / 10}h` : "—");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

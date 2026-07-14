@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
-import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Catalog, Field } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { upsertRecord } from "@/lib/masterdata/actions";

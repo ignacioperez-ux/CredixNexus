@@ -52,7 +52,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const [pending, startBulk] = useTransition();
 
   const domainOf = (r: IncidentRow) => caseTypes[r.case_type]?.domain ?? "business";
-  const now = useMemo(() => Date.now(), [rows]);
+  const now = Date.now();
   const views = useMemo(() => SAVED_VIEWS.filter((v) => !v.needsMember || myMemberId), [myMemberId]);
   const viewPred = (views.find((v) => v.key === view) ?? SAVED_VIEWS[0]).pred;
 
@@ -139,7 +139,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   // --- Seleccion multiple + acciones en lote (FASE 3.1 pilar 5) ---
   const filteredIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
   const allPicked = filteredIds.length > 0 && filteredIds.every((id) => picked.has(id));
-  function togglePick(id: string) { setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+  function togglePick(id: string) { setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; }); }
   function toggleAll() { setPicked((p) => { const n = new Set(p); if (allPicked) filteredIds.forEach((id) => n.delete(id)); else filteredIds.forEach((id) => n.add(id)); return n; }); }
   function bulkRun(fn: (id: string) => Promise<{ ok: boolean; error?: string }>) {
     startBulk(async () => { await Promise.all([...picked].map(fn)); setPicked(new Set()); router.refresh(); });

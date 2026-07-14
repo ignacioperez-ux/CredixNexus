@@ -17,7 +17,7 @@ const actionColor: Record<string, string> = {
 };
 
 export function EventsTab({ events, canManage }: { events: EscalationEventRow[]; canManage: boolean }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
   const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };

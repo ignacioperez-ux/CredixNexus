@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
-import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { SquadRow } from "@/lib/squads/queries";
 import { createSquad } from "@/lib/squads/actions";
 import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";

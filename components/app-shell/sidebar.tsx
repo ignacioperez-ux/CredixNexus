@@ -33,7 +33,7 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   // Enfasis por rol (FASE 2): categorias macro del cockpit del rol -> auto-expandidas.
   const emphasis = emphasisForRoles(roles, isAdmin);
   const [open, setOpen] = useState<Set<string>>(() => new Set(emphasis));
-  const toggle = (id: string) => setOpen((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) => setOpen((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const isOpen = (id: string) => id === activeCat || open.has(id);
 
   return (

@@ -8,7 +8,7 @@ import { logWork } from "@/lib/worklog/actions";
 
 /** Registro de esfuerzo (tiempo) por caso. Alimenta la medicion por persona (F5). */
 export function WorkLog({ incidentId, effort, canLog }: { incidentId: string; effort: IncidentEffort; canLog: boolean }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [minutes, setMinutes] = useState("");

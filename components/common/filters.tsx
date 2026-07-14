@@ -123,7 +123,6 @@ export function useGrouping<T>(rows: T[], defs: GroupDef<T>[]) {
     return [...map.entries()]
       .sort((a, b) => (a[0] === "—" ? 1 : b[0] === "—" ? -1 : a[0].localeCompare(b[0])))
       .map(([value, items]) => ({ value, label: active.render && value !== "—" ? active.render(value) : value, rows: items }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, active]);
   return { groupKey, setGroupKey, groups, defs };
 }
