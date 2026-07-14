@@ -74,7 +74,7 @@ function ProfileCard({ m, options, canManage, onSave, pending }: { m: MemberDeta
 
   if (!edit) {
     return (
-      <Card title={t("tal.section.profile")} action={canManage ? <button onClick={() => setEdit(true)} style={ghost}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("tal.save")}</button> : undefined}>
+      <Card title={t("tal.section.profile")} action={canManage ? <button onClick={() => setEdit(true)} style={ghost}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("common.edit")}</button> : undefined}>
         <Row label={t("tal.f.stream")} value={m.area ? `${t(("tal.stream." + m.area.code) as MessageKey)}${m.area.lead_name ? " · " + m.area.lead_name : ""}` : "—"} />
         <Row label={t("tal.f.discipline")} value={m.discipline ?? "—"} />
         <Row label={t("tal.f.seniority")} value={m.seniority ?? "—"} />
