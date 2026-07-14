@@ -10,6 +10,7 @@ import { computeRoi } from "@/lib/projects/queries";
 import { convertRecommendation } from "@/lib/projects/actions";
 import { scoreColor } from "@/lib/incidents/labels";
 import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
+import { NewProjectButton, PortfolioLink } from "./new-project-button";
 
 type Convertible = { id: string; recommended_name: string; transformation_score: number; business_priority: number | null; incident: { incident_number: string } | null };
 type Squad = { id: string; name: string };
@@ -41,6 +42,18 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Encabezado (hero credix.com: degradado calido en Claro, sobrio en Nexus) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "22px 24px" }}>
+        <div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--text)", margin: 0 }}>{t("nav.projects")}</h1>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0", maxWidth: 720 }}>{t("proj.hero.subtitle")}</p>
+        </div>
+        <div style={{ display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
+          <PortfolioLink />
+          <NewProjectButton />
+        </div>
+      </div>
+
       {convertibles.length > 0 && <ConvertStrip convertibles={convertibles} squads={squads} />}
       <FilterBar defs={defs} filters={f} />
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>

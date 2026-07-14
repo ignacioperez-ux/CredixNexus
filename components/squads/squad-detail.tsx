@@ -39,7 +39,8 @@ export function SquadDetail({ squad, roster, assignable, canManage }: { squad: S
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <BackButton fallback="/squads" />
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+      {/* Encabezado (hero credix.com: degradado calido en Claro, sobrio en Nexus) */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "20px 22px" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent-2)" }}>{squad.code}</span>
         <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, margin: 0, color: "var(--text)" }}>{squad.name}</h1>
         {squad.is_transversal && <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--st-info)", background: "var(--st-info-bg)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("sq.transversal")}</span>}
