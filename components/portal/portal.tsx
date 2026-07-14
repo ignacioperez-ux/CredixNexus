@@ -10,7 +10,7 @@ import { portalAssist, type PortalAssistResult } from "@/lib/portal/assist";
 import { createIncident } from "@/lib/incidents/actions";
 import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
-import type { PortalCategory, PortalApp, MyCase } from "@/lib/portal/queries";
+import { evalState, type PortalCategory, type PortalApp, type MyCase } from "@/lib/portal/queries";
 import { derivePriority, type Urgency, type Impact } from "@/lib/incidents/priority";
 import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
@@ -47,6 +47,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const openCount = myCases.filter((c) => !SETTLED.includes(c.status)).length;
   const resolvedCount = myCases.filter((c) => c.status === "resolved" || c.status === "closed").length;
   const attentionCount = myCases.filter((c) => ATTENTION.includes(c.status)).length;
+  const toEvalCount = myCases.filter((c) => evalState(c.status, c.survey_status) === "pending_eval").length;
   const sortedCases = [...myCases].sort((a, b) => sortKey(a) - sortKey(b));
 
   // Conteos por estado para el donut (solo estados presentes, en orden canonico).
@@ -154,6 +155,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
             <StatTile label={t("portal.summary.inprogress")} value={openCount} />
             <StatTile label={t("portal.summary.resolved")} value={resolvedCount} tone={resolvedCount > 0 ? "var(--st-low-fg)" : undefined} />
             <StatTile label={t("portal.summary.attention")} value={attentionCount} tone={attentionCount > 0 ? "var(--st-high-fg)" : undefined} icon={attentionCount > 0 ? "alert" : undefined} />
+            <StatTile label={t("portal.summary.toeval")} value={toEvalCount} tone={toEvalCount > 0 ? "var(--st-high-fg)" : undefined} icon={toEvalCount > 0 ? "star" : undefined} />
           </div>
         </div>
       )}
@@ -304,11 +306,19 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {sortedCases.map((c) => {
               const sc = statusColors(c.status);
+              const es = evalState(c.status, c.survey_status);
               const row = (
                 <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
                   <SlaRing openedAt={c.opened_at} dueAt={c.sla_resolution_due_at} resolvedAt={c.resolved_at} status={c.status} size={38} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
                   <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                  {es && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: "var(--r-pill)",
+                      color: es === "evaluated" ? "var(--st-low-fg)" : "var(--st-high-fg)",
+                      background: es === "evaluated" ? "var(--st-low-bg)" : "var(--st-high-bg)" }}>
+                      {t(es === "evaluated" ? "case.eval.done" : "case.eval.pending")}
+                    </span>
+                  )}
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>
                     <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(c.status))}
                   </span>

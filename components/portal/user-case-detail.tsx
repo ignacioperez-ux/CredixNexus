@@ -31,7 +31,9 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
 
   const sc = statusColors(detail.status);
   const inEvolution = detail.status === "in_evolution";
-  const showCsat = detail.status === "resolved" || survey?.status === "submitted";
+  // Se puede evaluar en resuelto y tambien en cerrado sin evaluar (p.ej. cerrado por el agente);
+  // si ya se envio, se muestra en solo-lectura. El estado pasa a "evaluado" al enviar.
+  const showCsat = detail.status === "resolved" || detail.status === "closed" || survey?.status === "submitted";
   const canReply = detail.status !== "closed" && detail.status !== "cancelled";
 
   function send() {

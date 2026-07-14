@@ -86,17 +86,32 @@ export async function listApplications(supabase: SupabaseClient): Promise<Portal
 export type MyCase = {
   id: string; incident_number: string; title: string; status: string; opened_at: string;
   priority: string | null; sla_resolution_due_at: string | null; first_response_at: string | null; resolved_at: string | null;
+  survey_status: string | null; // estado de la encuesta CSAT (pending/submitted/na) para el estado "pendiente de evaluacion / evaluado"
 };
 export async function getMyReportedCases(supabase: SupabaseClient, accountId: string | null): Promise<MyCase[]> {
   if (!accountId) return [];
   const { data, error } = await supabase
     .from("incident")
-    .select("id, incident_number, title, status, opened_at, priority, sla_resolution_due_at, first_response_at, resolved_at")
+    .select("id, incident_number, title, status, opened_at, priority, sla_resolution_due_at, first_response_at, resolved_at, survey:case_survey(status)")
     .eq("reported_by_user_id", accountId)
     .order("opened_at", { ascending: false })
     .limit(20);
   if (error) throw new Error(error.message);
-  return (data ?? []) as MyCase[];
+  return (data ?? []).map((r) => {
+    const row = r as Record<string, unknown>;
+    const s = row.survey as { status: string }[] | { status: string } | null;
+    const survey_status = Array.isArray(s) ? (s[0]?.status ?? null) : (s?.status ?? null);
+    return { ...(row as unknown as MyCase), survey_status };
+  });
+}
+
+/** Estado de evaluacion derivado para el usuario: los casos resueltos/cerrados estan "evaluados"
+ *  (encuesta enviada) o "pendientes de evaluacion"; el resto no aplica. Presentacion pura. */
+export type EvalState = "evaluated" | "pending_eval" | null;
+export function evalState(status: string, surveyStatus: string | null): EvalState {
+  if (surveyStatus === "submitted") return "evaluated";
+  if (status === "resolved" || status === "closed") return "pending_eval";
+  return null;
 }
 
 /** Catalogo de categorias para el formulario de creacion de caso (cero hardcode). */
