@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/icon";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { CsatSurvey } from "@/lib/csat/queries";
 import { submitCsat } from "@/lib/csat/actions";
 
@@ -27,14 +28,32 @@ export function CsatPanel({ incidentId, survey, canSubmit }: { incidentId: strin
   }
 
   if (submitted) {
+    const s = survey!;
+    // Dimensiones que captura el usuario final (Resolucion/Rapidez/Atencion); nulas si fue puntaje unico.
+    const dims: { label: MessageKey; value: number | null }[] = [
+      { label: "case.csat.q.resolution", value: s.q_resolution },
+      { label: "case.csat.q.speed", value: s.q_speed },
+      { label: "case.csat.q.attention", value: s.q_attention },
+    ];
+    const hasDims = dims.some((d) => d.value != null);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Stars value={survey!.score ?? 0} />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>{survey!.score}/5</span>
+          <Stars value={s.score ?? 0} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>{s.score}/5</span>
         </div>
-        {survey!.comment && <div style={{ fontSize: 12, color: "var(--muted)" }}>&ldquo;{survey!.comment}&rdquo;</div>}
-        {survey!.submitted_at && <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(survey!.submitted_at).toLocaleDateString(locale)}</div>}
+        {hasDims && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
+            {dims.filter((d) => d.value != null).map((d) => (
+              <div key={d.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t(d.label)}</span>
+                <Stars value={d.value ?? 0} />
+              </div>
+            ))}
+          </div>
+        )}
+        {s.comment && <div style={{ fontSize: 12, color: "var(--muted)" }}>&ldquo;{s.comment}&rdquo;</div>}
+        {s.submitted_at && <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(s.submitted_at).toLocaleDateString(locale)}</div>}
       </div>
     );
   }
