@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { addProjectTask, setTaskStatus, changeProjectStatus, softDeleteProject } from "@/lib/projects/actions";
-import { computeRoi } from "@/lib/projects/queries";
+import { computeRoi, type AnchorCase } from "@/lib/projects/queries";
+import { statusKey, statusColors } from "@/lib/incidents/labels";
 import { AiBusinessCase } from "./ai-business-case";
 import { BackButton } from "@/components/common/back-button";
 import { QaPanel } from "./qa-panel";
@@ -44,10 +45,11 @@ type Def = { id: string; code: string; name: string };
 
 const TASK_STATES = ["todo", "doing", "blocked", "done"];
 
-export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false }: {
+export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false, canManage = false, canReadIncident = false, anchor = null }: {
   project: ProjectDetailData; tasks: Task[]; validations?: ValidationRow[]; workflows?: Wf[]; workflowDefs?: Def[];
   qa?: { canValidate: boolean; canDeploy: boolean; canRunWorkflow: boolean };
   squadMembers?: { id: string; name: string }[]; canManageTalent?: boolean;
+  canManage?: boolean; canReadIncident?: boolean; anchor?: AnchorCase | null;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -83,12 +85,14 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, margin: 0, color: "var(--text)" }}>{project.name}</h1>
           <ProjectStepper status={project.status} />
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {project.status !== "active" && <button onClick={() => setStatus("active")} disabled={busy} style={ghost}><Icon name="play" size={12} fill="currentColor" style={{ verticalAlign: "-1px" }} /> {t("pst.active")}</button>}
-          {project.status !== "completed" && <button onClick={() => setStatus("completed")} disabled={busy} style={ghost}><Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> {t("pst.completed")}</button>}
-          <Link href={`/projects/${project.id}/edit`} style={{ ...ghost, textDecoration: "none" }}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("proj.save")}</Link>
-          <button onClick={remove} disabled={busy} style={cancelBtn}>{t("proj.cancel")}</button>
-        </div>
+        {canManage && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {project.status !== "active" && <button onClick={() => setStatus("active")} disabled={busy} style={ghost}><Icon name="play" size={12} fill="currentColor" style={{ verticalAlign: "-1px" }} /> {t("pst.active")}</button>}
+            {project.status !== "completed" && <button onClick={() => setStatus("completed")} disabled={busy} style={ghost}><Icon name="check" size={13} style={{ verticalAlign: "-2px" }} /> {t("pst.completed")}</button>}
+            <Link href={`/projects/${project.id}/edit`} style={{ ...ghost, textDecoration: "none" }}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("proj.save")}</Link>
+            <button onClick={remove} disabled={busy} style={cancelBtn}>{t("proj.cancel")}</button>
+          </div>
+        )}
       </div>
 
       <QaPanel projectId={project.id} projectName={project.name} qaStatus={project.qa_status} prodAuthorizedAt={project.prod_authorized_at}
@@ -104,8 +108,8 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
               {tasks.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("proj.tasks.empty")}</div>}
               {tasks.map((tk) => (
                 <div key={tk.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line-soft)" }}>
-                  <button onClick={() => cycle(tk.id, tk.status)} title="cambiar estado"
-                    style={{ padding: "3px 9px", borderRadius: "var(--r-pill)", fontSize: 10.5, fontWeight: 600, border: "1px solid var(--line)", cursor: "pointer",
+                  <button onClick={canManage ? () => cycle(tk.id, tk.status) : undefined} disabled={!canManage} title={canManage ? "cambiar estado" : undefined}
+                    style={{ padding: "3px 9px", borderRadius: "var(--r-pill)", fontSize: 10.5, fontWeight: 600, border: "1px solid var(--line)", cursor: canManage ? "pointer" : "default",
                       background: tk.status === "done" ? "var(--st-low-bg)" : "var(--paper)", color: tk.status === "done" ? "var(--st-low-fg)" : "var(--muted)" }}>
                     {t(("tsk." + tk.status) as MessageKey)}
                   </button>
@@ -113,11 +117,13 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder={t("proj.task.title")}
-                style={{ flex: 1, padding: "9px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontSize: 13 }} />
-              <button onClick={add} style={{ padding: "9px 16px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", border: "none", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>{t("proj.task.add")}</button>
-            </div>
+            {canManage && (
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder={t("proj.task.title")}
+                  style={{ flex: 1, padding: "9px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontSize: 13 }} />
+                <button onClick={add} style={{ padding: "9px 16px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", border: "none", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>{t("proj.task.add")}</button>
+              </div>
+            )}
             {taskErr && <p style={{ color: "var(--st-critical-fg)", fontSize: 11, marginTop: 6 }}>{taskErr}</p>}
           </Card>
 
@@ -127,10 +133,40 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
 
           {project.incident && (
             <Card title={t("proj.section.origin")}>
-              <Link href={`/incidents/${project.incident.id}`} style={{ textDecoration: "none" }}>
+              {/* §0: la incidencia es el ANCLA. La mesa conserva el tracking y la comunicacion con el
+                  cliente de extremo a extremo. El Gerente de Evolucion ve el caso en SOLO LECTURA
+                  (no gestiona incidencias); el deep-link solo aparece si tiene incident.read. */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: anchor ? 12 : 0 }}>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)" }}>{project.incident.incident_number}</span>
-                <span style={{ fontSize: 13, color: "var(--text)", marginLeft: 10 }}>{project.incident.title}</span>
-              </Link>
+                <span style={{ fontSize: 13, color: "var(--text)", flex: 1, minWidth: 140 }}>{project.incident.title}</span>
+                {anchor && <StatusPill status={anchor.status} label={t(statusKey(anchor.status))} />}
+                {canReadIncident && <Link href={`/incidents/${project.incident.id}`} style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-2)", textDecoration: "none", whiteSpace: "nowrap" }}>{t("proj.origin.open")} →</Link>}
+              </div>
+
+              {anchor && (
+                <>
+                  <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: 11.5, color: "var(--muted)", marginBottom: anchor.comments.length ? 12 : 0 }}>
+                    {anchor.opened_at && <span>{t("proj.origin.opened")}: <b style={{ color: "var(--text)", fontFamily: "var(--font-mono)" }}>{fmtDate(anchor.opened_at, locale)}</b></span>}
+                    {anchor.resolved_at && <span>{t("proj.origin.resolved")}: <b style={{ color: "var(--text)", fontFamily: "var(--font-mono)" }}>{fmtDate(anchor.resolved_at, locale)}</b></span>}
+                  </div>
+
+                  {anchor.comments.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)", marginBottom: 8 }}>{t("proj.origin.thread")}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 260, overflowY: "auto" }}>
+                        {anchor.comments.map((c) => (
+                          <div key={c.id} style={{ padding: "8px 11px", background: "var(--paper)", border: "1px solid var(--line-soft, var(--line))", borderRadius: 9 }}>
+                            <div style={{ fontSize: 12.5, color: "var(--text)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{c.body}</div>
+                            <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
+                              {c.is_system_generated ? `${t("proj.origin.system")} · ` : ""}{fmtDate(c.created_at, locale)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </Card>
           )}
         </div>
@@ -177,6 +213,13 @@ function Row({ label, value, mono }: { label: string; value?: string | null; mon
 }
 function fmt(v: number, locale: string) {
   return new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(v ?? 0);
+}
+function fmtDate(v: string, locale: string) {
+  return new Date(v).toLocaleDateString(locale === "es" ? "es-CR" : "en-US", { day: "2-digit", month: "short", year: "numeric" });
+}
+function StatusPill({ status, label }: { status: string; label: string }) {
+  const c = statusColors(status);
+  return <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: "var(--r-pill)", background: c.bg, color: c.fg, whiteSpace: "nowrap" }}>{label}</span>;
 }
 const ghost: React.CSSProperties = { padding: "7px 12px", borderRadius: "var(--r-md)", background: "var(--card)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
 // Accion destructiva de-enfatizada: no es un paso del flujo (setea Cancelado, no elimina).

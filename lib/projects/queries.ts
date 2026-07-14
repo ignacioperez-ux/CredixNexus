@@ -89,6 +89,41 @@ export async function getProject(supabase: SupabaseClient, id: string) {
   return data;
 }
 
+// Caso ancla (§0): la incidencia que origino el proyecto de evolucion. El Gerente de Evolucion
+// NO tiene incident.read (no gestiona casos), pero la mesa conserva el hilo y el proyecto debe
+// mostrar el CONTEXTO del caso y la comunicacion con el CLIENTE (comentarios visibles al partner),
+// en SOLO LECTURA. RLS de incident/incident_comment es por tenant, asi que la proyeccion es segura.
+export type AnchorCaseComment = { id: string; body: string; created_at: string; is_system_generated: boolean };
+export type AnchorCase = {
+  incident_number: string; title: string; status: string; priority: string;
+  opened_at: string | null; resolved_at: string | null; comments: AnchorCaseComment[];
+};
+
+export async function getAnchorCaseContext(supabase: SupabaseClient, incidentId: string): Promise<AnchorCase | null> {
+  const { data: inc } = await supabase
+    .from("incident")
+    .select("incident_number, title, status, priority, opened_at, resolved_at")
+    .eq("id", incidentId)
+    .maybeSingle();
+  if (!inc) return null;
+  const { data: comments } = await supabase
+    .from("incident_comment")
+    .select("id, body, created_at, is_system_generated")
+    .eq("incident_id", incidentId)
+    .eq("visibility", "partner")
+    .order("created_at", { ascending: true })
+    .limit(30);
+  return {
+    incident_number: inc.incident_number as string,
+    title: inc.title as string,
+    status: inc.status as string,
+    priority: inc.priority as string,
+    opened_at: (inc.opened_at as string | null) ?? null,
+    resolved_at: (inc.resolved_at as string | null) ?? null,
+    comments: (comments ?? []) as AnchorCaseComment[],
+  };
+}
+
 export type ValidationRow = {
   id: string; name: string; test_type: string; environment: string; result: string;
   evidence_url: string | null; notes: string | null; run_at: string;
