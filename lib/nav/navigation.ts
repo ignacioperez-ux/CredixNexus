@@ -91,6 +91,7 @@ export const MACRO_NAV: NavCategory[] = [
     id: "analitica", label: "nav.macro.analitica", icon: "activity",
     items: [
       { id: "nav.analytics", label: "nav.analytics", path: "/analytics", perm: ["incident.read", "analytics.read"] },
+      { id: "nav.behavior", label: "nav.behavior", path: "/analytics/comportamiento", perm: ["incident.read", "analytics.read"] },
     ],
   },
   {
@@ -146,7 +147,7 @@ export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
     { id: "nav.projects" }, { id: "nav.squads" }, { id: "nav.resources" }, { id: "nav.talent" }, { id: "nav.vendors" },
   ] },
   { id: "ev.gobierno", label: "nav.ev.gobierno", icon: "shield", items: [
-    { id: "nav.analytics" }, { id: "nav.aicenter" }, { id: "nav.rules" }, { id: "nav.workflows" }, { id: "nav.processes" }, { id: "nav.knowledge" },
+    { id: "nav.behavior" }, { id: "nav.analytics" }, { id: "nav.aicenter" }, { id: "nav.rules" }, { id: "nav.workflows" }, { id: "nav.processes" }, { id: "nav.knowledge" },
   ] },
   { id: "ev.casos", label: "nav.ev.casos", icon: "search", items: [
     { id: "nav.majorincidents" }, { id: "nav.problems", readOnly: true }, { id: "nav.changes", readOnly: true },

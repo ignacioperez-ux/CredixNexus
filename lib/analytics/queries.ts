@@ -23,6 +23,38 @@ export async function getOverview(supabase: SupabaseClient): Promise<Overview> {
   return data as Overview;
 }
 
+// ---- Analisis de comportamiento AGREGADO (Fase Evolucion 1.3) --------------------
+// Sirve por RPC incident_behavior_analysis (SECURITY DEFINER + gate analytics.read +
+// scope tenant). NUNCA devuelve casos individuales: solo agregados por dimension.
+export const BEHAVIOR_DIMENSIONS = ["category", "product", "service", "business_unit", "channel", "process", "priority"] as const;
+export type BehaviorDimension = (typeof BEHAVIOR_DIMENSIONS)[number];
+
+export type BehaviorGroup = {
+  key: string; label: string; total: number; open: number; resolved: number; mttr_hours: number;
+  sla_breached: number; transformation_candidates: number; avg_transformation_score: number;
+  financial_impact: number; partners: number; transactions: number; with_problem: number; momentum: number;
+};
+export type BehaviorSignal = {
+  key: string; label: string; total: number; momentum: number; avg_transformation_score: number;
+  transformation_candidates: number; with_problem: number; reason: string;
+};
+export type BehaviorAnalysis = {
+  dimension: BehaviorDimension; window_weeks: number; total_incidents: number; open_incidents: number;
+  groups_total: number; groups: BehaviorGroup[]; trend: { week: string; count: number }[];
+  projection: { method: string; slope: number; next_week: number } | null; signals: BehaviorSignal[];
+};
+
+/** Normaliza una dimension arbitraria (query string) a una permitida. */
+export function normalizeDimension(d: string | undefined): BehaviorDimension {
+  return (BEHAVIOR_DIMENSIONS as readonly string[]).includes(d ?? "") ? (d as BehaviorDimension) : "category";
+}
+
+export async function getBehaviorAnalysis(supabase: SupabaseClient, dimension: BehaviorDimension, weeks: number): Promise<BehaviorAnalysis> {
+  const { data, error } = await supabase.rpc("incident_behavior_analysis", { p_dimension: dimension, p_weeks: weeks });
+  if (error) throw new Error(error.message);
+  return data as BehaviorAnalysis;
+}
+
 export type Csat = { csat_avg: number; csat_responses: number; csat_satisfied_pct: number };
 export type AreaMetric = Csat & { code: string; name: string; open_incidents: number; resolved_30d: number; mttr_hours: number; sla_breached: number; projects_active: number; qa_authorized: number };
 export type SquadMetric = { name: string; members: number; allocation_pct: number; projects: number; qa_passed: number; qa_authorized: number };
