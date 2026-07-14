@@ -13,7 +13,7 @@ import { BackButton } from "@/components/common/back-button";
 import { ArticleTypeBadge, HealthBadge } from "./badges";
 import { FeedbackWidget } from "./feedback-widget";
 
-export function ArticleView({ detail, canManage, canFeedback }: { detail: ArticleDetail; canManage: boolean; canFeedback: boolean }) {
+export function ArticleView({ detail, canManage, canFeedback, showOps = true }: { detail: ArticleDetail; canManage: boolean; canFeedback: boolean; showOps?: boolean }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -31,14 +31,16 @@ export function ArticleView({ detail, canManage, canFeedback }: { detail: Articl
       </div>
       <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--text)" }}>{a.title}</h1>
 
-      {/* Metricas de uso */}
-      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, color: "var(--muted)" }}>
-        <Stat label={t("kb.col.views")} value={a.view_count} />
-        <Stat label={t("kb.kpi.deflections")} value={a.deflection_count} />
-        <Stat label={t("kb.kpi.escalations")} value={a.escalation_count} />
-        <Stat label={t("kb.fb.yes")} value={a.helpful_count} />
-        <Stat label={t("kb.fb.no")} value={a.not_helpful_count} />
-      </div>
+      {/* Metricas de uso (operacion): solo staff/curador; el usuario final no las ve (UX-001) */}
+      {showOps && (
+        <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, color: "var(--muted)" }}>
+          <Stat label={t("kb.col.views")} value={a.view_count} />
+          <Stat label={t("kb.kpi.deflections")} value={a.deflection_count} />
+          <Stat label={t("kb.kpi.escalations")} value={a.escalation_count} />
+          <Stat label={t("kb.fb.yes")} value={a.helpful_count} />
+          <Stat label={t("kb.fb.no")} value={a.not_helpful_count} />
+        </div>
+      )}
 
       {/* Contenido */}
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 22 }}>

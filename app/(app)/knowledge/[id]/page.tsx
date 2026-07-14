@@ -16,7 +16,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
   if (!detail) notFound();
   const canManage = access.isAdmin || access.perms.includes("knowledge.manage");
   const canFeedback = access.isAdmin || access.perms.includes("knowledge.feedback");
+  // Metricas de operacion: solo staff (curador o agente); el usuario final (partner) no las ve.
+  const showOps = canManage || access.perms.includes("incident.read");
   // Registrar vista (telemetria de uso).
   await recordKbEvent(id, "view", "kb");
-  return <ArticleView detail={detail} canManage={canManage} canFeedback={canFeedback} />;
+  return <ArticleView detail={detail} canManage={canManage} canFeedback={canFeedback} showOps={showOps} />;
 }
