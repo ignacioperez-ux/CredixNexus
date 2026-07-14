@@ -19,6 +19,8 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     businessUnitId: project.business_unit_id ?? "",
     estimatedBenefitAmount: Number(project.estimated_benefit_amount ?? 0),
     estimatedCostAmount: Number(project.estimated_cost_amount ?? 0),
+    actualBenefitAmount: project.actual_benefit_amount == null ? null : Number(project.actual_benefit_amount),
+    actualCostAmount: project.actual_cost_amount == null ? null : Number(project.actual_cost_amount),
     businessValue: project.business_value,
     timeCriticality: project.time_criticality,
     riskReduction: project.risk_reduction,

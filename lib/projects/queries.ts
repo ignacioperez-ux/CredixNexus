@@ -39,6 +39,42 @@ export function computeRoi(benefit: number, cost: number): number | null {
   return Math.round(((benefit - cost) / cost) * 100);
 }
 
+// ---- Portafolio (Fase Evolucion 1.4): cockpit estrategico -----------------------
+export type PortfolioRow = {
+  id: string; project_code: string; name: string; status: string; wsjf: number;
+  business_value: number; time_criticality: number; risk_reduction: number; job_size: number;
+  estimated_benefit_amount: number; estimated_cost_amount: number;
+  actual_benefit_amount: number | null; actual_cost_amount: number | null;
+  planned_start: string | null; planned_end: string | null;
+  actual_start: string | null; actual_end: string | null;
+  squad: { id: string; name: string } | null;
+  business_unit: { name: string } | null;
+};
+
+export async function listPortfolio(supabase: SupabaseClient): Promise<PortfolioRow[]> {
+  const { data, error } = await supabase
+    .from("project")
+    .select(`id, project_code, name, status, wsjf, business_value, time_criticality, risk_reduction, job_size,
+      estimated_benefit_amount, estimated_cost_amount, actual_benefit_amount, actual_cost_amount,
+      planned_start, planned_end, actual_start, actual_end,
+      squad:squad_id(id, name), business_unit:business_unit_id(name)`)
+    .order("wsjf", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PortfolioRow[];
+}
+
+/** Capacidad de squads activos (puntos). Demanda = suma de job_size comprometido (portfolio.ts). */
+export type SquadCapacity = { id: string; name: string; capacity_points: number };
+export async function listSquadCapacity(supabase: SupabaseClient): Promise<SquadCapacity[]> {
+  const { data, error } = await supabase
+    .from("squad")
+    .select("id, name, capacity_points")
+    .eq("status", "active")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((s) => ({ id: s.id as string, name: s.name as string, capacity_points: Number(s.capacity_points ?? 0) }));
+}
+
 export async function getProject(supabase: SupabaseClient, id: string) {
   const { data, error } = await supabase
     .from("project")

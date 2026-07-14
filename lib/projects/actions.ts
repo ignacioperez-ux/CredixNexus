@@ -14,6 +14,8 @@ export type ProjectInput = {
   businessUnitId?: string;
   estimatedBenefitAmount?: number;
   estimatedCostAmount?: number;
+  actualBenefitAmount?: number | null;
+  actualCostAmount?: number | null;
   businessValue?: number;
   timeCriticality?: number;
   riskReduction?: number;
@@ -23,14 +25,25 @@ export type ProjectInput = {
 const orNull = (v?: string) => (v && v.length > 0 ? v : null);
 const nonNeg = (n?: number) => (n ?? 0) >= 0;
 
+// Actual: opcional (null = aun no medido); si viene, no negativo.
+const optNonNeg = (n?: number | null) => n == null || (n >= 0 && !Number.isNaN(n));
+
 function validate(i: ProjectInput): string | null {
   return firstError(
     minLength(i.name, 5),
     nonNeg(i.estimatedBenefitAmount) ? null : ErrorCode.FORMAT,
     nonNeg(i.estimatedCostAmount) ? null : ErrorCode.FORMAT,
+    optNonNeg(i.actualBenefitAmount) ? null : ErrorCode.FORMAT,
+    optNonNeg(i.actualCostAmount) ? null : ErrorCode.FORMAT,
     (i.jobSize ?? 1) >= 1 ? null : ErrorCode.FORMAT,
   );
 }
+
+// Actual -> columna: null explicito si no se informa (no lo forzamos a 0, seria "medido = 0").
+const actualCols = (i: ProjectInput) => ({
+  actual_benefit_amount: i.actualBenefitAmount == null ? null : i.actualBenefitAmount,
+  actual_cost_amount: i.actualCostAmount == null ? null : i.actualCostAmount,
+});
 
 function wsjfCols(i: ProjectInput) {
   return {
@@ -83,6 +96,7 @@ export async function updateProject(id: string, input: ProjectInput): Promise<Pr
       business_unit_id: orNull(input.businessUnitId),
       estimated_benefit_amount: input.estimatedBenefitAmount ?? 0,
       estimated_cost_amount: input.estimatedCostAmount ?? 0,
+      ...actualCols(input),
       ...wsjfCols(input),
     })
     .eq("id", id);

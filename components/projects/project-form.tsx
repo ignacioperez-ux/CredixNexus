@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
 import { createProject, updateProject, type ProjectInput } from "@/lib/projects/actions";
+import { computeRoi } from "@/lib/projects/queries";
 import { minLength } from "@/lib/validation";
 
 type Options = { squads: { id: string; name: string }[]; businessUnits: { id: string; name: string }[] };
@@ -21,6 +22,8 @@ export function ProjectForm({ options, mode, projectId, initial }: { options: Op
     businessUnitId: initial?.businessUnitId ?? "",
     estimatedBenefitAmount: initial?.estimatedBenefitAmount ?? 0,
     estimatedCostAmount: initial?.estimatedCostAmount ?? 0,
+    actualBenefitAmount: initial?.actualBenefitAmount ?? null,
+    actualCostAmount: initial?.actualCostAmount ?? null,
     businessValue: initial?.businessValue ?? 5,
     timeCriticality: initial?.timeCriticality ?? 5,
     riskReduction: initial?.riskReduction ?? 5,
@@ -30,8 +33,12 @@ export function ProjectForm({ options, mode, projectId, initial }: { options: Op
   const [formErr, setFormErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof ProjectInput, v: string | number) => setF((s) => ({ ...s, [k]: v }));
+  const setActual = (k: "actualBenefitAmount" | "actualCostAmount", raw: string) =>
+    setF((s) => ({ ...s, [k]: raw.trim() === "" ? null : Number(raw) }));
 
   const wsjf = ((f.businessValue ?? 0) + (f.timeCriticality ?? 0) + (f.riskReduction ?? 0)) / Math.max(1, f.jobSize ?? 1);
+  const roiEst = computeRoi(f.estimatedBenefitAmount ?? 0, f.estimatedCostAmount ?? 0);
+  const roiReal = f.actualBenefitAmount != null && f.actualCostAmount != null ? computeRoi(f.actualBenefitAmount, f.actualCostAmount) : null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,6 +93,26 @@ export function ProjectForm({ options, mode, projectId, initial }: { options: Op
           <Num label={t("proj.wsjf.js")} value={f.jobSize ?? 1} onChange={(v) => set("jobSize", v)} min={1} />
         </div>
       </Card>
+
+      {mode === "edit" && (
+        <Card title={`${t("proj.actuals")}${roiReal != null ? ` · ${t("proj.roi.real")} ${roiReal}%` : ""}`}>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: -8, marginBottom: 14 }}>{t("proj.actuals.hint")}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label={t("proj.field.benefit.real")}>
+              <input type="number" min={0} step="1000" placeholder={t("proj.actuals.pending")} style={{ ...inp(false), fontFamily: "var(--font-mono)" }}
+                value={f.actualBenefitAmount ?? ""} onChange={(e) => setActual("actualBenefitAmount", e.target.value)} />
+            </Field>
+            <Field label={t("proj.field.cost.real")}>
+              <input type="number" min={0} step="1000" placeholder={t("proj.actuals.pending")} style={{ ...inp(false), fontFamily: "var(--font-mono)" }}
+                value={f.actualCostAmount ?? ""} onChange={(e) => setActual("actualCostAmount", e.target.value)} />
+            </Field>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>
+            {t("proj.roi.est")}: <b style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{roiEst != null ? `${roiEst}%` : "—"}</b>
+            {roiReal != null && <> · {t("proj.roi.real")}: <b style={{ fontFamily: "var(--font-mono)", color: roiReal >= (roiEst ?? 0) ? "var(--st-low-fg)" : "var(--st-high-fg)" }}>{roiReal}%</b></>}
+          </div>
+        </Card>
+      )}
 
       {formErr && <div role="alert" style={{ background: "var(--st-critical-bg)", border: "1px solid var(--st-critical)", color: "var(--st-critical-fg)", borderRadius: "var(--r-lg)", padding: "10px 12px", fontSize: 12.5 }}>{formErr}</div>}
 
