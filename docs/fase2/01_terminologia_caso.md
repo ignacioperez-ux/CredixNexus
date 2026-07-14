@@ -18,10 +18,11 @@ se conserva** (término ITIL de crisis; módulo de major incidents).
 "Casos abiertos".
 **Conservado:** `nav.majorincidents` → "Incidentes mayores", `mi.*` → "incidente mayor".
 
-## Nota / pendiente
-- **Idioma inglés no modificado** (el pedido fue en español). Si se desea consistencia bilingüe,
-  actualizar los valores EN "Incident"→"Case" con cuidado (varias **claves** contienen "incident",
-  requiere reemplazo solo en valores).
+## Inglés (aplicado)
+- **EN actualizado a "Case"** (valores únicamente; claves y "major incident" preservados). El
+  reemplazo usó doble guarda: value-only (protege claves con "incident"), lookbehind `(?<!major )`
+  (preserva "major incident" = equivalente EN de "incidente mayor"), y `(?!e)` (protege el español
+  "incidente" residual). Se corrigió el artículo "an case" → "a case" (`chg.intro`).
 - El cambio alcanza también **pantallas de staff/ITSM** (módulo de casos, cambios, workflows,
   proveedores, analítica). Es lo pedido ("en la aplicación"); revisable si se prefiere acotar a las
   superficies del usuario final.
