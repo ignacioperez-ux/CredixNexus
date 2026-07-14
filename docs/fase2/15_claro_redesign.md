@@ -31,6 +31,23 @@
   Por evaluar=amber (estrella).
 - **Header responsivo:** envuelve a ~920px (título línea 1, controles línea 2).
 
+## Extensión a TODA la aplicación (modo Claro)
+El núcleo del patrón ya es **global** por vivir en el bloque `[data-theme="claro"]` (canvas cálido,
+líneas, paleta de estado, radios, sidebar/hero/botón con gradiente, `--accent-soft`). El único gap
+—la **elevación de tarjetas**— se extendió a toda la app con **una sola regla CSS** (sin editar
+componentes):
+
+```css
+[data-theme="claro"] :where([style*="var(--card)"][style*="border-radius"]:not(button)) {
+  box-shadow: var(--sh-e1);
+}
+```
+
+Toda superficie con `var(--card)` + `border-radius` (las tarjetas, que usan estilos inline) recibe
+sombra en reposo. `:where()` deja la especificidad en 0, así el hover de `.cx-lift` y los
+`box-shadow` inline siguen mandando. Solo Claro → Nexus intacto. Resultado: dashboard, casos,
+proyectos, squads, analítica, etc. dejan de verse planos en modo claro.
+
 ## Cómo se preserva Nexus
 Cada token nuevo se define en Claro; en Nexus **no existe** → los componentes lo usan con fallback
 (`var(--acc-x, …)`, `var(--sh-e1, none)`, `var(--cta-grad, …)`) y `--hero-grad` se definió idéntico

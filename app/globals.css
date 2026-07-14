@@ -249,6 +249,14 @@ body {
 .cx-lift { transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
 .cx-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgba(0,0,0,.30); border-color: var(--accent-soft); }
 
+/* Elevacion de tarjeta app-wide en modo Claro (patron docs/fase2/15_claro_redesign.md): toda
+   superficie con var(--card) + border-radius recibe sombra estatica -> adios "cajas sin sombra".
+   :where() => especificidad 0, para que el hover de .cx-lift y los box-shadow inline sigan
+   mandando. SOLO Claro (Nexus no tiene --sh-e1 ni esta regla -> intacto). */
+[data-theme="claro"] :where([style*="var(--card)"][style*="border-radius"]:not(button)) {
+  box-shadow: var(--sh-e1);
+}
+
 /* Empty state ilustrado y util (reemplaza el "Sin X" pelado). */
 .cx-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 9px;
   padding: 46px 20px; text-align: center; color: var(--muted); }
