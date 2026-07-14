@@ -24,7 +24,8 @@ export function PortfolioCockpit({ rows, squads }: { rows: PortfolioRow[]; squad
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+      {/* Encabezado (hero credix.com: degradado calido en Claro, sobrio en Nexus) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "22px 24px" }}>
         <div>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--text)", margin: 0 }}>{t("port.title")}</h1>
           <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0", maxWidth: 720 }}>{t("port.subtitle")}</p>

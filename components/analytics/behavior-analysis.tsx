@@ -27,8 +27,8 @@ export function BehaviorAnalysisView({ data, dimension, weeks }: { data: Behavio
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, opacity: pending ? 0.6 : 1, transition: "opacity .15s" }}>
-      {/* Encabezado */}
-      <div>
+      {/* Encabezado (hero credix.com: degradado calido en Claro, sobrio en Nexus) */}
+      <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "22px 24px" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--text)", margin: 0 }}>{t("beh.title")}</h1>
         <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0", maxWidth: 720 }}>{t("beh.subtitle")}</p>
       </div>

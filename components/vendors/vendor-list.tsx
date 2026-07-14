@@ -35,8 +35,13 @@ export function VendorList({ data, scorecard = [], canManage }: { data: VendorDa
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("vnd.intro")}</div>
+      {/* Encabezado (hero credix.com: degradado calido en Claro, sobrio en Nexus) */}
+      <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "20px 22px" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 21, color: "var(--text)", margin: 0 }}>{t("nav.vendors")}</h1>
+        <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "6px 0 0", maxWidth: 720 }}>{t("vnd.intro")}</p>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", gap: 4, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", padding: 3 }}>
             {(["lista", "scorecard"] as const).map((v) => (
