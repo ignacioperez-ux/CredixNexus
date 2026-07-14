@@ -113,7 +113,7 @@ export function UserKnowledge({ data }: { data: KbData }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "12px 16px", flexWrap: "wrap" }}>
         <Icon name="sparkle" size={16} color="var(--accent-2)" />
         <span style={{ fontSize: 12.5, color: "var(--text)" }}>{t("ukb.ai.prompt")}</span>
-        <Link href="/portal" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-2)", textDecoration: "underline" }}>{t("ukb.ai.cta")} →</Link>
+        <Link href="/portal?report=1" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-2)", textDecoration: "underline" }}>{t("ukb.ai.cta")} →</Link>
       </div>
     </div>
   );

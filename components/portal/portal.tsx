@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { AiReport } from "@/components/ai/ai-report";
@@ -69,6 +69,16 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
   const tooShort = subject.trim().length < MIN_CHARS;
   const estPriority = derivePriority(INTAKE_IMPACT, urgency); // prioridad estimada, explicable (UX-011)
+
+  // La CTA "Reportar caso" (header/KB) llega con ?report=1: enfoca y desplaza al intake para que
+  // el boton haga algo util desde cualquier pantalla (antes solo navegaba a /portal = no-op).
+  const searchParams = useSearchParams();
+  const reportSignal = searchParams.get("report");
+  useEffect(() => {
+    if (reportSignal === null) return;
+    const el = subjectRef.current;
+    if (el) { el.focus(); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  }, [reportSignal]);
 
   function pickCategory(id: string) {
     setCategoryId(id);

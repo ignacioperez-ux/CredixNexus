@@ -51,7 +51,13 @@ export function CaseCsat({ incidentId, existing }: { incidentId: string; existin
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--accent)", borderRadius: "var(--r-xl)", padding: 20 }}>
       <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", color: "var(--text)" }}>{t("case.csat.title")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, marginBottom: 14 }}>{t("case.csat.intro")}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, marginBottom: 8 }}>{t("case.csat.intro")}</div>
+      {/* Leyenda de la escala 1-5 (antes no habia indicacion de que significan los numeros). */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 11, color: "var(--muted)", marginBottom: 12 }}>
+        <span><b style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>1</b> = {t("case.csat.scale.low")}</span>
+        <span style={{ opacity: 0.5 }}>·</span>
+        <span><b style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>5</b> = {t("case.csat.scale.high")}</span>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {DIMS.map((d) => (
           <div key={d.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

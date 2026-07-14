@@ -100,10 +100,10 @@ describe("ROLE_UX / emphasisForRoles", () => {
     it("Gte. Evolucion -> Nuevo proyecto", () => {
       expect(resolvePrimaryAction(["product_owner"], ["project.manage"], false)?.code).toBe("newProject");
     });
-    it("Usuario final -> Crear ticket via portal (sin permiso requerido)", () => {
+    it("Usuario final -> Reportar caso via portal (sin permiso requerido)", () => {
       const a = resolvePrimaryAction(["partner_user"], [], false)!;
       expect(a.code).toBe("reportCase");
-      expect(a.route).toBe("/portal");
+      expect(a.route).toBe("/portal?report=1");
     });
     it("cae a Nuevo ticket si la accion del rol no esta permitida", () => {
       // support_lead sin triage.manage pero con incident.create -> fallback newTicket

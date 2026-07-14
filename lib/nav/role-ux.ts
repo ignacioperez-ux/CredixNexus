@@ -29,7 +29,7 @@ export const PRIMARY_ACTIONS: Record<PrimaryAction, PrimaryActionDef> = {
   takeNext:     { label: "pa.takeNext",     route: "/workspace",     perm: "incident.read",   icon: "inbox" },
   assignTicket: { label: "pa.assign",       route: "/triage",        perm: "triage.manage",   icon: "inbox" },
   openBacklog:  { label: "pa.backlog",      route: "/projects",      perm: "project.read",    icon: "zap" },
-  reportCase:   { label: "pa.report",       route: "/portal",                                 icon: "plus" },
+  reportCase:   { label: "pa.report",       route: "/portal?report=1",                        icon: "plus" },
   evaluate:     { label: "pa.evaluate",     route: "/talent",        perm: "talent.read",     icon: "users" },
   verifyLedger: { label: "pa.verifyLedger", route: "/ledger",        perm: "audit.read",      icon: "shield" },
 };
