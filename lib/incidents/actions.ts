@@ -135,6 +135,7 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
 export async function updateIncident(id: string, input: IncidentInput): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const err = validateInput(input);
   if (err) return { ok: false, error: err };
 
@@ -168,6 +169,7 @@ export async function updateIncident(id: string, input: IncidentInput): Promise<
 export async function softDeleteIncident(id: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const { error } = await ctx.supabase.from("incident").update({ status: "cancelled" }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/incidents");
@@ -181,6 +183,9 @@ export async function addComment(
 ): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  // Comentario de agente (incluye visibilidad interna): solo staff que trabaja casos. El usuario
+  // final comenta por la RPC owner-checked add_my_case_comment, no por aqui.
+  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage", "incident.assign"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const err = required(body);
   if (err) return { ok: false, error: err };
   const { error } = await ctx.supabase.from("incident_comment").insert({
