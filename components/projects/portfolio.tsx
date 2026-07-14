@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import { Icon } from "@/components/ui/icon";
 import { computeRoi, type PortfolioRow, type SquadCapacity } from "@/lib/projects/queries";
 import { portfolioRoi, squadLoads, wsjfParts, isOpenProject, type SquadLoad } from "@/lib/projects/portfolio";
 
@@ -21,6 +23,17 @@ export function PortfolioCockpit({ rows, squads }: { rows: PortfolioRow[]; squad
   const withActuals = rows.filter((r) => r.actual_benefit_amount != null && r.actual_cost_amount != null);
   const roadmap = rows.filter((r) => r.planned_start && r.planned_end);
   const wl = { bv: t("proj.wsjf.bv"), tc: t("proj.wsjf.tc"), rr: t("proj.wsjf.rr"), js: t("proj.wsjf.js") };
+
+  // Proyectos ABIERTOS por squad (para el drill-down de "que atiende cada squad", no solo la carga).
+  const openBySquad = new Map<string, PortfolioRow[]>();
+  for (const r of rows) {
+    if (!r.squad?.id || !isOpenProject(r.status)) continue;
+    const arr = openBySquad.get(r.squad.id) ?? [];
+    arr.push(r);
+    openBySquad.set(r.squad.id, arr);
+  }
+  for (const arr of openBySquad.values()) arr.sort((a, b) => Number(b.wsjf) - Number(a.wsjf));
+  const pst: Record<string, string> = { proposed: t("pst.proposed"), approved: t("pst.approved"), active: t("pst.active"), on_hold: t("pst.on_hold"), completed: t("pst.completed"), cancelled: t("pst.cancelled") };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -55,10 +68,13 @@ export function PortfolioCockpit({ rows, squads }: { rows: PortfolioRow[]; squad
           )}
         </Panel>
 
-        <Panel title={t("port.capacity.title")} hint={t("port.capacity.hint")}>
+        <Panel title={t("port.capacity.title")} hint={t("port.capacity.hint2")}>
           {loads.length === 0 ? <Empty text={t("port.capacity.empty")} /> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-              {loads.map((l) => <CapacityRow key={l.id} l={l} labelProjects={t("port.projects")} labelOver={t("port.capacity.over")} />)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+              {loads.map((l) => (
+                <CapacityRow key={l.id} l={l} projects={openBySquad.get(l.id) ?? []} pst={pst}
+                  labelProjects={t("port.projects")} labelOver={t("port.capacity.over")} emptyLabel={t("port.capacity.noproj")} />
+              ))}
             </div>
           )}
         </Panel>
@@ -163,27 +179,57 @@ function WsjfRow({ r, maxNum, labels }: { r: PortfolioRow; maxNum: number; label
   );
 }
 
-/** Carga por squad: barra demanda/capacidad; sobrecarga en rojo. */
-function CapacityRow({ l, labelProjects, labelOver }: { l: SquadLoad; labelProjects: string; labelOver: string }) {
+/** Carga por squad con DRILL-DOWN: barra demanda/capacidad + lista de proyectos que atiende. */
+function CapacityRow({ l, projects, pst, labelProjects, labelOver, emptyLabel }: {
+  l: SquadLoad; projects: PortfolioRow[]; pst: Record<string, string>; labelProjects: string; labelOver: string; emptyLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
   const pct = l.loadPct ?? 0;
   const barColor = l.over ? "var(--st-critical)" : pct >= 80 ? "var(--st-high)" : "var(--accent)";
+  const hasProjects = l.projects > 0;
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>{l.name}</span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: l.over ? "var(--st-critical-fg)" : "var(--muted)" }}>
-          {l.committed}/{l.capacity} {l.loadPct != null ? `· ${l.loadPct}%` : ""}
-        </span>
-      </div>
-      <div style={{ height: 8, background: "var(--track, var(--paper))", borderRadius: 4, overflow: "hidden" }}>
-        <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", background: barColor, borderRadius: 4 }} />
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3, fontSize: 10.5, color: "var(--muted)" }}>
-        <span>{l.projects} {labelProjects}</span>
-        {l.over && <span style={{ color: "var(--st-critical-fg)", fontWeight: 700 }}>{labelOver}</span>}
-      </div>
+    <div style={{ border: "1px solid var(--line-soft, var(--line))", borderRadius: 10, padding: "10px 12px", background: open ? "var(--paper)" : "transparent" }}>
+      <button onClick={() => hasProjects && setOpen((o) => !o)} disabled={!hasProjects}
+        style={{ width: "100%", background: "transparent", border: "none", padding: 0, cursor: hasProjects ? "pointer" : "default", textAlign: "left" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5, gap: 8 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>
+            {hasProjects && <Icon name={open ? "chevron-down" : "chevron-right"} size={13} color="var(--muted)" />}
+            {l.name}
+          </span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: l.over ? "var(--st-critical-fg)" : "var(--muted)" }}>
+            {l.committed}/{l.capacity} {l.loadPct != null ? `· ${l.loadPct}%` : ""}
+          </span>
+        </div>
+        <div style={{ height: 8, background: "var(--track, var(--paper))", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", background: barColor, borderRadius: 4 }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3, fontSize: 10.5, color: "var(--muted)" }}>
+          <span>{l.projects} {labelProjects}</span>
+          {l.over && <span style={{ color: "var(--st-critical-fg)", fontWeight: 700 }}>{labelOver}</span>}
+        </div>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+          {projects.length === 0 ? <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{emptyLabel}</div> : projects.map((p) => (
+            <Link key={p.id} href={`/projects/${p.id}`} className="cx-row" style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 7, textDecoration: "none" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: projStatusColor(p.status), flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+              <span style={{ fontSize: 10.5, color: "var(--muted)", flexShrink: 0 }}>{pst[p.status] ?? p.status}</span>
+              <span title="tamano" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", flexShrink: 0 }}>{p.job_size}p</span>
+              <span title="WSJF" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 700, color: "var(--accent-2)", width: 30, textAlign: "right", flexShrink: 0 }}>{Number(p.wsjf).toFixed(1)}</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
+}
+function projStatusColor(status: string): string {
+  if (status === "active") return "var(--accent)";
+  if (status === "completed") return "var(--st-low)";
+  if (status === "cancelled") return "var(--muted)";
+  return "var(--st-eval)"; // proposed/approved/on_hold
 }
 
 /** Roadmap (Gantt-lite): ventana planificada por proyecto sobre eje de meses; ejecucion real como linea. */
