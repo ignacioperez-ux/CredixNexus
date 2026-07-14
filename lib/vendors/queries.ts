@@ -41,6 +41,20 @@ export async function listVendors(supabase: SupabaseClient): Promise<VendorData>
   };
 }
 
+// Scorecard de proveedores (Fase Evolucion 1.5): senales agregadas por proveedor via RPC
+// SECURITY DEFINER (gate vendor.read + tenant). Solo agregados, nunca filas individuales.
+export type VendorScorecardRow = {
+  id: string; code: string; name: string; category: string; criticality: string; status: string;
+  contract_end: string | null; criticality_rank: number; days_to_expiry: number | null;
+  systems: number; open_incidents: number; incidents_90d: number; open_alerts: number; open_disputes: number;
+};
+
+export async function getVendorScorecard(supabase: SupabaseClient): Promise<VendorScorecardRow[]> {
+  const { data, error } = await supabase.rpc("vendor_scorecard");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as VendorScorecardRow[];
+}
+
 export async function getVendor(supabase: SupabaseClient, id: string) {
   const { data, error } = await supabase.from("vendor").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);

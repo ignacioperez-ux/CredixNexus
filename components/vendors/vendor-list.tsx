@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import type { VendorData, VendorRow } from "@/lib/vendors/queries";
+import type { VendorData, VendorRow, VendorScorecardRow } from "@/lib/vendors/queries";
 import { CriticalityBadge, VendorStatusBadge } from "./badges";
 import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
-export function VendorList({ data, canManage }: { data: VendorData; canManage: boolean }) {
+export function VendorList({ data, scorecard = [], canManage }: { data: VendorData; scorecard?: VendorScorecardRow[]; canManage: boolean }) {
   const { t } = useI18n();
+  const [view, setView] = useState<"lista" | "scorecard">("lista");
   const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };
   const defs: FilterDef<VendorRow>[] = [
     { key: "cat", label: t("vnd.col.category"), get: (v) => v.category, allLabel: t("inc.filter.allcat"), render: (v) => t(("vnd.cat." + v) as MessageKey) },
@@ -35,7 +37,17 @@ export function VendorList({ data, canManage }: { data: VendorData; canManage: b
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("vnd.intro")}</div>
-        {canManage && <Link href="/vendors/new" style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", textDecoration: "none" }}>+ {t("vnd.new")}</Link>}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 4, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", padding: 3 }}>
+            {(["lista", "scorecard"] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)} aria-pressed={view === v}
+                style={{ padding: "5px 14px", borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: view === v ? "var(--card)" : "transparent", color: view === v ? "var(--text)" : "var(--muted)", boxShadow: view === v ? "var(--sh-e1, none)" : "none" }}>
+                {t(v === "lista" ? "vnd.view.list" : "vnd.view.scorecard")}
+              </button>
+            ))}
+          </div>
+          {canManage && <Link href="/vendors/new" style={{ fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", background: "var(--cta-bg)", color: "var(--cta-fg)", textDecoration: "none" }}>+ {t("vnd.new")}</Link>}
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
@@ -44,29 +56,82 @@ export function VendorList({ data, canManage }: { data: VendorData; canManage: b
         <Kpi label={t("vnd.kpi.expiring")} value={String(data.stats.expiringSoon)} color={data.stats.expiringSoon > 0 ? "var(--st-high-fg)" : undefined} />
       </div>
 
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <FilterBar defs={defs} filters={f} />
-        <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
-      </div>
+      {view === "scorecard" ? (
+        <Scorecard rows={scorecard} t={t} head={head} />
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <FilterBar defs={defs} filters={f} />
+            <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+          </div>
 
+          <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 1.6fr 150px 100px 90px 100px", minWidth: 840 }}>
+                {[t("vnd.col.code"), t("vnd.col.name"), t("vnd.col.category"), t("vnd.col.criticality"), t("vnd.col.systems"), t("vnd.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
+                {f.filtered.length === 0 && <EmptyState text={t("vnd.empty")} icon="database" />}
+                {g.groups
+                  ? g.groups.map((grp) => (
+                      <div key={grp.value} style={{ display: "contents" }}>
+                        <GroupHeader label={grp.label} count={grp.rows.length} />
+                        {grp.rows.map(Line)}
+                      </div>
+                    ))
+                  : f.filtered.map(Line)}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Scorecard de proveedores: senales objetivas por proveedor (dato real del RPC agregado). */
+function Scorecard({ rows, t, head }: { rows: VendorScorecardRow[]; t: (k: MessageKey) => string; head: React.CSSProperties }) {
+  const cols = [
+    { h: t("vnd.col.name"), w: "1.5fr", align: "left" as const },
+    { h: t("vnd.col.criticality"), w: "110px", align: "left" as const },
+    { h: t("vnd.col.systems"), w: "80px", align: "right" as const },
+    { h: t("vsc.openinc"), w: "90px", align: "right" as const },
+    { h: t("vsc.inc90"), w: "80px", align: "right" as const },
+    { h: t("vsc.alerts"), w: "80px", align: "right" as const },
+    { h: t("vsc.disputes"), w: "80px", align: "right" as const },
+    { h: t("vsc.expiry"), w: "110px", align: "right" as const },
+  ];
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 10 }}>{t("vsc.hint")}</div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1.6fr 150px 100px 90px 100px", minWidth: 840 }}>
-            {[t("vnd.col.code"), t("vnd.col.name"), t("vnd.col.category"), t("vnd.col.criticality"), t("vnd.col.systems"), t("vnd.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
-            {f.filtered.length === 0 && <EmptyState text={t("vnd.empty")} icon="database" />}
-            {g.groups
-              ? g.groups.map((grp) => (
-                  <div key={grp.value} style={{ display: "contents" }}>
-                    <GroupHeader label={grp.label} count={grp.rows.length} />
-                    {grp.rows.map(Line)}
-                  </div>
-                ))
-              : f.filtered.map(Line)}
+          <div style={{ display: "grid", gridTemplateColumns: cols.map((c) => c.w).join(" "), minWidth: 820 }}>
+            {cols.map((c) => <div key={c.h} style={{ ...head, textAlign: c.align }}>{c.h}</div>)}
+            {rows.length === 0 && <EmptyState text={t("vnd.empty")} icon="database" />}
+            {rows.map((v) => <ScorecardRow key={v.id} v={v} t={t} />)}
           </div>
         </div>
       </div>
     </div>
   );
+}
+function ScorecardRow({ v, t }: { v: VendorScorecardRow; t: (k: MessageKey) => string }) {
+  const expiryTone = v.days_to_expiry == null ? undefined : v.days_to_expiry <= 0 ? "var(--st-critical-fg)" : v.days_to_expiry <= 90 ? "var(--st-high-fg)" : undefined;
+  const expiryText = v.days_to_expiry == null ? "—" : v.days_to_expiry <= 0 ? t("vsc.expired") : `${v.days_to_expiry} ${t("vsc.days")}`;
+  return (
+    <Link href={`/vendors/${v.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
+      <SCell align="left"><div><div style={{ fontWeight: 600, color: "var(--text)" }}>{v.name}</div><div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{v.code}</div></div></SCell>
+      <SCell align="left"><CriticalityBadge criticality={v.criticality} /></SCell>
+      <SCell align="right" mono>{v.systems}</SCell>
+      <SCell align="right" mono tone={v.open_incidents > 0 ? "var(--st-high-fg)" : undefined}>{v.open_incidents}</SCell>
+      <SCell align="right" mono muted>{v.incidents_90d}</SCell>
+      <SCell align="right" mono tone={v.open_alerts > 0 ? "var(--st-high-fg)" : undefined}>{v.open_alerts}</SCell>
+      <SCell align="right" mono tone={v.open_disputes > 0 ? "var(--st-critical-fg)" : undefined}>{v.open_disputes}</SCell>
+      <SCell align="right" mono tone={expiryTone}>{expiryText}</SCell>
+    </Link>
+  );
+}
+function SCell({ children, align, mono, muted, tone }: { children: React.ReactNode; align: "left" | "right"; mono?: boolean; muted?: boolean; tone?: string }) {
+  return <div style={{ fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", justifyContent: align === "right" ? "flex-end" : "flex-start", fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: tone ?? (muted ? "var(--muted)" : "var(--text)") }}>{children}</div>;
 }
 
 const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)" };
