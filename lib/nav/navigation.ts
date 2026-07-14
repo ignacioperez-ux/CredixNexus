@@ -122,7 +122,10 @@ export function categoryOfPath(pathname: string): string | null {
 // Accesos rapidos del Command Menu: acciones de creacion sobre rutas /new existentes.
 export type QuickAction = { id: string; label: MessageKey; path: string; perm?: string | string[] };
 export const QUICK_ACTIONS: QuickAction[] = [
-  { id: "qa.newIncident", label: "cmd.action.newIncident", path: "/incidents/new", perm: "incident.create" },
+  // La visibilidad espeja el guard de la RUTA destino (/incidents -> incident.read), no solo la
+  // capacidad de crear. El form /incidents/new es de staff; el usuario final (incident.create sin
+  // incident.read) reporta por /portal. Evita ofrecer un atajo que caeria en /unauthorized (UX-005).
+  { id: "qa.newIncident", label: "cmd.action.newIncident", path: "/incidents/new", perm: "incident.read" },
   { id: "qa.newProject", label: "cmd.action.newProject", path: "/projects/new", perm: "project.manage" },
   { id: "qa.newChange", label: "cmd.action.newChange", path: "/changes/new", perm: "change.manage" },
   { id: "qa.newProblem", label: "cmd.action.newProblem", path: "/problems/new", perm: "problem.manage" },
