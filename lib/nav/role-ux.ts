@@ -51,7 +51,8 @@ export const ROLE_UX: Record<string, RoleUx> = {
   // Operador -> Work Queue
   support_agent: { emphasis: ["inicio", "tickets", "conocimiento"], home: "/workspace", primaryAction: "takeNext" },
   // Gte. Evolucion/TI -> Transformation Hub (gestiona mejoras y proyectos)
-  product_owner: { emphasis: ["evolucion", "conocimiento", "analitica"], home: "/dashboard", primaryAction: "newProject" },
+  // Gerente de Evolucion: home en Proyectos (portafolio); ya no ve el dashboard operativo (segregacion 1.1).
+  product_owner: { emphasis: ["evolucion", "conocimiento", "analitica"], home: "/projects", primaryAction: "newProject" },
   // Squad -> Delivery Hub
   squad_member: { emphasis: ["evolucion", "conocimiento"], home: "/projects", primaryAction: "openBacklog" },
   // Usuario final -> Autoservicio simple

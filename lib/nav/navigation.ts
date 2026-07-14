@@ -81,7 +81,7 @@ export const MACRO_NAV: NavCategory[] = [
     id: "conocimiento", label: "nav.macro.conocimiento", icon: "sparkle",
     items: [
       { id: "nav.knowledge", label: "nav.knowledge", path: "/knowledge", perm: "knowledge.read" },
-      { id: "nav.aicenter", label: "nav.aicenter", path: "/ai-center", perm: "incident.read" },
+      { id: "nav.aicenter", label: "nav.aicenter", path: "/ai-center", perm: ["incident.read", "ai.read"] },
       { id: "nav.rules", label: "nav.rules", path: "/rules", perm: "rule.read" },
       { id: "nav.workflows", label: "nav.workflows", path: "/workflows", perm: "workflow.read" },
     ],
@@ -89,7 +89,7 @@ export const MACRO_NAV: NavCategory[] = [
   {
     id: "analitica", label: "nav.macro.analitica", icon: "activity",
     items: [
-      { id: "nav.analytics", label: "nav.analytics", path: "/analytics", perm: "incident.read" },
+      { id: "nav.analytics", label: "nav.analytics", path: "/analytics", perm: ["incident.read", "analytics.read"] },
     ],
   },
   {

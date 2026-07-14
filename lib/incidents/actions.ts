@@ -218,7 +218,9 @@ export async function changeStatus(incidentId: string, status: string): Promise<
 export async function sendToEvolution(incidentId: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
-  if (!(await anyPerm(["incident.update", "problem.manage", "project.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Gobierno de la derivacion (PE-2): SOLO Operaciones deriva. Antes bastaba problem.manage/
+  // project.manage (que tiene Evolucion) -> permitia auto-derivacion. Ahora exige permisos de mesa.
+  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const { error } = await ctx.supabase
     .from("incident")
     .update({
