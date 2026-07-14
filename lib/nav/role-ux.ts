@@ -23,7 +23,7 @@ export type PrimaryAction =
 // Registro de la accion primaria: etiqueta i18n, destino real, permiso e icono lucide.
 export type PrimaryActionDef = { label: MessageKey; route: string; perm?: string; icon: string };
 export const PRIMARY_ACTIONS: Record<PrimaryAction, PrimaryActionDef> = {
-  newTicket:    { label: "pa.newTicket",    route: "/incidents/new", perm: "incident.create", icon: "plus" },
+  newTicket:    { label: "pa.newTicket",    route: "/incidents/new", perm: "incident.read", icon: "plus" },
   newProject:   { label: "pa.newProject",   route: "/projects/new",  perm: "project.manage",  icon: "plus" },
   newChange:    { label: "pa.newChange",    route: "/changes/new",   perm: "change.manage",   icon: "plus" },
   takeNext:     { label: "pa.takeNext",     route: "/workspace",     perm: "incident.read",   icon: "inbox" },
@@ -55,7 +55,9 @@ export const ROLE_UX: Record<string, RoleUx> = {
   // Squad -> Delivery Hub
   squad_member: { emphasis: ["evolucion", "conocimiento"], home: "/projects", primaryAction: "openBacklog" },
   // Usuario final -> Autoservicio simple
-  partner_user: { emphasis: ["tickets", "conocimiento"], home: "/portal", primaryAction: "reportCase" },
+  // Usuario final: sin CTA en el header (el intake ya vive en /portal). Sin primaryAction, el
+  // fallback newTicket exige incident.read (que no tiene) -> resolvePrimaryAction devuelve null.
+  partner_user: { emphasis: ["tickets", "conocimiento"], home: "/portal" },
 
   // Roles adyacentes (heredan de la persona mas cercana)
   business_owner: { emphasis: ["operaciones", "analitica"], home: "/analytics" },

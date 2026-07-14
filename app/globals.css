@@ -136,8 +136,8 @@
 [data-theme="claro"] {
   --bg: #FFFFFF;            /* fondo de app: blanco puro */
   --card: #FFFFFF;          /* tarjetas: blancas */
-  --line: #3A3A3A;          /* borde de cajas casi negro, claramente visible (pedido del usuario) */
-  --line-soft: #C4C4C4;     /* separadores internos (filas/divisores) visibles pero suaves */
+  --line: #B0B0B0;          /* borde de cajas gris medio: visible pero suave (no casi negro) */
+  --line-soft: #DADADA;     /* separadores internos (filas/divisores) suaves */
   --text: #4A4A4A;          /* titulos y texto principal: gris carbon, nunca #000 */
   --muted: #6B6B6B;         /* texto secundario / cuerpo */
   --paper: #F6F6F6;         /* bandas de seccion / zonas alternas gris muy claro */

@@ -100,14 +100,13 @@ describe("ROLE_UX / emphasisForRoles", () => {
     it("Gte. Evolucion -> Nuevo proyecto", () => {
       expect(resolvePrimaryAction(["product_owner"], ["project.manage"], false)?.code).toBe("newProject");
     });
-    it("Usuario final -> Reportar caso via portal (sin permiso requerido)", () => {
-      const a = resolvePrimaryAction(["partner_user"], [], false)!;
-      expect(a.code).toBe("reportCase");
-      expect(a.route).toBe("/portal?report=1");
+    it("Usuario final -> sin CTA en el header (el intake vive en /portal)", () => {
+      // partner_user no tiene primaryAction y el fallback newTicket exige incident.read (que no tiene).
+      expect(resolvePrimaryAction(["partner_user"], [], false)).toBeNull();
     });
-    it("cae a Nuevo ticket si la accion del rol no esta permitida", () => {
-      // support_lead sin triage.manage pero con incident.create -> fallback newTicket
-      expect(resolvePrimaryAction(["support_lead"], ["incident.create"], false)?.code).toBe("newTicket");
+    it("cae a Nuevo ticket si la accion del rol no esta permitida pero puede ver /incidents", () => {
+      // support_lead sin triage.manage pero con incident.read -> fallback newTicket (ruta accesible)
+      expect(resolvePrimaryAction(["support_lead"], ["incident.read"], false)?.code).toBe("newTicket");
     });
     it("sin ninguna accion permitida -> null (no hay CTA)", () => {
       expect(resolvePrimaryAction(["rol_x"], [], false)).toBeNull();
