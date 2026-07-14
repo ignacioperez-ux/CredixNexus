@@ -51,7 +51,7 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
       <Link href="/portal" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-2)", textDecoration: "none" }}>← {t("case.back")}</Link>
 
       {/* Cabecera: anillo SLA + numero + estado + titulo */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <SlaRing openedAt={detail.opened_at} dueAt={detail.sla_resolution_due_at} resolvedAt={detail.resolved_at} status={detail.status} size={54} />
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>

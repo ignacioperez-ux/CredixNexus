@@ -8,6 +8,14 @@ import type { KbData, ArticleRow } from "@/lib/knowledge/queries";
 import { Icon } from "@/components/ui/icon";
 import { ArticleTypeBadge } from "./badges";
 
+// Familia de acento por nombre de categoria KB (tinte Claro; fallback en Nexus).
+const KB_FAMILY: [RegExp, string][] = [
+  [/segur|acces/i, "indigo"], [/concil|dato/i, "cyan"], [/pago|onboard|origin/i, "emerald"],
+  [/aplica|app|duplic/i, "amber"], [/disput|reclam/i, "violet"], [/fraud|riesg|cargo/i, "rose"],
+  [/api|proces/i, "teal"], [/infra/i, "slate"],
+];
+const kbFam = (name: string) => KB_FAMILY.find(([re]) => re.test(name))?.[1] ?? "slate";
+
 // Vista de descubrimiento de conocimiento para el USUARIO final (KM real, dirección del
 // arquitecto). Estructura amplia y simple por categoria/tipo reales (cero taxonomia inventada);
 // sin metricas de operacion (views/deflection/health) que solo importan al curador (UX-001).
@@ -43,7 +51,7 @@ export function UserKnowledge({ data }: { data: KbData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
       {/* Hero + buscador */}
-      <div style={{ background: "linear-gradient(125deg, var(--accent-soft), transparent 62%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "24px 26px" }}>
+      <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "24px 26px" }}>
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-6)", color: "var(--text)" }}>{t("ukb.title")}</div>
         <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4, marginBottom: 16 }}>{t("ukb.subtitle")}</div>
         <div style={{ position: "relative", maxWidth: 520 }}>
@@ -68,16 +76,19 @@ export function UserKnowledge({ data }: { data: KbData }) {
             <section>
               <SectionTitle>{t("ukb.categories")}</SectionTitle>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-                {categories.map(([c, n]) => (
+                {categories.map(([c, n]) => {
+                  const fam = kbFam(c);
+                  return (
                   <button key={c} onClick={() => setCat(c)} className="cx-lift"
-                    style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: "var(--r-lg)", background: "var(--card)", border: "1px solid var(--line)", cursor: "pointer" }}>
-                    <span style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)" }}><Icon name="folder" size={18} /></span>
+                    style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: "var(--r-lg)", background: `var(--acc-${fam}-bg, var(--card))`, border: `1px solid var(--acc-${fam}-border, var(--line))`, boxShadow: "var(--sh-e1, none)", cursor: "pointer" }}>
+                    <span style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--surface, var(--accent-soft))", color: `var(--acc-${fam}-ink, var(--accent-2))` }}><Icon name="folder" size={18} /></span>
                     <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                       <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c}</span>
                       <span style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{n} {t("ukb.items")}</span>
                     </span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
@@ -122,7 +133,7 @@ export function UserKnowledge({ data }: { data: KbData }) {
 function ArticleRowCard({ a }: { a: ArticleRow }) {
   return (
     <Link href={`/knowledge/${a.id}`} className="cx-lift" style={{ textDecoration: "none" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 15px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 15px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", boxShadow: "var(--sh-e1, none)" }}>
         <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)" }}><Icon name="folder" size={15} /></span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>

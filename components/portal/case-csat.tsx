@@ -49,7 +49,7 @@ export function CaseCsat({ incidentId, existing }: { incidentId: string; existin
   }
 
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--accent)", borderRadius: "var(--r-xl)", padding: 20 }}>
+    <div style={{ background: "var(--card)", border: "1px solid var(--accent)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 20 }}>
       <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", color: "var(--text)" }}>{t("case.csat.title")}</div>
       <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, marginBottom: 8 }}>{t("case.csat.intro")}</div>
       {/* Leyenda de la escala 1-5 (antes no habia indicacion de que significan los numeros). */}

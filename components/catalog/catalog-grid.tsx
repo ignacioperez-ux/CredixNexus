@@ -48,7 +48,7 @@ export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRe
             {list.map((item) => {
               const open = openId === item.id;
               return (
-                <div key={item.id} className={open ? undefined : "cx-lift"} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-xl)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div key={item.id} className={open ? undefined : "cx-lift"} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, color: "var(--text)" }}>{item.name}</span>
                     <span title={`${t("cat.sla")} ${item.sla_hours}h`} style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: "var(--accent-2)", background: "var(--accent-soft)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{t("cat.sla")} {item.sla_hours}h</span>

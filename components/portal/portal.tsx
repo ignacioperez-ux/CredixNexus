@@ -26,6 +26,18 @@ const ATTENTION = ["waiting", "reopened"]; // esperan respuesta del usuario
 // Orden canonico de estados para el donut/leyenda (espeja el enum incident.status).
 const STATUS_ORDER = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution", "resolved", "closed", "cancelled"];
 
+// Familia de acento por categoria (tinte del tema Claro; en Nexus usa fallback a --card/--line).
+const CAT_FAMILY: Record<string, string> = {
+  ACCESS: "indigo", SECURITY: "indigo",
+  DATA_QUALITY: "cyan", RECONCILIATION: "blue",
+  PAYMENTS: "emerald", ONBOARDING: "emerald", PAYMENT_NOT_APPLIED: "emerald",
+  APPLICATION: "amber", DUPLICATE_CHARGE: "amber",
+  DISPUTE: "violet", CUSTOMER_COMPLAINT: "violet",
+  FRAUD_SUSPICION: "rose", OPERATIONAL_RISK: "rose", UNRECOGNIZED_CHARGE: "rose",
+  API_FAILURE: "teal", INFRASTRUCTURE: "slate",
+};
+const catFam = (code: string) => CAT_FAMILY[code] ?? "slate";
+
 /** Urgencia de ordenamiento: abiertos SIEMPRE antes que resueltos; dentro de cada grupo,
  *  SLA mas proximo arriba y los sin-SLA al final del grupo. Magnitudes: due real ~1.7e12 ms;
  *  sentinel sin-SLA 1e14 (tras cualquier due real); bucket resuelto 1e16 (domina todo). */
@@ -116,16 +128,16 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
   const field: React.CSSProperties = { fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%" };
   const lbl: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "var(--text)", marginBottom: 5, display: "block" };
-  const cardBox: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)" };
+  const cardBox: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)" };
   const sectionTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", color: "var(--text)" };
   const apps = applications;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
       {/* Hero de bienvenida */}
-      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(125deg, var(--accent-soft), transparent 62%)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "22px 24px" }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "22px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, flexShrink: 0 }}>{(firstName[0] ?? "U").toUpperCase()}</div>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--cta-grad, var(--accent))", boxShadow: "var(--sh-red, none)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, flexShrink: 0 }}>{(firstName[0] ?? "U").toUpperCase()}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px", color: "var(--accent-2)", marginBottom: 3 }}>{t("portal.hero.tag")}</div>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-6)", color: "var(--text)", lineHeight: "var(--lh-tight)" }}>
@@ -152,10 +164,10 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
             <StatusDonut slices={slices} total={myCases.length} labelOf={(s) => t(statusKey(s))} />
           </div>
           <div style={{ display: "flex", gap: "var(--sp-3)", flexWrap: "wrap" }}>
-            <StatTile label={t("portal.summary.inprogress")} value={openCount} />
-            <StatTile label={t("portal.summary.resolved")} value={resolvedCount} tone={resolvedCount > 0 ? "var(--st-low-fg)" : undefined} />
-            <StatTile label={t("portal.summary.attention")} value={attentionCount} tone={attentionCount > 0 ? "var(--st-high-fg)" : undefined} icon={attentionCount > 0 ? "alert" : undefined} />
-            <StatTile label={t("portal.summary.toeval")} value={toEvalCount} tone={toEvalCount > 0 ? "var(--st-high-fg)" : undefined} icon={toEvalCount > 0 ? "star" : undefined} />
+            <StatTile label={t("portal.summary.inprogress")} value={openCount} fam="blue" />
+            <StatTile label={t("portal.summary.resolved")} value={resolvedCount} fam="emerald" />
+            <StatTile label={t("portal.summary.attention")} value={attentionCount} fam="slate" icon={attentionCount > 0 ? "alert" : undefined} />
+            <StatTile label={t("portal.summary.toeval")} value={toEvalCount} fam="amber" icon={toEvalCount > 0 ? "star" : undefined} />
           </div>
         </div>
       )}
@@ -170,11 +182,12 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(158px, 1fr))", gap: 10 }}>
             {categories.map((c) => {
               const sel = categoryId === c.id;
+              const fam = catFam(c.code);
               return (
                 <button key={c.id} type="button" onClick={() => pickCategory(c.id)} className="cx-lift"
                   style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "11px 12px", borderRadius: "var(--r-lg)", cursor: "pointer",
-                    background: sel ? "var(--accent-soft)" : "var(--card)", border: sel ? "1px solid var(--accent)" : "1px solid var(--line)" }}>
-                  <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{catLabel(c).trim()[0]?.toUpperCase() ?? "?"}</span>
+                    background: sel ? "var(--accent-soft)" : `var(--acc-${fam}-bg, var(--card))`, border: sel ? "1px solid var(--accent)" : `1px solid var(--acc-${fam}-border, var(--line))` }}>
+                  <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--surface, var(--accent-soft))", color: sel ? "var(--accent-2)" : `var(--acc-${fam}-ink, var(--accent-2))`, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{catLabel(c).trim()[0]?.toUpperCase() ?? "?"}</span>
                   <span style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 1 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{catLabel(c)}</span>
                     <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", color: sel ? "var(--accent-2)" : "var(--muted)" }}>{sel ? t("portal.cat.picked") : c.code}</span>
@@ -337,13 +350,17 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   );
 }
 
-function StatTile({ label, value, tone, icon }: { label: string; value: number; tone?: string; icon?: string }) {
+function StatTile({ label, value, fam, icon }: { label: string; value: number; fam?: string; icon?: string }) {
+  // Tinte por metrica en Claro (fam -> --acc-*); en Nexus cae a --paper/--line/--text.
+  const bg = fam ? `var(--acc-${fam}-bg, var(--paper))` : "var(--paper)";
+  const border = fam ? `var(--acc-${fam}-border, var(--line))` : "var(--line)";
+  const ink = fam ? `var(--acc-${fam}-ink, var(--text))` : "var(--text)";
   return (
-    <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "12px 16px", minWidth: 108 }}>
+    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: "var(--r-lg)", padding: "12px 16px", minWidth: 108 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>
-        {icon && <Icon name={icon} size={12} color={tone ?? "var(--muted)"} />}{label}
+        {icon && <Icon name={icon} size={12} color={ink} />}{label}
       </div>
-      <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "var(--fs-hero)", letterSpacing: "-1px", color: tone ?? "var(--text)" }}>{value}</div>
+      <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "var(--fs-hero)", letterSpacing: "-1px", color: ink }}>{value}</div>
     </div>
   );
 }

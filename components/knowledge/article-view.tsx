@@ -43,7 +43,7 @@ export function ArticleView({ detail, canManage, canFeedback, showOps = true }: 
       )}
 
       {/* Contenido */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 22 }}>
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 22 }}>
         {a.content ? <AiReport text={a.content} framed={false} /> : <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("kb.nocontent")}</div>}
         {a.tags.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>

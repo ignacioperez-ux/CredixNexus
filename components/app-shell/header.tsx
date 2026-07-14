@@ -59,17 +59,19 @@ export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: st
   return (
     <header
       style={{
-        height: 66,
+        minHeight: 66,
         flexShrink: 0,
         background: "var(--card)",
         borderBottom: "1px solid var(--line)",
         display: "flex",
         alignItems: "center",
         gap: 16,
-        padding: "0 26px",
+        rowGap: 10,
+        flexWrap: "wrap",       /* a ~920px envuelve: titulo en una linea, controles a la segunda */
+        padding: "10px 26px",
       }}
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 240 }}>
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {t(meta.title)}
         </div>
