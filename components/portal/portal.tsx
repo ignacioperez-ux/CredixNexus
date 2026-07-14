@@ -289,9 +289,10 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
                   <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
                 </div>
               );
+              // El usuario final abre SU detalle propio (P2, /portal/cases); el agente, la vista de incidente.
               return canViewIncidents
                 ? <Link key={c.id} href={`/incidents/${c.id}`} style={{ textDecoration: "none" }}>{row}</Link>
-                : <div key={c.id}>{row}</div>;
+                : <Link key={c.id} href={`/portal/cases/${c.id}`} style={{ textDecoration: "none" }}>{row}</Link>;
             })}
           </div>
         )}
