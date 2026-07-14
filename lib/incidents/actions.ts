@@ -85,6 +85,12 @@ const orNull = (v?: string) => (v && v.length > 0 ? v : null);
 export async function createIncident(input: IncidentInput): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  // Defense-in-depth (antes solo dependia de RLS + tenant): solo quien trabaja casos puede crearlos.
+  // Set inclusivo para no degradar roles actuales (R1): portal/partner (incident.create), agentes y
+  // leads (update/resolve/triage). Bloquea a usuarios autenticados sin permisos de caso.
+  if (!(await anyPerm(["incident.create", "incident.update", "incident.resolve", "triage.manage"]))) {
+    return { ok: false, error: ErrorCode.PERMISSION };
+  }
 
   const err = validateInput(input);
   if (err) return { ok: false, error: err };
