@@ -121,8 +121,19 @@ export async function changeProjectStatus(id: string, status: string): Promise<P
   const patch: Record<string, unknown> = { status };
   if (status === "active") patch.actual_start = new Date().toISOString().slice(0, 10);
   if (status === "completed") patch.actual_end = new Date().toISOString().slice(0, 10);
-  const { error } = await ctx.supabase.from("project").update(patch).eq("id", id);
+  const { data: proj, error } = await ctx.supabase.from("project").update(patch).eq("id", id).select("name, created_from_incident_id").single();
   if (error) return { ok: false, error: error.message };
+  // Campanita v2: al COMPLETAR una evolucion, avisa a Operaciones y al RC que cierra el hilo (§0).
+  if (status === "completed") {
+    const link = proj?.created_from_incident_id ? `/incidents/${proj.created_from_incident_id}` : `/projects/${id}`;
+    const body = `El proyecto de evolucion "${proj?.name ?? ""}" fue completado.`;
+    for (const role of ["support_lead", "responsable_comercial"]) {
+      await ctx.supabase.rpc("notify_role", {
+        p_role_code: role, p_type: "evolution_completed", p_title: "Evolucion completada",
+        p_body: body, p_entity_type: "project", p_entity_id: id, p_link: link, p_severity: "success",
+      });
+    }
+  }
   revalidatePath(`/projects/${id}`);
   revalidatePath("/projects");
   return { ok: true, id };

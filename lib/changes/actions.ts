@@ -85,7 +85,7 @@ export async function updateChange(id: string, input: ChangeInput): Promise<Chan
 export async function changeStatus(id: string, next: string): Promise<ChangeResult> {
   const { ctx, err } = await guard("change.manage");
   if (!ctx) return { ok: false, error: err! };
-  const { data: cur } = await ctx.supabase.from("change_request").select("status").eq("id", id).maybeSingle();
+  const { data: cur } = await ctx.supabase.from("change_request").select("status, change_number, title").eq("id", id).maybeSingle();
   if (!cur) return { ok: false, error: "not_found" };
   if (!canTransition(cur.status as string, next)) return { ok: false, error: ErrorCode.FORMAT };
 
@@ -95,6 +95,14 @@ export async function changeStatus(id: string, next: string): Promise<ChangeResu
   if (next === "review" || next === "closed") patch.actual_end = now;
   const { error } = await ctx.supabase.from("change_request").update(patch).eq("id", id);
   if (error) return { ok: false, error: error.message };
+  // Campanita v2: al entrar a CAB, avisa a quien preside el CAB (change_manager).
+  if (next === "pending_cab") {
+    await ctx.supabase.rpc("notify_role", {
+      p_role_code: "change_manager", p_type: "change_pending_cab", p_title: "Cambio pendiente de CAB",
+      p_body: `${cur.change_number ?? ""} — ${cur.title ?? ""} requiere decision del CAB.`,
+      p_entity_type: "change_request", p_entity_id: id, p_link: `/changes/${id}`, p_severity: "warning",
+    });
+  }
   revalidatePath(`/changes/${id}`);
   revalidatePath("/changes");
   return { ok: true, id };

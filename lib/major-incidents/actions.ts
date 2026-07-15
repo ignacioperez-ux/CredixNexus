@@ -49,6 +49,15 @@ export async function declareMajorIncident(input: { incidentId: string; title: s
     tenant_id: ctx.tenantId, mi_id: data.id, update_type: "status",
     body: "Incidente mayor declarado. War-room abierto.", posted_by: ctx.accountId, created_by: ctx.accountId,
   });
+  // Campanita v2: incidente mayor declarado -> ambas areas (Operaciones y Evolucion).
+  const miLink = `/major-incidents/${data.id}`;
+  const miBody = `${input.severity.toUpperCase()} — ${input.title.trim()}`;
+  for (const role of ["support_lead", "product_owner"]) {
+    await ctx.supabase.rpc("notify_role", {
+      p_role_code: role, p_type: "major_incident_declared", p_title: "Incidente mayor declarado",
+      p_body: miBody, p_entity_type: "major_incident", p_entity_id: data.id, p_link: miLink, p_severity: "critical",
+    });
+  }
   revalidatePath("/major-incidents");
   revalidatePath(`/incidents/${input.incidentId}`);
   return { ok: true, id: data.id as string };
