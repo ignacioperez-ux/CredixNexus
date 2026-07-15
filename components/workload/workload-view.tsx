@@ -53,9 +53,12 @@ export function WorkloadView({ data }: { data: Workload }) {
               const over = util > 1;
               return (
                 <div key={s.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: "var(--text)" }}>{s.name}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", color: over ? "var(--st-critical)" : "var(--muted)" }}>{s.allocatedPoints}/{s.capacity_points}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4, gap: 8 }}>
+                    <span style={{ color: "var(--text)", display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
+                      {s.is_transversal && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--st-info)", background: "var(--st-info-bg)", padding: "1px 6px", borderRadius: "var(--r-pill)" }}>{t("sq.transversal")}</span>}
+                    </span>
+                    <span style={{ fontFamily: "var(--font-mono)", color: over ? "var(--st-critical)" : "var(--muted)", flexShrink: 0 }}>{s.allocatedPoints}/{s.capacity_points}</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 20, background: "var(--track)", overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(100, util * 100)}%`, height: "100%", borderRadius: 20, background: over ? "var(--st-critical)" : "var(--accent-2)" }} />
@@ -88,9 +91,10 @@ function CrossTable({ members }: { members: MemberLoad[] }) {
   const mono: React.CSSProperties = { ...cell, fontFamily: "var(--font-mono)", textAlign: "right" };
   return (
     <div style={{ overflowX: "auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 90px 90px 90px 100px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.3fr 90px 90px 90px 100px", minWidth: 820 }}>
         <div style={head}>{t("wl.member")}</div>
         <div style={head}>{t("wl.discipline")}</div>
+        <div style={head}>{t("wl.squad")}</div>
         <div style={{ ...head, textAlign: "right" }}>{t("wl.openinc")}</div>
         <div style={{ ...head, textAlign: "right" }}>{t("wl.taskpoints")}</div>
         <div style={{ ...head, textAlign: "right" }}>{t("wl.capacity")}</div>
@@ -102,6 +106,14 @@ function CrossTable({ members }: { members: MemberLoad[] }) {
             <div key={m.id} style={{ display: "contents" }}>
               <div style={{ ...cell, color: "var(--text)", fontWeight: 600 }}>{m.name}</div>
               <div style={{ ...cell, color: "var(--muted)" }}>{m.discipline ?? "—"}</div>
+              <div style={{ ...cell, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+                {m.squads.length === 0 ? <span style={{ color: "var(--muted)" }}>—</span> : m.squads.map((s) => (
+                  <span key={s.name} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--text)" }}>
+                    {s.name}
+                    {s.is_transversal && <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--st-info)", background: "var(--st-info-bg)", padding: "1px 6px", borderRadius: "var(--r-pill)" }}>{t("sq.transversal")}</span>}
+                  </span>
+                ))}
+              </div>
               <div style={mono}>{m.openIncidents}</div>
               <div style={mono}>{m.taskPoints}</div>
               <div style={mono}>{m.capacity_points}</div>
