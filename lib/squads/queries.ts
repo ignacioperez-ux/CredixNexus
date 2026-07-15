@@ -61,7 +61,9 @@ export async function getSquadLeads(supabase: SupabaseClient, squad: Record<stri
 }
 
 // Iniciativas que atiende el squad (backlog): via project_squad (lead + contribuyente).
-export type SquadInitiative = { id: string; name: string; status: string; wsjf: number; initiative_type: string; job_size: number; role: string };
+// `blocked` = tiene algun riesgo abierto de tipo blocker o severidad critica (dato ya existente
+// en project_risk; misma nocion que la salud del portafolio en la Torre).
+export type SquadInitiative = { id: string; name: string; status: string; wsjf: number; initiative_type: string; job_size: number; role: string; blocked: boolean };
 export async function getSquadInitiatives(supabase: SupabaseClient, squadId: string): Promise<SquadInitiative[]> {
   const { data, error } = await supabase
     .from("project_squad")
@@ -69,10 +71,19 @@ export async function getSquadInitiatives(supabase: SupabaseClient, squadId: str
     .eq("squad_id", squadId)
     .neq("status", "deleted");
   if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as { role: string; project: { id: string; name: string; status: string; wsjf: number; initiative_type: string; job_size: number } | null }[])
+  const rows = ((data ?? []) as unknown as { role: string; project: { id: string; name: string; status: string; wsjf: number; initiative_type: string; job_size: number } | null }[])
     .filter((r) => r.project)
-    .map((r) => ({ ...r.project!, role: r.role }))
-    .sort((a, b) => Number(b.wsjf) - Number(a.wsjf));
+    .map((r) => ({ ...r.project!, role: r.role }));
+
+  const ids = Array.from(new Set(rows.map((r) => r.id)));
+  const blocked = new Set<string>();
+  if (ids.length) {
+    const { data: risks } = await supabase.from("project_risk").select("project_id, kind, severity, status").in("project_id", ids).neq("status", "resolved");
+    for (const rk of ((risks ?? []) as { project_id: string; kind: string; severity: string; status: string }[])) {
+      if (rk.kind === "blocker" || rk.severity === "critical") blocked.add(rk.project_id);
+    }
+  }
+  return rows.map((r) => ({ ...r, blocked: blocked.has(r.id) })).sort((a, b) => Number(b.wsjf) - Number(a.wsjf));
 }
 
 export type RosterRow = {
