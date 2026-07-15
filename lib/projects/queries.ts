@@ -149,6 +149,19 @@ export async function getProjectTasks(supabase: SupabaseClient, projectId: strin
   return data ?? [];
 }
 
+// Iniciativa 360 (Fase 2): squads que participan en la iniciativa (lead + contribuyentes).
+export type InitiativeSquad = { id: string; squad_id: string; role: string; squad: { name: string; code: string; squad_type: string } | null };
+export async function getProjectSquads(supabase: SupabaseClient, projectId: string): Promise<InitiativeSquad[]> {
+  const { data, error } = await supabase
+    .from("project_squad")
+    .select("id, squad_id, role, squad:squad_id(name, code, squad_type)")
+    .eq("project_id", projectId)
+    .neq("status", "deleted")
+    .order("role");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as InitiativeSquad[];
+}
+
 export async function getProjectOptions(supabase: SupabaseClient) {
   const [squads, businessUnits] = await Promise.all([
     supabase.from("squad").select("id, name").eq("status", "active").order("name"),

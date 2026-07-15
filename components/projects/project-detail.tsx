@@ -8,8 +8,9 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { addProjectTask, setTaskStatus, changeProjectStatus, softDeleteProject } from "@/lib/projects/actions";
-import { computeRoi, type AnchorCase } from "@/lib/projects/queries";
+import { computeRoi, type AnchorCase, type InitiativeSquad } from "@/lib/projects/queries";
 import { statusKey, statusColors } from "@/lib/incidents/labels";
+import { InitiativeSquads } from "./initiative-squads";
 import { AiBusinessCase } from "./ai-business-case";
 import { BackButton } from "@/components/common/back-button";
 import { QaPanel } from "./qa-panel";
@@ -37,6 +38,7 @@ export type ProjectDetailData = {
   incident: ({ id: string; incident_number: string; title: string; status: string }) | null;
   qa_status: string;
   prod_authorized_at: string | null;
+  initiative_type?: string | null;
 };
 type Task = { id: string; title: string; status: string; priority: string; due_date: string | null; completed_at: string | null };
 type ValidationRow = { id: string; name: string; test_type: string; environment: string; result: string; evidence_url: string | null; notes: string | null; run_at: string };
@@ -45,11 +47,12 @@ type Def = { id: string; code: string; name: string };
 
 const TASK_STATES = ["todo", "doing", "blocked", "done"];
 
-export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false, canManage = false, canReadIncident = false, anchor = null }: {
+export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false, canManage = false, canReadIncident = false, anchor = null, initiativeSquads = [], squadOptions = [] }: {
   project: ProjectDetailData; tasks: Task[]; validations?: ValidationRow[]; workflows?: Wf[]; workflowDefs?: Def[];
   qa?: { canValidate: boolean; canDeploy: boolean; canRunWorkflow: boolean };
   squadMembers?: { id: string; name: string }[]; canManageTalent?: boolean;
   canManage?: boolean; canReadIncident?: boolean; anchor?: AnchorCase | null;
+  initiativeSquads?: InitiativeSquad[]; squadOptions?: { id: string; name: string }[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -84,6 +87,11 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent-2)" }}>{project.project_code}</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, margin: 0, color: "var(--text)" }}>{project.name}</h1>
           <ProjectStepper status={project.status} />
+          {project.initiative_type && (
+            <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".4px", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "3px 9px", borderRadius: "var(--r-pill)" }}>
+              {t(("init.type." + project.initiative_type) as MessageKey)}
+            </span>
+          )}
         </div>
         {canManage && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -185,9 +193,10 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
             </div>
           </div>
 
+          <InitiativeSquads projectId={project.id} squads={initiativeSquads} options={squadOptions} canManage={canManage} />
+
           <Card title={t("proj.field.squad")}>
             <Row label={t("area.field")} value={project.area?.name} />
-            <Row label={t("proj.field.squad")} value={project.squad?.name} />
             <Row label={t("proj.field.bu")} value={project.business_unit?.name} />
           </Card>
 

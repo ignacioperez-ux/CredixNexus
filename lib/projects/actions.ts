@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { ErrorCode, minLength, firstError } from "@/lib/validation";
+
+async function canManageProject(): Promise<boolean> {
+  const a = await getAccessControl();
+  return a.isAdmin || a.perms.includes("project.manage");
+}
 
 export type ProjectResult = { ok: boolean; error?: string; id?: string };
 
@@ -137,6 +143,41 @@ export async function changeProjectStatus(id: string, status: string): Promise<P
   revalidatePath(`/projects/${id}`);
   revalidatePath("/projects");
   return { ok: true, id };
+}
+
+// ---- Iniciativa 360 (Fase 2): squads involucrados (N:N) ------------------------
+/** Agrega un squad a la iniciativa (contribuyente por defecto). Unico por (project, squad). */
+export async function addProjectSquad(projectId: string, squadId: string, role: "lead" | "contributing" = "contributing"): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!squadId) return { ok: false, error: ErrorCode.REQUIRED };
+  const { error } = await ctx.supabase.from("project_squad").insert({ tenant_id: ctx.tenantId, project_id: projectId, squad_id: squadId, role });
+  if (error) return { ok: false, error: error.code === "23505" ? ErrorCode.DUPLICATE : error.message };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
+}
+
+export async function removeProjectSquad(linkId: string, projectId: string): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  const { error } = await ctx.supabase.from("project_squad").delete().eq("id", linkId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
+}
+
+/** Fija el squad LEAD: el elegido pasa a lead, los demas a contribuyente, y project.lead_squad_id. */
+export async function setInitiativeLead(projectId: string, squadId: string): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  await ctx.supabase.from("project_squad").update({ role: "contributing" }).eq("project_id", projectId).eq("role", "lead");
+  await ctx.supabase.from("project_squad").update({ role: "lead" }).eq("project_id", projectId).eq("squad_id", squadId);
+  await ctx.supabase.from("project").update({ lead_squad_id: squadId, squad_id: squadId }).eq("id", projectId);
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
 }
 
 export async function addProjectTask(projectId: string, title: string): Promise<ProjectResult> {
