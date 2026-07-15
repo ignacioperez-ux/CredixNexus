@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
-import { useGoBack } from "@/lib/nav/use-go-back";
+import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import type { Catalog, Field } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { upsertRecord } from "@/lib/masterdata/actions";
@@ -14,7 +14,8 @@ export function MdForm({ catalog, mode, id, initial, fkOptions = {} }: { catalog
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
-  const goBack = useGoBack(`/catalog/${catalog.key}`);
+  const { back } = useNavHistory();
+  const goBack = () => back(`/catalog/${catalog.key}`);
 
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const v: Record<string, unknown> = {};

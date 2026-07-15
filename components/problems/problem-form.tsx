@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
-import { useGoBack } from "@/lib/nav/use-go-back";
+import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProblemFormOptions } from "@/lib/problems/queries";
 import { createProblem, updateProblem, type ProblemInput } from "@/lib/problems/actions";
@@ -15,7 +15,8 @@ type Initial = ProblemInput & { id?: string };
 export function ProblemForm({ options, initial }: { options: ProblemFormOptions; initial?: Initial }) {
   const { t } = useI18n();
   const router = useRouter();
-  const goBack = useGoBack(initial?.id ? `/problems/${initial.id}` : "/problems");
+  const { back } = useNavHistory();
+  const goBack = () => back(initial?.id ? `/problems/${initial.id}` : "/problems");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState<ProblemInput>({

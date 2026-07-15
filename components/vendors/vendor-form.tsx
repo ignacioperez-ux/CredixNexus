@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
-import { useGoBack } from "@/lib/nav/use-go-back";
+import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { createVendor, updateVendor, type VendorInput } from "@/lib/vendors/actions";
 import { VENDOR_CATEGORIES, CRITICALITIES } from "@/lib/vendors/validation";
@@ -13,7 +13,8 @@ type Initial = VendorInput & { id?: string };
 export function VendorForm({ initial }: { initial?: Initial }) {
   const { t } = useI18n();
   const router = useRouter();
-  const goBack = useGoBack(initial?.id ? `/vendors/${initial.id}` : "/vendors");
+  const { back } = useNavHistory();
+  const goBack = () => back(initial?.id ? `/vendors/${initial.id}` : "/vendors");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState<VendorInput>({

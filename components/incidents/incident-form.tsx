@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
-import { useGoBack } from "@/lib/nav/use-go-back";
+import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import type { FormOptions } from "@/lib/incidents/queries";
 import { createIncident, updateIncident, type IncidentInput } from "@/lib/incidents/actions";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
@@ -23,7 +23,8 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
-  const goBack = useGoBack(mode === "edit" && incidentId ? `/incidents/${incidentId}` : "/incidents");
+  const { back } = useNavHistory();
+  const goBack = () => back(mode === "edit" && incidentId ? `/incidents/${incidentId}` : "/incidents");
 
   const [f, setF] = useState<IncidentInput>({
     title: initial?.title ?? "",

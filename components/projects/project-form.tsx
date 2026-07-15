@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
-import { useGoBack } from "@/lib/nav/use-go-back";
+import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import { createProject, updateProject, type ProjectInput } from "@/lib/projects/actions";
 import { computeRoi } from "@/lib/projects/queries";
 import { minLength } from "@/lib/validation";
@@ -14,7 +14,8 @@ export function ProjectForm({ options, mode, projectId, initial }: { options: Op
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
-  const goBack = useGoBack(mode === "edit" && projectId ? `/projects/${projectId}` : "/projects");
+  const { back } = useNavHistory();
+  const goBack = () => back(mode === "edit" && projectId ? `/projects/${projectId}` : "/projects");
 
   const [f, setF] = useState<ProjectInput>({
     name: initial?.name ?? "",
