@@ -7,6 +7,8 @@ import { Icon } from "@/components/ui/icon";
 import { resolvePrimaryAction } from "@/lib/nav/role-ux";
 import { signOutAction } from "@/lib/auth/actions";
 import { NotificationBell } from "./notification-bell";
+import { ConceptTip } from "@/components/help/concept-tip";
+import { conceptForPath } from "@/lib/help/concepts";
 import type { NotificationsData } from "@/lib/notifications/queries";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
@@ -56,6 +58,7 @@ export function Header({ roles = [], perms = [], isAdmin = false, notifications 
   const meta =
     TITLES.find((x) => pathname === x.prefix || pathname.startsWith(x.prefix + "/")) ??
     { title: "nav.dashboard" as MessageKey, subtitle: "app.tagline" as MessageKey };
+  const concept = conceptForPath(pathname);
 
   // Accion primaria por rol (FASE 2): CTA de acento resuelta por ROLE_UX, filtrada por permiso.
   const primary = resolvePrimaryAction(roles, perms, isAdmin);
@@ -76,8 +79,11 @@ export function Header({ roles = [], perms = [], isAdmin = false, notifications 
       }}
     >
       <div style={{ flex: 1, minWidth: 240 }}>
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {t(meta.title)}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {t(meta.title)}
+          </div>
+          {concept && <ConceptTip concept={concept} />}
         </div>
         <div style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t(meta.subtitle)}</div>
       </div>
