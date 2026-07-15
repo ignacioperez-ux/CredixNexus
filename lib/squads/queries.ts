@@ -37,11 +37,42 @@ export async function listSquads(supabase: SupabaseClient): Promise<SquadRow[]> 
 export async function getSquad(supabase: SupabaseClient, id: string) {
   const { data, error } = await supabase
     .from("squad")
-    .select("*, business_unit:business_unit_id(name)")
+    .select("*, business_unit:business_unit_id(name), tribe:tribe_id(name, code)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data;
+}
+
+// Squad 360 (Fase 2): nombres de los lideres (uuid sin FK -> se resuelven aparte).
+export type SquadLeads = { po: string | null; businessOwner: string | null; techLead: string | null; agileLead: string | null };
+export async function getSquadLeads(supabase: SupabaseClient, squad: Record<string, unknown>): Promise<SquadLeads> {
+  const ids = ["po_user_id", "business_owner_user_id", "tech_lead_user_id", "agile_lead_user_id"]
+    .map((k) => squad[k] as string | null).filter((v): v is string => !!v);
+  const names = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data } = await supabase.from("user_account").select("id, full_name, username, email").in("id", Array.from(new Set(ids)));
+    for (const u of (data ?? []) as { id: string; full_name: string | null; username: string | null; email: string | null }[]) {
+      names.set(u.id, u.full_name || u.username || u.email || "—");
+    }
+  }
+  const nm = (k: string) => { const v = squad[k] as string | null; return v ? (names.get(v) ?? "—") : null; };
+  return { po: nm("po_user_id"), businessOwner: nm("business_owner_user_id"), techLead: nm("tech_lead_user_id"), agileLead: nm("agile_lead_user_id") };
+}
+
+// Iniciativas que atiende el squad (backlog): via project_squad (lead + contribuyente).
+export type SquadInitiative = { id: string; name: string; status: string; wsjf: number; initiative_type: string; job_size: number; role: string };
+export async function getSquadInitiatives(supabase: SupabaseClient, squadId: string): Promise<SquadInitiative[]> {
+  const { data, error } = await supabase
+    .from("project_squad")
+    .select("role, project:project_id(id, name, status, wsjf, initiative_type, job_size)")
+    .eq("squad_id", squadId)
+    .neq("status", "deleted");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as { role: string; project: { id: string; name: string; status: string; wsjf: number; initiative_type: string; job_size: number } | null }[])
+    .filter((r) => r.project)
+    .map((r) => ({ ...r.project!, role: r.role }))
+    .sort((a, b) => Number(b.wsjf) - Number(a.wsjf));
 }
 
 export type RosterRow = {
