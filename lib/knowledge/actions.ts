@@ -115,5 +115,18 @@ export async function publishArticle(articleId: string): Promise<KbResult> {
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/knowledge/${articleId}`);
   revalidatePath("/knowledge");
+  revalidatePath("/knowledge/revision");
+  return { ok: true };
+}
+
+/** Descarta un borrador (soft: archivado). Sale de la cola de revision (gated knowledge.manage). */
+export async function discardArticle(articleId: string): Promise<KbResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await hasPermission(ctx.supabase, "knowledge.manage"))) return { ok: false, error: ErrorCode.PERMISSION };
+  const { error } = await ctx.supabase.from("knowledge_article").update({ status: "archived", updated_by: ctx.accountId }).eq("id", articleId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/knowledge/revision");
+  revalidatePath("/knowledge");
   return { ok: true };
 }

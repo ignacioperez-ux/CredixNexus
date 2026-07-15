@@ -37,6 +37,7 @@ const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
   { prefix: "/squads", title: "sq.title", subtitle: "sq.subtitle" },
   { prefix: "/talent", title: "tal.title", subtitle: "tal.subtitle" },
   { prefix: "/ledger", title: "led.title", subtitle: "led.subtitle" },
+  { prefix: "/knowledge/revision", title: "kbr.title", subtitle: "kbr.subtitle" },
   { prefix: "/knowledge", title: "kb.title", subtitle: "kb.subtitle" },
   { prefix: "/catalog", title: "md.title", subtitle: "md.subtitle" },
   { prefix: "/cmdb", title: "cmdb.title", subtitle: "cmdb.subtitle" },

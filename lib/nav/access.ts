@@ -28,6 +28,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = 
   { prefix: "/cmdb", perm: "cmdb.read" },
   { prefix: "/vendors", perm: "vendor.read" },
   { prefix: "/knowledge", perm: "knowledge.read" },
+  { prefix: "/knowledge/revision", perm: "knowledge.manage" },
   { prefix: "/rules", perm: "rule.read" },
   { prefix: "/workflows", perm: "workflow.read" },
   { prefix: "/projects", perm: "project.read" },

@@ -19,6 +19,42 @@ export type KbMetrics = {
 
 export type KbData = { articles: ArticleRow[]; metrics: KbMetrics };
 
+// Tablero de revision: articulos en borrador (draft), con su entidad de origen (capturados al
+// cierre o creados manualmente). Para el curador (knowledge.manage).
+export type KbReviewItem = {
+  id: string; article_number: string; title: string; article_type: string; category: string; created_at: string;
+  source: { kind: string; label: string; href: string | null } | null;
+};
+export async function getKbReviewQueue(supabase: SupabaseClient): Promise<KbReviewItem[]> {
+  const { data, error } = await supabase
+    .from("knowledge_article")
+    .select(`id, article_number, title, article_type, category, created_at,
+      source_incident_id, source_project_id, source_change_id, source_major_incident_id, source_problem_id,
+      incident:source_incident_id(incident_number), project:source_project_id(project_code, name),
+      change:source_change_id(change_number), mi:source_major_incident_id(title), problem:source_problem_id(problem_number)`)
+    .eq("status", "draft")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((a) => {
+    const row = a as Record<string, unknown>;
+    let source: KbReviewItem["source"] = null;
+    const inc = row.incident as { incident_number: string } | null;
+    const prj = row.project as { project_code: string; name: string } | null;
+    const chg = row.change as { change_number: string } | null;
+    const mi = row.mi as { title: string } | null;
+    const prob = row.problem as { problem_number: string } | null;
+    if (row.source_incident_id && inc) source = { kind: "incident", label: inc.incident_number, href: `/incidents/${row.source_incident_id}` };
+    else if (row.source_project_id && prj) source = { kind: "project", label: prj.project_code || prj.name, href: `/projects/${row.source_project_id}` };
+    else if (row.source_change_id && chg) source = { kind: "change", label: chg.change_number, href: `/changes/${row.source_change_id}` };
+    else if (row.source_major_incident_id && mi) source = { kind: "major_incident", label: mi.title, href: `/major-incidents/${row.source_major_incident_id}` };
+    else if (row.source_problem_id && prob) source = { kind: "problem", label: prob.problem_number, href: `/problems/${row.source_problem_id}` };
+    return {
+      id: row.id as string, article_number: row.article_number as string, title: row.title as string,
+      article_type: row.article_type as string, category: row.category as string, created_at: row.created_at as string, source,
+    };
+  });
+}
+
 function decorate(a: Record<string, unknown>): ArticleRow {
   const helpful = (a.helpful_count as number) ?? 0;
   const notHelpful = (a.not_helpful_count as number) ?? 0;
