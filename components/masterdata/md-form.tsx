@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
+import { useGoBack } from "@/lib/nav/use-go-back";
 import type { Catalog, Field } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { upsertRecord } from "@/lib/masterdata/actions";
@@ -13,6 +14,7 @@ export function MdForm({ catalog, mode, id, initial, fkOptions = {} }: { catalog
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
+  const goBack = useGoBack(`/catalog/${catalog.key}`);
 
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const v: Record<string, unknown> = {};
@@ -78,7 +80,7 @@ export function MdForm({ catalog, mode, id, initial, fkOptions = {} }: { catalog
       {formErr && <div role="alert" style={{ marginTop: 12, background: "var(--st-critical-bg)", border: "1px solid var(--st-critical)", color: "var(--st-critical-fg)", borderRadius: "var(--r-lg)", padding: "10px 12px", fontSize: 12.5 }}>{formErr}</div>}
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 9, marginTop: 14 }}>
-        <button type="button" onClick={() => router.back()} style={secondary}>{t("common.cancel")}</button>
+        <button type="button" onClick={goBack} style={secondary}>{t("common.cancel")}</button>
         <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{mode === "create" ? t("md.create") : t("md.save")}</button>
       </div>
     </form>

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import { useGoBack } from "@/lib/nav/use-go-back";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProblemFormOptions } from "@/lib/problems/queries";
 import { createProblem, updateProblem, type ProblemInput } from "@/lib/problems/actions";
@@ -14,6 +15,7 @@ type Initial = ProblemInput & { id?: string };
 export function ProblemForm({ options, initial }: { options: ProblemFormOptions; initial?: Initial }) {
   const { t } = useI18n();
   const router = useRouter();
+  const goBack = useGoBack(initial?.id ? `/problems/${initial.id}` : "/problems");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState<ProblemInput>({
@@ -95,7 +97,7 @@ export function ProblemForm({ options, initial }: { options: ProblemFormOptions;
           style={{ fontSize: 13, fontWeight: 600, padding: "10px 18px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: pending ? "default" : "pointer" }}>
           {pending ? t("common.saving") : t("common.save")}
         </button>
-        <button onClick={() => router.back()} disabled={pending}
+        <button onClick={goBack} disabled={pending}
           style={{ fontSize: 13, fontWeight: 600, padding: "10px 18px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", cursor: "pointer" }}>
           {t("common.cancel")}
         </button>

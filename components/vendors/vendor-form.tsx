@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import { useGoBack } from "@/lib/nav/use-go-back";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { createVendor, updateVendor, type VendorInput } from "@/lib/vendors/actions";
 import { VENDOR_CATEGORIES, CRITICALITIES } from "@/lib/vendors/validation";
@@ -12,6 +13,7 @@ type Initial = VendorInput & { id?: string };
 export function VendorForm({ initial }: { initial?: Initial }) {
   const { t } = useI18n();
   const router = useRouter();
+  const goBack = useGoBack(initial?.id ? `/vendors/${initial.id}` : "/vendors");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState<VendorInput>({
@@ -63,7 +65,7 @@ export function VendorForm({ initial }: { initial?: Initial }) {
       {err && <div style={{ fontSize: 12.5, color: "var(--st-critical)" }}>{err}</div>}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={submit} disabled={pending} style={btnPrimary}>{pending ? t("common.saving") : t("common.save")}</button>
-        <button onClick={() => router.back()} disabled={pending} style={btnGhost}>{t("common.cancel")}</button>
+        <button onClick={goBack} disabled={pending} style={btnGhost}>{t("common.cancel")}</button>
       </div>
     </div>
   );

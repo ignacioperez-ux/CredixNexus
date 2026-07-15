@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import { useGoBack } from "@/lib/nav/use-go-back";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ChangeFormOptions } from "@/lib/changes/queries";
 import { createChange, updateChange, type ChangeInput } from "@/lib/changes/actions";
@@ -13,6 +14,7 @@ type Initial = ChangeInput & { id?: string };
 export function ChangeForm({ options, initial }: { options: ChangeFormOptions; initial?: Initial }) {
   const { t } = useI18n();
   const router = useRouter();
+  const goBack = useGoBack(initial?.id ? `/changes/${initial.id}` : "/changes");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState<ChangeInput>({
@@ -64,7 +66,7 @@ export function ChangeForm({ options, initial }: { options: ChangeFormOptions; i
       {err && <div style={{ fontSize: 12.5, color: "var(--st-critical)" }}>{err}</div>}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={submit} disabled={pending} style={btnPrimary}>{pending ? t("common.saving") : t("common.save")}</button>
-        <button onClick={() => router.back()} disabled={pending} style={btnGhost}>{t("common.cancel")}</button>
+        <button onClick={goBack} disabled={pending} style={btnGhost}>{t("common.cancel")}</button>
       </div>
     </div>
   );

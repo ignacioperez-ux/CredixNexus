@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
+import { useGoBack } from "@/lib/nav/use-go-back";
 import type { FormOptions } from "@/lib/incidents/queries";
 import { createIncident, updateIncident, type IncidentInput } from "@/lib/incidents/actions";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
@@ -22,6 +23,7 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
+  const goBack = useGoBack(mode === "edit" && incidentId ? `/incidents/${incidentId}` : "/incidents");
 
   const [f, setF] = useState<IncidentInput>({
     title: initial?.title ?? "",
@@ -179,7 +181,7 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
       )}
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 9 }}>
-        <button type="button" onClick={() => router.back()} style={secondaryBtn}>{t("common.cancel")}</button>
+        <button type="button" onClick={goBack} style={secondaryBtn}>{t("common.cancel")}</button>
         <button type="submit" disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
           {busy ? t("inc.creating") : mode === "create" ? t("inc.create") : t("common.save")}
         </button>

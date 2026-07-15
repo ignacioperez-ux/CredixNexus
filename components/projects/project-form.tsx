@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
+import { useGoBack } from "@/lib/nav/use-go-back";
 import { createProject, updateProject, type ProjectInput } from "@/lib/projects/actions";
 import { computeRoi } from "@/lib/projects/queries";
 import { minLength } from "@/lib/validation";
@@ -13,6 +14,7 @@ export function ProjectForm({ options, mode, projectId, initial }: { options: Op
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
+  const goBack = useGoBack(mode === "edit" && projectId ? `/projects/${projectId}` : "/projects");
 
   const [f, setF] = useState<ProjectInput>({
     name: initial?.name ?? "",
@@ -117,7 +119,7 @@ export function ProjectForm({ options, mode, projectId, initial }: { options: Op
       {formErr && <div role="alert" style={{ background: "var(--st-critical-bg)", border: "1px solid var(--st-critical)", color: "var(--st-critical-fg)", borderRadius: "var(--r-lg)", padding: "10px 12px", fontSize: 12.5 }}>{formErr}</div>}
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 9 }}>
-        <button type="button" onClick={() => router.back()} style={secondary}>{t("common.cancel")}</button>
+        <button type="button" onClick={goBack} style={secondary}>{t("common.cancel")}</button>
         <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? t("proj.creating") : mode === "create" ? t("proj.create") : t("proj.save")}</button>
       </div>
     </form>
