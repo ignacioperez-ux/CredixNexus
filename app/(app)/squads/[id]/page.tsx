@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { getSquad, getSquadRoster, getAssignableMembers, getSquadLeads, getSquadInitiatives } from "@/lib/squads/queries";
+import { getSquadCapacities } from "@/lib/capacity/queries";
 import { SquadDetail } from "@/components/squads/squad-detail";
 
 export default async function SquadDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,13 +12,15 @@ export default async function SquadDetailPage({ params }: { params: Promise<{ id
   const squad = await getSquad(ctx.supabase, id);
   if (!squad) notFound();
 
-  const [roster, assignable, canManage, leads, initiatives] = await Promise.all([
+  const [roster, assignable, canManage, leads, initiatives, caps] = await Promise.all([
     getSquadRoster(ctx.supabase, id),
     getAssignableMembers(ctx.supabase, id),
     hasPermission(ctx.supabase, "squad.manage"),
     getSquadLeads(ctx.supabase, squad as Record<string, unknown>),
     getSquadInitiatives(ctx.supabase, id),
+    getSquadCapacities(ctx.supabase),
   ]);
+  const cap = caps.find((c) => c.id === id) ?? null;
 
-  return <SquadDetail squad={squad as never} roster={roster} assignable={assignable} canManage={canManage} leads={leads} initiatives={initiatives} />;
+  return <SquadDetail squad={squad as never} roster={roster} assignable={assignable} canManage={canManage} leads={leads} initiatives={initiatives} capacity={cap} />;
 }

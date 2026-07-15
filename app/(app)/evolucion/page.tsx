@@ -1,26 +1,31 @@
 import { getContext } from "@/lib/auth/context";
 import { getEvolutionHome, getEvolutionDecisions } from "@/lib/evolution/queries";
-import { listPortfolio, listSquadCapacity } from "@/lib/projects/queries";
-import { listTribes } from "@/lib/tribes/queries";
+import { listPortfolio } from "@/lib/projects/queries";
 import { getBehaviorAnalysis } from "@/lib/analytics/queries";
-import { portfolioRoi, tribeLoads } from "@/lib/projects/portfolio";
+import { portfolioRoi } from "@/lib/projects/portfolio";
+import { getSquadCapacities } from "@/lib/capacity/queries";
+import { tribeCapacities } from "@/lib/capacity/compute";
 import { EvolutionHome } from "@/components/evolution/evolution-home";
 
 // Torre de Control del Gerente de Evolucion. Bandeja de decisiones (accion) + pipeline
 // incidencia->entrega + riesgo/valor + tendencia. Todo dato real y agregado (RPC gateados).
+// La capacidad por tribu sale de la FUENTE UNICA (lib/capacity) — mismos numeros que /squads,
+// Squad 360 y /workload (§0).
 export default async function EvolutionHomePage() {
   const ctx = await getContext();
   if (!ctx) return null;
-  const [home, decisions, rows, squads, tribes, behavior] = await Promise.all([
+  const [home, decisions, rows, caps, behavior] = await Promise.all([
     getEvolutionHome(ctx.supabase),
     getEvolutionDecisions(ctx.supabase),
     listPortfolio(ctx.supabase),
-    listSquadCapacity(ctx.supabase),
-    listTribes(ctx.supabase),
+    getSquadCapacities(ctx.supabase),
     getBehaviorAnalysis(ctx.supabase, "category", 12),
   ]);
   const roi = portfolioRoi(rows);
-  const tLoads = tribeLoads(tribes.map((t) => ({ id: t.id, name: t.name, code: t.code })), squads, rows);
+  const tLoads = tribeCapacities(caps).map((tc) => ({
+    id: tc.id, name: tc.name, code: tc.code, squadIds: [] as string[], capacity: tc.capacity_points,
+    committed: tc.demand_points, projects: 0, squads: tc.squads, loadPct: tc.load_pct, over: tc.over, avgWsjf: 0,
+  }));
   const firstName = ctx.name.trim().split(/\s+/)[0] || ctx.name;
   return (
     <EvolutionHome

@@ -6,6 +6,8 @@ import { useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { RosterRow, SquadLeads, SquadInitiative } from "@/lib/squads/queries";
+import type { SquadCapacity } from "@/lib/capacity/queries";
+import { loadTone, toneColor, toneFg } from "@/lib/capacity/compute";
 import { SQUAD_ROLES } from "@/lib/squads/validation";
 import { addSquadMember, updateSquadMember, removeSquadMember } from "@/lib/squads/actions";
 import { SquadRoleBadge } from "./badges";
@@ -18,7 +20,7 @@ type Assignable = { id: string; name: string; discipline: string | null; is_exte
 const OPEN = ["proposed", "approved", "on_hold", "active"];
 const TYPE_COLOR: Record<string, string> = { domain: "var(--accent)", enabler: "var(--st-eval)", transient: "var(--muted)" };
 
-export function SquadDetail({ squad, roster, assignable, canManage, leads, initiatives = [] }: { squad: SquadView; roster: RosterRow[]; assignable: Assignable[]; canManage: boolean; leads?: SquadLeads; initiatives?: SquadInitiative[] }) {
+export function SquadDetail({ squad, roster, assignable, canManage, leads, initiatives = [], capacity = null }: { squad: SquadView; roster: RosterRow[]; assignable: Assignable[]; canManage: boolean; leads?: SquadLeads; initiatives?: SquadInitiative[]; capacity?: SquadCapacity | null }) {
   const { t } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -56,13 +58,13 @@ export function SquadDetail({ squad, roster, assignable, canManage, leads, initi
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         <Kpi label={t("sq.col.bu")} value={squad.business_unit?.name ?? "—"} />
-        <Kpi label={t("sq.col.members")} value={String(roster.filter((r) => r.status === "active").length)} />
-        <Kpi label={t("sq.col.allocation")} value={`${allocated}%`} />
-        <Kpi label={t("md.f.capacity")} value={squad.capacity_points ? `${squad.capacity_points}p` : "—"} />
+        <Kpi label={t("sq.fte")} value={`${capacity ? capacity.fte : Math.round((allocated / 100) * 10) / 10} (${roster.filter((r) => r.status === "active").length} ${t("sq.people")})`} title={t("sq.fte.def")} />
+        <Kpi label={t("sq.load")} value={capacity ? `${capacity.demand_points}/${capacity.capacity_points} · ${capacity.load_pct ?? "—"}%` : "—"} title={t("sq.load.def")} color={capacity ? toneFg(loadTone(capacity.load_pct)) : undefined} />
+        <Kpi label={t("md.f.capacity")} value={squad.capacity_points ? `${squad.capacity_points} ${t("sq.pts")}` : "—"} />
       </div>
 
       {/* Squad 360: dominio + liderazgo + capacidad vs demanda + backlog */}
-      <Squad360 squad={squad} leads={leads} initiatives={initiatives} t={t} />
+      <Squad360 squad={squad} leads={leads} initiatives={initiatives} capacity={capacity} t={t} />
 
       {msg && <div style={{ fontSize: 12, color: "var(--st-critical)" }}>{msg}</div>}
 
@@ -124,19 +126,20 @@ const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "10px 12px", bord
 function Cell({ children, mono, muted }: { children: React.ReactNode; mono?: boolean; muted?: boolean }) {
   return <div style={{ ...cellSt, fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: muted ? "var(--muted)" : "var(--text)" }}>{children}</div>;
 }
-function Kpi({ label, value }: { label: string; value: string }) {
-  return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 14 }}>
+function Kpi({ label, value, title, color }: { label: string; value: string; title?: string; color?: string }) {
+  return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 14 }} title={title}>
     <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 8 }}>{label}</div>
-    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: 18, color: "var(--text)" }}>{value}</div></div>;
+    <div style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 500, fontSize: 18, color: color ?? "var(--text)" }}>{value}</div></div>;
 }
 
-function Squad360({ squad, leads, initiatives, t }: { squad: SquadView; leads?: SquadLeads; initiatives: SquadInitiative[]; t: (k: MessageKey) => string }) {
+function Squad360({ squad, leads, initiatives, capacity, t }: { squad: SquadView; leads?: SquadLeads; initiatives: SquadInitiative[]; capacity?: SquadCapacity | null; t: (k: MessageKey) => string }) {
   const open = initiatives.filter((i) => OPEN.includes(i.status));
-  const demand = open.reduce((s, i) => s + Number(i.job_size ?? 0), 0);
-  const cap = squad.capacity_points ?? 0;
-  const loadPct = cap > 0 ? Math.round((demand / cap) * 100) : null;
+  // Demanda CANONICA (§0): esfuerzo de tareas abiertas via project.squad_id — misma fuente en todo el app.
+  const demand = capacity ? capacity.demand_points : 0;
+  const cap = capacity ? capacity.capacity_points : (squad.capacity_points ?? 0);
+  const loadPct = capacity ? capacity.load_pct : (cap > 0 ? Math.round((demand / cap) * 100) : null);
   const over = loadPct != null && loadPct > 100;
-  const barColor = over ? "var(--st-critical)" : (loadPct ?? 0) >= 80 ? "var(--st-high)" : "var(--accent)";
+  const barColor = toneColor(loadTone(loadPct));
   const card: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 18 };
   const h3: React.CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 7 };
   return (
