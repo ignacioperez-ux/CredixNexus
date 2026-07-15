@@ -14,12 +14,14 @@ import { EvolutionHome } from "@/components/evolution/evolution-home";
 export default async function EvolutionHomePage() {
   const ctx = await getContext();
   if (!ctx) return null;
+  // La tendencia (analytics) es un apoyo, no el corazon de la Torre: si el RPC falla o el rol no
+  // tiene el permiso, se degrada sin tendencia en vez de tumbar toda la pantalla (nunca "saca del app").
   const [home, decisions, rows, caps, behavior] = await Promise.all([
     getEvolutionHome(ctx.supabase),
     getEvolutionDecisions(ctx.supabase),
     listPortfolio(ctx.supabase),
     getSquadCapacities(ctx.supabase),
-    getBehaviorAnalysis(ctx.supabase, "category", 12),
+    getBehaviorAnalysis(ctx.supabase, "category", 12).catch(() => ({ trend: [] as { week: string; count: number }[], projection: null as { next_week: number } | null })),
   ]);
   const roi = portfolioRoi(rows);
   const tLoads = tribeCapacities(caps).map((tc) => ({
