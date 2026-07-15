@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import { Icon } from "@/components/ui/icon";
 import { computeRoi, type PortfolioRow, type SquadCapacity } from "@/lib/projects/queries";
-import { portfolioRoi, squadLoads, wsjfParts, isOpenProject, type SquadLoad } from "@/lib/projects/portfolio";
+import { portfolioRoi, squadLoads, wsjfParts, isOpenProject, tribeLoads, type SquadLoad, type TribeInfo, type TribeLoad } from "@/lib/projects/portfolio";
 
 const WSJF_SERIES = [
   { key: "bv" as const, field: "business_value" as const, color: "var(--accent-2)" },
@@ -13,13 +13,17 @@ const WSJF_SERIES = [
   { key: "rr" as const, field: "risk_reduction" as const, color: "var(--st-medium)" },
 ];
 
-export function PortfolioCockpit({ rows, squads }: { rows: PortfolioRow[]; squads: SquadCapacity[] }) {
+export function PortfolioCockpit({ rows, squads, tribes = [] }: { rows: PortfolioRow[]; squads: SquadCapacity[]; tribes?: TribeInfo[] }) {
   const { t, locale } = useI18n();
   const money = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0, notation: "compact" }).format(n);
 
   const roi = portfolioRoi(rows);
   const active = rows.filter((r) => r.status === "active").length;
   const loads = squadLoads(squads, rows);
+  const tLoads = tribeLoads(tribes, squads, rows);
+  const loadById = new Map(loads.map((l) => [l.id, l]));
+  const tribedIds = new Set(tLoads.flatMap((tr) => tr.squadIds));
+  const untribedLoads = loads.filter((l) => !tribedIds.has(l.id));
   const withActuals = rows.filter((r) => r.actual_benefit_amount != null && r.actual_cost_amount != null);
   const roadmap = rows.filter((r) => r.planned_start && r.planned_end);
   const wl = { bv: t("proj.wsjf.bv"), tc: t("proj.wsjf.tc"), rr: t("proj.wsjf.rr"), js: t("proj.wsjf.js") };
@@ -68,13 +72,31 @@ export function PortfolioCockpit({ rows, squads }: { rows: PortfolioRow[]; squad
           )}
         </Panel>
 
-        <Panel title={t("port.capacity.title")} hint={t("port.capacity.hint2")}>
+        <Panel title={t("port.capacity.title")} hint={t("port.capacity.hint3")}>
           {loads.length === 0 ? <Empty text={t("port.capacity.empty")} /> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-              {loads.map((l) => (
-                <CapacityRow key={l.id} l={l} projects={openBySquad.get(l.id) ?? []} pst={pst}
-                  labelProjects={t("port.projects")} labelOver={t("port.capacity.over")} emptyLabel={t("port.capacity.noproj")} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
+              {tLoads.filter((tr) => tr.squads > 0).map((tr) => (
+                <div key={tr.id}>
+                  <TribeHeader tr={tr} labelProjects={t("port.projects")} labelSquads={t("port.tribe.squads")} labelWsjf={t("port.tribe.avgwsjf")} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8, paddingLeft: 10, borderLeft: "2px solid var(--line)" }}>
+                    {tr.squadIds.map((sid) => loadById.get(sid)).filter((l): l is SquadLoad => !!l).map((l) => (
+                      <CapacityRow key={l.id} l={l} projects={openBySquad.get(l.id) ?? []} pst={pst}
+                        labelProjects={t("port.projects")} labelOver={t("port.capacity.over")} emptyLabel={t("port.capacity.noproj")} />
+                    ))}
+                  </div>
+                </div>
               ))}
+              {untribedLoads.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--st-high-fg)", marginBottom: 6 }}>{t("port.untribed")}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 10, borderLeft: "2px dashed var(--line)" }}>
+                    {untribedLoads.map((l) => (
+                      <CapacityRow key={l.id} l={l} projects={openBySquad.get(l.id) ?? []} pst={pst}
+                        labelProjects={t("port.projects")} labelOver={t("port.capacity.over")} emptyLabel={t("port.capacity.noproj")} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Panel>
@@ -174,6 +196,29 @@ function WsjfRow({ r, maxNum, labels }: { r: PortfolioRow; maxNum: number; label
         </div>
         <span title={labels.js} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", flexShrink: 0 }}>/{parts.jobSize}</span>
         <span title="WSJF" style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--accent-2)", width: 34, textAlign: "right", flexShrink: 0 }}>{Number(r.wsjf).toFixed(1)}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Cabecera de tribu: roll-up de capacidad/demanda/iniciativas de sus squads. */
+function TribeHeader({ tr, labelProjects, labelSquads, labelWsjf }: { tr: TribeLoad; labelProjects: string; labelSquads: string; labelWsjf: string }) {
+  const pct = tr.loadPct ?? 0;
+  const barColor = tr.over ? "var(--st-critical)" : pct >= 80 ? "var(--st-high)" : "var(--accent)";
+  return (
+    <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 10, padding: "9px 12px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+        <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{tr.code}</span>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, color: "var(--text)" }}>{tr.name}</span>
+          <span style={{ fontSize: 10.5, color: "var(--muted)" }}>· {tr.squads} {labelSquads} · {tr.projects} {labelProjects}</span>
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: tr.over ? "var(--st-critical-fg)" : "var(--muted)" }}>
+          {tr.committed}/{tr.capacity}{tr.loadPct != null ? ` · ${tr.loadPct}%` : ""} · {labelWsjf} {tr.avgWsjf}
+        </span>
+      </div>
+      <div style={{ height: 7, background: "var(--track, var(--card))", borderRadius: 4, overflow: "hidden" }}>
+        <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", background: barColor, borderRadius: 4 }} />
       </div>
     </div>
   );

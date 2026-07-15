@@ -63,16 +63,16 @@ export async function listPortfolio(supabase: SupabaseClient): Promise<Portfolio
   return (data ?? []) as unknown as PortfolioRow[];
 }
 
-/** Capacidad de squads activos (puntos). Demanda = suma de job_size comprometido (portfolio.ts). */
-export type SquadCapacity = { id: string; name: string; capacity_points: number };
+/** Capacidad de squads activos (puntos) + su tribu. Demanda = job_size comprometido (portfolio.ts). */
+export type SquadCapacity = { id: string; name: string; capacity_points: number; tribe_id: string | null };
 export async function listSquadCapacity(supabase: SupabaseClient): Promise<SquadCapacity[]> {
   const { data, error } = await supabase
     .from("squad")
-    .select("id, name, capacity_points")
+    .select("id, name, capacity_points, tribe_id")
     .eq("status", "active")
     .order("name");
   if (error) throw new Error(error.message);
-  return (data ?? []).map((s) => ({ id: s.id as string, name: s.name as string, capacity_points: Number(s.capacity_points ?? 0) }));
+  return (data ?? []).map((s) => ({ id: s.id as string, name: s.name as string, capacity_points: Number(s.capacity_points ?? 0), tribe_id: (s.tribe_id as string | null) ?? null }));
 }
 
 export async function getProject(supabase: SupabaseClient, id: string) {

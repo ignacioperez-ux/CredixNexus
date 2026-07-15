@@ -57,6 +57,34 @@ export function squadLoads(squads: SquadCapacity[], rows: PortfolioRow[]): Squad
   }).sort((a, b) => (b.loadPct ?? -1) - (a.loadPct ?? -1));
 }
 
+/** Roll-up por tribu: agrega capacidad/demanda/iniciativas de sus squads (tribu -> squad -> proyecto). */
+export type TribeInfo = { id: string; name: string; code: string };
+export type TribeLoad = {
+  id: string; name: string; code: string; squadIds: string[];
+  capacity: number; committed: number; projects: number; squads: number;
+  loadPct: number | null; over: boolean; avgWsjf: number;
+};
+
+export function tribeLoads(tribes: TribeInfo[], squads: SquadCapacity[], rows: PortfolioRow[]): TribeLoad[] {
+  const squadsByTribe = new Map<string, SquadCapacity[]>();
+  for (const s of squads) {
+    if (!s.tribe_id) continue;
+    const arr = squadsByTribe.get(s.tribe_id) ?? [];
+    arr.push(s);
+    squadsByTribe.set(s.tribe_id, arr);
+  }
+  return tribes.map((tr) => {
+    const sqs = squadsByTribe.get(tr.id) ?? [];
+    const ids = new Set(sqs.map((s) => s.id));
+    const capacity = sqs.reduce((sum, s) => sum + (s.capacity_points ?? 0), 0);
+    const open = rows.filter((r) => r.squad?.id && ids.has(r.squad.id) && isOpenProject(r.status));
+    const committed = open.reduce((sum, r) => sum + Number(r.job_size ?? 0), 0);
+    const avgWsjf = open.length ? Math.round((open.reduce((s, r) => s + Number(r.wsjf ?? 0), 0) / open.length) * 10) / 10 : 0;
+    const loadPct = capacity > 0 ? Math.round((committed / capacity) * 100) : null;
+    return { id: tr.id, name: tr.name, code: tr.code, squadIds: sqs.map((s) => s.id), capacity, committed, projects: open.length, squads: sqs.length, loadPct, over: loadPct != null && loadPct > 100, avgWsjf };
+  }).sort((a, b) => (b.loadPct ?? -1) - (a.loadPct ?? -1));
+}
+
 /** Componentes WSJF (numerador = valor + criticidad + reduccion de riesgo; denominador = tamano). */
 export function wsjfParts(r: Pick<PortfolioRow, "business_value" | "time_criticality" | "risk_reduction" | "job_size">) {
   const numerator = Number(r.business_value ?? 0) + Number(r.time_criticality ?? 0) + Number(r.risk_reduction ?? 0);
