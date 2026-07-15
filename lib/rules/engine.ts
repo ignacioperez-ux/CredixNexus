@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getContext } from "@/lib/auth/context";
+import { getContext, hasPermission } from "@/lib/auth/context";
 
 export type FactorResult = { code: string; raw: number; weight: number; weighted: number };
 export type EvaluationResult = {
@@ -25,6 +25,13 @@ export async function evaluateIncident(incidentId: string): Promise<EvaluationRe
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: "ERR_PERMISSION_DENIED" };
   const supabase = ctx.supabase;
+
+  // Autorizacion en la CAPA DE APLICACION, antes de cualquier lectura o mutacion: evaluar el
+  // motor persiste rule_evaluation, actualiza el incidente y crea recomendaciones -> exige
+  // gestionar/triar incidentes. El rol Evolucion (que solo consume resultados) no puede ejecutarlo.
+  if (!(await hasPermission(supabase, "incident.update")) && !(await hasPermission(supabase, "triage.manage"))) {
+    return { ok: false, error: "ERR_PERMISSION_DENIED" };
+  }
 
   const { data: inc } = await supabase
     .from("incident")

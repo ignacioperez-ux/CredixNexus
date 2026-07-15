@@ -229,7 +229,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           {(inc.status === "resolved" || inc.status === "closed") && inc.assigned_member_id && inc.assignee && canManageTalent && (
             <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
           )}
-          <EvaluatePanel incidentId={inc.id} />
+          {(canUpdateIncident || canTriage) && <EvaluatePanel incidentId={inc.id} />}
           {(canUpdateIncident || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
           <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")}>
             <Card title={t("inc.section.rca")}>

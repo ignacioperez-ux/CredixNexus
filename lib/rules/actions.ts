@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getContext } from "@/lib/auth/context";
+import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode } from "@/lib/validation";
 
 export type DecideResult = { ok: boolean; error?: string };
@@ -19,6 +19,9 @@ export async function decideRecommendation(
 ): Promise<DecideResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  // Decidir una recomendacion es potestad del area de negocio (RC): mueve el incidente a Evolucion
+  // y fija prioridad. Se exige el permiso en la CAPA DE APLICACION (no solo RLS/UI). Evolucion no decide.
+  if (!(await hasPermission(ctx.supabase, "recommendation.decide"))) return { ok: false, error: ErrorCode.PERMISSION };
   if (status === "approved" && (priority == null || priority < 1)) {
     return { ok: false, error: ErrorCode.REQUIRED }; // prioridad obligatoria al aprobar
   }

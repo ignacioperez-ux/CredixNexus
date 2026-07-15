@@ -9,7 +9,7 @@ import type { RecommendationRow } from "@/lib/rules/queries";
 import { scoreColor } from "@/lib/incidents/labels";
 import { useListFilters, FilterBar, type FilterDef } from "@/components/common/filters";
 
-export function RecommendationsQueue({ rows }: { rows: RecommendationRow[] }) {
+export function RecommendationsQueue({ rows, canDecide = false }: { rows: RecommendationRow[]; canDecide?: boolean }) {
   const { t } = useI18n();
   const defs: FilterDef<RecommendationRow>[] = [
     { key: "status", label: t("inc.col.status"), get: (r) => r.recommendation_status, allLabel: t("inc.filter.allstatus") },
@@ -27,21 +27,22 @@ export function RecommendationsQueue({ rows }: { rows: RecommendationRow[] }) {
         <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("reco.empty")}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {f.filtered.map((r) => <RecoCard key={r.id} r={r} onFilterStatus={() => f.set("status", r.recommendation_status)} />)}
+          {f.filtered.map((r) => <RecoCard key={r.id} r={r} canDecide={canDecide} onFilterStatus={() => f.set("status", r.recommendation_status)} />)}
         </div>
       )}
     </div>
   );
 }
 
-function RecoCard({ r, onFilterStatus }: { r: RecommendationRow; onFilterStatus: () => void }) {
+function RecoCard({ r, canDecide, onFilterStatus }: { r: RecommendationRow; canDecide: boolean; onFilterStatus: () => void }) {
   const { t } = useI18n();
   const router = useRouter();
   const [priority, setPriority] = useState<string>(r.business_priority ? String(r.business_priority) : "");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const pending = r.recommendation_status === "pending" || r.recommendation_status === "deferred";
+  // Solo el RC (recommendation.decide) ve los controles de decision; el resto, cola en solo-lectura.
+  const pending = canDecide && (r.recommendation_status === "pending" || r.recommendation_status === "deferred");
 
   async function decide(status: "approved" | "rejected" | "deferred") {
     setErr(null);
