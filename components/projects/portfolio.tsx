@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import { Icon } from "@/components/ui/icon";
-import { computeRoi, type PortfolioRow, type SquadCapacity } from "@/lib/projects/queries";
-import { portfolioRoi, squadLoads, wsjfParts, isOpenProject, tribeLoads, type SquadLoad, type TribeInfo, type TribeLoad } from "@/lib/projects/portfolio";
+import { computeRoi, type PortfolioRow } from "@/lib/projects/queries";
+import { portfolioRoi, wsjfParts, isOpenProject, type SquadLoad, type TribeLoad } from "@/lib/projects/portfolio";
+import { type SquadCapacity as CapSquad } from "@/lib/capacity/queries";
+import { tribeCapacities } from "@/lib/capacity/compute";
 
 const WSJF_SERIES = [
   { key: "bv" as const, field: "business_value" as const, color: "var(--accent-2)" },
@@ -13,26 +15,21 @@ const WSJF_SERIES = [
   { key: "rr" as const, field: "risk_reduction" as const, color: "var(--st-medium)" },
 ];
 
-export function PortfolioCockpit({ rows, squads, tribes = [], initialTribe = null }: { rows: PortfolioRow[]; squads: SquadCapacity[]; tribes?: TribeInfo[]; initialTribe?: string | null }) {
+export function PortfolioCockpit({ rows, caps, initialTribe = null }: { rows: PortfolioRow[]; caps: CapSquad[]; initialTribe?: string | null }) {
   const { t, locale } = useI18n();
   const money = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0, notation: "compact" }).format(n);
 
-  // Filtro por tribu (sembrado desde ?tribe= en la URL; conmutable en el propio cockpit). El roll-up
-  // completo (allTLoads) alimenta los chips de filtro; las metricas se calculan sobre las filas visibles.
-  const allTLoads = tribeLoads(tribes, squads, rows);
-  const filterTribes = allTLoads.filter((tr) => tr.squads > 0);
+  // Demanda/capacidad desde la FUENTE UNICA (lib/capacity). El filtro por tribu (sembrado desde
+  // ?tribe=) solo cambia QUE se muestra; la carga de cada squad es su carga real (global), no
+  // recalculada por la vista. Chips de filtro desde el roll-up canonico por tribu.
+  const tCaps = tribeCapacities(caps);
+  const filterTribes = tCaps.filter((tr) => tr.squads > 0);
   const [tribeId, setTribeId] = useState<string | null>(() => (initialTribe && filterTribes.some((tr) => tr.id === initialTribe) ? initialTribe : null));
-  const activeTribe = tribeId ? filterTribes.find((tr) => tr.id === tribeId) ?? null : null;
-  const tribeSquadSet = activeTribe ? new Set(activeTribe.squadIds) : null;
+  const tribeSquadSet = tribeId ? new Set(caps.filter((c) => c.tribe_id === tribeId).map((c) => c.id)) : null;
   const viewRows = tribeSquadSet ? rows.filter((r) => r.squad?.id && tribeSquadSet.has(r.squad.id)) : rows;
 
   const roi = portfolioRoi(viewRows);
   const active = viewRows.filter((r) => r.status === "active").length;
-  const loads = squadLoads(squads, viewRows);
-  const tLoads = tribeLoads(tribes, squads, viewRows).filter((tr) => !tribeId || tr.id === tribeId);
-  const loadById = new Map(loads.map((l) => [l.id, l]));
-  const tribedIds = new Set(tLoads.flatMap((tr) => tr.squadIds));
-  const untribedLoads = tribeId ? [] : loads.filter((l) => !tribedIds.has(l.id));
   const withActuals = viewRows.filter((r) => r.actual_benefit_amount != null && r.actual_cost_amount != null);
   const roadmap = viewRows.filter((r) => r.planned_start && r.planned_end);
   const wl = { bv: t("proj.wsjf.bv"), tc: t("proj.wsjf.tc"), rr: t("proj.wsjf.rr"), js: t("proj.wsjf.js") };
@@ -46,6 +43,19 @@ export function PortfolioCockpit({ rows, squads, tribes = [], initialTribe = nul
     openBySquad.set(r.squad.id, arr);
   }
   for (const arr of openBySquad.values()) arr.sort((a, b) => Number(b.wsjf) - Number(a.wsjf));
+
+  // Carga por squad = fuente unica (demanda = esfuerzo de tareas abiertas). El listado de proyectos
+  // del drill-down viene de las filas visibles.
+  const loadById = new Map<string, SquadLoad>(caps.map((c) => [c.id, { id: c.id, name: c.name, capacity: c.capacity_points, committed: c.demand_points, projects: openBySquad.get(c.id)?.length ?? 0, loadPct: c.load_pct, over: c.over }]));
+  const squadIdsByTribe = new Map<string, string[]>();
+  for (const c of caps) { const k = c.tribe_id ?? "__none__"; const a = squadIdsByTribe.get(k) ?? []; a.push(c.id); squadIdsByTribe.set(k, a); }
+  const tLoads: TribeLoad[] = tCaps.filter((tc) => tc.squads > 0 && (!tribeId || tc.id === tribeId)).map((tc) => {
+    const sids = squadIdsByTribe.get(tc.id) ?? [];
+    const projs = sids.flatMap((sid) => openBySquad.get(sid) ?? []);
+    const avgWsjf = projs.length ? Math.round((projs.reduce((s, p) => s + Number(p.wsjf ?? 0), 0) / projs.length) * 10) / 10 : 0;
+    return { id: tc.id, name: tc.name, code: tc.code, squadIds: sids, capacity: tc.capacity_points, committed: tc.demand_points, projects: projs.length, squads: tc.squads, loadPct: tc.load_pct, over: tc.over, avgWsjf };
+  });
+  const untribedLoads: SquadLoad[] = tribeId ? [] : (squadIdsByTribe.get("__none__") ?? []).map((sid) => loadById.get(sid)!).filter(Boolean);
   const pst: Record<string, string> = { proposed: t("pst.proposed"), approved: t("pst.approved"), active: t("pst.active"), on_hold: t("pst.on_hold"), completed: t("pst.completed"), cancelled: t("pst.cancelled") };
 
   return (
@@ -93,7 +103,7 @@ export function PortfolioCockpit({ rows, squads, tribes = [], initialTribe = nul
         </Panel>
 
         <Panel title={t("port.capacity.title")} hint={t("port.capacity.hint3")}>
-          {loads.length === 0 ? <Empty text={t("port.capacity.empty")} /> : (
+          {caps.length === 0 ? <Empty text={t("port.capacity.empty")} /> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
               {tLoads.filter((tr) => tr.squads > 0).map((tr) => (
                 <div key={tr.id}>
