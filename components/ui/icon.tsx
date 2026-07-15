@@ -38,6 +38,7 @@ const PATHS: Record<string, string> = {
   square: "M4 4h16v16H4z",
   scale: "M12 3v18 M6 21h12 M3 8h18 M7 8l-3 6a3 3 0 0 0 6 0z M17 8l-3 6a3 3 0 0 0 6 0z",
   help: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3 M12 17h.01",
+  bell: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0",
 };
 
 export type IconName = keyof typeof PATHS | string;

@@ -6,6 +6,8 @@ import { CommandMenu } from "@/components/app-shell/command-menu";
 import { HelpFab } from "@/components/app-shell/help-fab";
 import { canSeeNav, requiredPermForPath } from "@/lib/nav/access";
 import { getSessionUser, getSessionAccount, getAccessControl, tenantNameOf } from "@/lib/auth/session";
+import { getContext } from "@/lib/auth/context";
+import { listNotifications } from "@/lib/notifications/queries";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
@@ -13,7 +15,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Perfil + control de acceso en paralelo, reutilizando la sesion cacheada por request
   // (session.ts): las paginas hijas comparten estas mismas resoluciones, sin repetir viajes.
-  const [account, access] = await Promise.all([getSessionAccount(), getAccessControl()]);
+  const [account, access, ctx] = await Promise.all([getSessionAccount(), getAccessControl(), getContext()]);
+  const notifications = ctx ? await listNotifications(ctx.supabase) : { items: [], unread: 0 };
 
   const userName = account?.full_name ?? user.email ?? "Usuario";
   const tenantName = tenantNameOf(account);
@@ -30,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
       <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} roles={roleList} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
-        <Header roles={roleList} perms={permList} isAdmin={isAdmin} />
+        <Header roles={roleList} perms={permList} isAdmin={isAdmin} notifications={notifications} />
         <main style={{ flex: 1, minHeight: 0, overflowY: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>
           {children}
         </main>

@@ -25,7 +25,7 @@ export async function decideRecommendation(
 
   const { data: reco, error: e0 } = await ctx.supabase
     .from("project_recommendation")
-    .select("incident_id")
+    .select("incident_id, recommended_name")
     .eq("id", id)
     .maybeSingle();
   if (e0 || !reco) return { ok: false, error: e0?.message ?? "not_found" };
@@ -55,6 +55,17 @@ export async function decideRecommendation(
       body: `Recomendacion aprobada por el area de negocio (RC) con prioridad ${priority}. Pasa a Evolucion; la mesa mantiene el tracking.`,
       visibility: "partner",
       is_system_generated: true,
+    });
+    // Campanita (v1): avisa al Gerente de Evolucion que hay una mejora aprobada lista para convertir.
+    await ctx.supabase.rpc("notify_role", {
+      p_role_code: "product_owner",
+      p_type: "recommendation_approved",
+      p_title: "Recomendacion aprobada, lista para convertir",
+      p_body: `"${reco.recommended_name ?? "Mejora"}" fue aprobada (prioridad ${priority}). Conviertela en proyecto.`,
+      p_entity_type: "project_recommendation",
+      p_entity_id: id,
+      p_link: "/projects",
+      p_severity: "success",
     });
   }
 

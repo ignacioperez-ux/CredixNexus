@@ -23,6 +23,10 @@ export const dictionaries = {
 
     "theme.nexus": "Nexus",
     "theme.claro": "Claro",
+    "notif.title": "Notificaciones",
+    "notif.markall": "Marcar todas",
+    "notif.empty": "Sin notificaciones.",
+    "notif.now": "ahora",
 
     "nav.dashboard": "Dashboard",
     "nav.workspace": "Mi trabajo",
@@ -1867,6 +1871,10 @@ export const dictionaries = {
 
     "theme.nexus": "Nexus",
     "theme.claro": "Light",
+    "notif.title": "Notifications",
+    "notif.markall": "Mark all",
+    "notif.empty": "No notifications.",
+    "notif.now": "now",
 
     "nav.dashboard": "Dashboard",
     "nav.workspace": "My work",

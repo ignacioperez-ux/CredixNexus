@@ -221,14 +221,16 @@ export async function sendToEvolution(incidentId: string): Promise<ActionResult>
   // Gobierno de la derivacion (PE-2): SOLO Operaciones deriva. Antes bastaba problem.manage/
   // project.manage (que tiene Evolucion) -> permitia auto-derivacion. Ahora exige permisos de mesa.
   if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
-  const { error } = await ctx.supabase
+  const { data: inc, error } = await ctx.supabase
     .from("incident")
     .update({
       status: "in_evolution",
       transformation_candidate: true,
       transformation_decision: "to_evolution",
     })
-    .eq("id", incidentId);
+    .eq("id", incidentId)
+    .select("incident_number")
+    .single();
   if (error) return { ok: false, error: error.message };
   await ctx.supabase.from("incident_comment").insert({
     tenant_id: ctx.tenantId,
@@ -237,6 +239,17 @@ export async function sendToEvolution(incidentId: string): Promise<ActionResult>
     body: "Enviado al squad de Evolucion. La mesa de ayuda mantiene el tracking y la comunicacion con el cliente.",
     visibility: "partner",
     is_system_generated: true,
+  });
+  // Campanita (v1): avisa al Gerente de Evolucion que hay un caso derivado a atender.
+  await ctx.supabase.rpc("notify_role", {
+    p_role_code: "product_owner",
+    p_type: "case_to_evolution",
+    p_title: "Caso derivado a Evolucion",
+    p_body: `El caso ${inc?.incident_number ?? ""} paso a Evolucion y espera valoracion.`,
+    p_entity_type: "incident",
+    p_entity_id: incidentId,
+    p_link: "/analytics/comportamiento",
+    p_severity: "info",
   });
   revalidatePath(`/incidents/${incidentId}`);
   revalidatePath("/incidents");

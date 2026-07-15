@@ -6,6 +6,8 @@ import { useTheme, type Theme } from "@/components/theme-provider";
 import { Icon } from "@/components/ui/icon";
 import { resolvePrimaryAction } from "@/lib/nav/role-ux";
 import { signOutAction } from "@/lib/auth/actions";
+import { NotificationBell } from "./notification-bell";
+import type { NotificationsData } from "@/lib/notifications/queries";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
@@ -43,7 +45,7 @@ const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
   { prefix: "/ai-center", title: "aic.title", subtitle: "aic.subtitle" },
 ];
 
-export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: string[]; perms?: string[]; isAdmin?: boolean }) {
+export function Header({ roles = [], perms = [], isAdmin = false, notifications }: { roles?: string[]; perms?: string[]; isAdmin?: boolean; notifications?: NotificationsData }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
@@ -119,6 +121,9 @@ export function Header({ roles = [], perms = [], isAdmin = false }: { roles?: st
         value={locale}
         onChange={(v) => setLocale(v as "es" | "en")}
       />
+
+      {/* Campanita de notificaciones (v1) */}
+      {notifications && <NotificationBell data={notifications} />}
 
       {/* Cierre de sesion server-side (limpia cookies de verdad) */}
       <form action={signOutAction}>
