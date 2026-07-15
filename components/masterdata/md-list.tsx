@@ -8,6 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { Catalog } from "@/lib/masterdata/registry";
 import type { FkOptions } from "@/lib/masterdata/queries";
 import { setRecordStatus } from "@/lib/masterdata/actions";
+import { BackButton } from "@/components/common/back-button";
 import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
@@ -93,7 +94,7 @@ export function MdList({ catalog, records, canManage, fkOptions = {} }: { catalo
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Volver al indice de datos maestros + titulo del catalogo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <Link href="/catalog" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-2)", textDecoration: "none" }}>← {t("md.back")}</Link>
+        <BackButton fallback="/catalog" label="md.back" />
         <span style={{ color: "var(--muted)" }}>/</span>
         <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{t(catalog.title)}</span>
       </div>

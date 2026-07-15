@@ -13,24 +13,33 @@ const WSJF_SERIES = [
   { key: "rr" as const, field: "risk_reduction" as const, color: "var(--st-medium)" },
 ];
 
-export function PortfolioCockpit({ rows, squads, tribes = [] }: { rows: PortfolioRow[]; squads: SquadCapacity[]; tribes?: TribeInfo[] }) {
+export function PortfolioCockpit({ rows, squads, tribes = [], initialTribe = null }: { rows: PortfolioRow[]; squads: SquadCapacity[]; tribes?: TribeInfo[]; initialTribe?: string | null }) {
   const { t, locale } = useI18n();
   const money = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0, notation: "compact" }).format(n);
 
-  const roi = portfolioRoi(rows);
-  const active = rows.filter((r) => r.status === "active").length;
-  const loads = squadLoads(squads, rows);
-  const tLoads = tribeLoads(tribes, squads, rows);
+  // Filtro por tribu (sembrado desde ?tribe= en la URL; conmutable en el propio cockpit). El roll-up
+  // completo (allTLoads) alimenta los chips de filtro; las metricas se calculan sobre las filas visibles.
+  const allTLoads = tribeLoads(tribes, squads, rows);
+  const filterTribes = allTLoads.filter((tr) => tr.squads > 0);
+  const [tribeId, setTribeId] = useState<string | null>(() => (initialTribe && filterTribes.some((tr) => tr.id === initialTribe) ? initialTribe : null));
+  const activeTribe = tribeId ? filterTribes.find((tr) => tr.id === tribeId) ?? null : null;
+  const tribeSquadSet = activeTribe ? new Set(activeTribe.squadIds) : null;
+  const viewRows = tribeSquadSet ? rows.filter((r) => r.squad?.id && tribeSquadSet.has(r.squad.id)) : rows;
+
+  const roi = portfolioRoi(viewRows);
+  const active = viewRows.filter((r) => r.status === "active").length;
+  const loads = squadLoads(squads, viewRows);
+  const tLoads = tribeLoads(tribes, squads, viewRows).filter((tr) => !tribeId || tr.id === tribeId);
   const loadById = new Map(loads.map((l) => [l.id, l]));
   const tribedIds = new Set(tLoads.flatMap((tr) => tr.squadIds));
-  const untribedLoads = loads.filter((l) => !tribedIds.has(l.id));
-  const withActuals = rows.filter((r) => r.actual_benefit_amount != null && r.actual_cost_amount != null);
-  const roadmap = rows.filter((r) => r.planned_start && r.planned_end);
+  const untribedLoads = tribeId ? [] : loads.filter((l) => !tribedIds.has(l.id));
+  const withActuals = viewRows.filter((r) => r.actual_benefit_amount != null && r.actual_cost_amount != null);
+  const roadmap = viewRows.filter((r) => r.planned_start && r.planned_end);
   const wl = { bv: t("proj.wsjf.bv"), tc: t("proj.wsjf.tc"), rr: t("proj.wsjf.rr"), js: t("proj.wsjf.js") };
 
   // Proyectos ABIERTOS por squad (para el drill-down de "que atiende cada squad", no solo la carga).
   const openBySquad = new Map<string, PortfolioRow[]>();
-  for (const r of rows) {
+  for (const r of viewRows) {
     if (!r.squad?.id || !isOpenProject(r.status)) continue;
     const arr = openBySquad.get(r.squad.id) ?? [];
     arr.push(r);
@@ -50,9 +59,20 @@ export function PortfolioCockpit({ rows, squads, tribes = [] }: { rows: Portfoli
         <Link href="/projects" className="cx-lift" style={{ textDecoration: "none", fontSize: 12.5, fontWeight: 700, color: "var(--text)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "9px 14px", background: "var(--card)" }}>{t("port.backKanban")}</Link>
       </div>
 
+      {/* Filtro por tribu (chips): "Todas" + una por tribu con squads. Estado real, sin hardcode. */}
+      {filterTribes.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".4px", color: "var(--muted)" }}>{t("port.filter.label")}</span>
+          <FilterChip active={tribeId === null} onClick={() => setTribeId(null)}>{t("port.filter.all")}</FilterChip>
+          {filterTribes.map((tr) => (
+            <FilterChip key={tr.id} active={tribeId === tr.id} onClick={() => setTribeId(tr.id)}>{tr.name}</FilterChip>
+          ))}
+        </div>
+      )}
+
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
-        <Kpi label={t("port.kpi.projects")} value={rows.length} />
+        <Kpi label={t("port.kpi.projects")} value={viewRows.length} />
         <Kpi label={t("port.kpi.active")} value={active} />
         <Kpi label={t("port.kpi.benefit")} value={money(roi.estBenefit)} />
         <Kpi label={t("port.kpi.roiEst")} value={roi.estRoi != null ? `${roi.estRoi}%` : "—"} />
@@ -65,9 +85,9 @@ export function PortfolioCockpit({ rows, squads, tribes = [] }: { rows: Portfoli
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 16 }}>
         <Panel title={t("port.wsjf.title")} hint={t("port.wsjf.hint")}>
           <Legend items={WSJF_SERIES.map((s) => ({ color: s.color, label: wl[s.key] }))} />
-          {rows.length === 0 ? <Empty text="—" /> : (
+          {viewRows.length === 0 ? <Empty text="—" /> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 12 }}>
-              {rows.slice(0, 12).map((r) => <WsjfRow key={r.id} r={r} maxNum={Math.max(1, ...rows.map((x) => wsjfParts(x).numerator))} labels={wl} />)}
+              {viewRows.slice(0, 12).map((r) => <WsjfRow key={r.id} r={r} maxNum={Math.max(1, ...viewRows.map((x) => wsjfParts(x).numerator))} labels={wl} />)}
             </div>
           )}
         </Panel>
@@ -161,6 +181,17 @@ function Panel({ title, hint, children }: { title: string; hint?: string; childr
   );
 }
 function Empty({ text }: { text: string }) { return <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "16px 0" }}>{text}</div>; }
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} aria-pressed={active}
+      style={{ fontSize: 12, fontWeight: 600, padding: "6px 13px", borderRadius: 999, cursor: "pointer",
+        border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
+        background: active ? "var(--accent)" : "var(--card)",
+        color: active ? "var(--on-accent, #fff)" : "var(--text)" }}>
+      {children}
+    </button>
+  );
+}
 function Legend({ items }: { items: { color: string; label: string }[] }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 8 }}>

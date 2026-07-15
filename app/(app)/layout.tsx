@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/app-shell/sidebar";
 import { Header } from "@/components/app-shell/header";
 import { CommandMenu } from "@/components/app-shell/command-menu";
 import { HelpFab } from "@/components/app-shell/help-fab";
+import { NavTracker } from "@/components/app-shell/nav-tracker";
 import { canSeeNav, requiredPermForPath } from "@/lib/nav/access";
 import { getSessionUser, getSessionAccount, getAccessControl, tenantNameOf } from "@/lib/auth/session";
 import { getContext } from "@/lib/auth/context";
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
+      <NavTracker />
       <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} roles={roleList} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
         <Header roles={roleList} perms={permList} isAdmin={isAdmin} notifications={notifications} />

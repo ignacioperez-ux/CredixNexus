@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/common/back-button";
 import { BEHAVIOR_DIMENSIONS, type BehaviorAnalysis, type BehaviorDimension, type BehaviorGroup } from "@/lib/analytics/queries";
 
 const DIM_LABEL: Record<BehaviorDimension, MessageKey> = {
@@ -27,6 +28,7 @@ export function BehaviorAnalysisView({ data, dimension, weeks }: { data: Behavio
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, opacity: pending ? 0.6 : 1, transition: "opacity .15s" }}>
+      <BackButton fallback="/analytics" />
       {/* Encabezado (hero credix.com: degradado calido en Claro, sobrio en Nexus) */}
       <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "22px 24px" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--text)", margin: 0 }}>{t("beh.title")}</h1>

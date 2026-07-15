@@ -9,6 +9,7 @@ import { SQUAD_TYPES } from "@/lib/tribes/validation";
 import { createTribe, updateTribe, setTribeStatus, assignSquadToTribe, setSquadTypeLock } from "@/lib/tribes/actions";
 import { ConceptTip } from "@/components/help/concept-tip";
 import { Icon } from "@/components/ui/icon";
+import { BackButton } from "@/components/common/back-button";
 
 const TYPE_COLOR: Record<string, string> = { domain: "var(--accent)", enabler: "var(--st-eval)", transient: "var(--muted)" };
 const emptyForm = { code: "", name: "", mission: "", valueStream: "" };
@@ -50,6 +51,7 @@ export function TribeMap({ tribes, squads, canManage }: { tribes: TribeRow[]; sq
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <BackButton fallback="/evolucion" />
       {/* Hero */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "22px 24px" }}>
         <div>

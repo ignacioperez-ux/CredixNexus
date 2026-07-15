@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BackButton } from "@/components/common/back-button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
@@ -48,7 +48,7 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-prose)" }}>
-      <Link href="/portal" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-2)", textDecoration: "none" }}>← {t("case.back")}</Link>
+      <BackButton fallback="/portal" label="case.back" />
 
       {/* Cabecera: anillo SLA + numero + estado + titulo */}
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>

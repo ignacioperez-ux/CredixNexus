@@ -5,7 +5,9 @@ import { PortfolioCockpit } from "@/components/projects/portfolio";
 
 // Portafolio: cockpit estrategico del Gerente de Evolucion. WSJF desglosado, ROI estimado vs real,
 // roadmap y capacidad prospectiva por TRIBU -> squad -> proyecto. Dato real (project.read + RLS).
-export default async function PortfolioPage() {
+// El filtro por tribu llega en la URL (?tribe=<id>) desde el drill-down de la Torre de Control.
+export default async function PortfolioPage({ searchParams }: { searchParams: Promise<{ tribe?: string }> }) {
+  const sp = await searchParams;
   const ctx = await getContext();
   if (!ctx) return null;
   const [rows, squads, tribes] = await Promise.all([
@@ -13,5 +15,5 @@ export default async function PortfolioPage() {
     listSquadCapacity(ctx.supabase),
     listTribes(ctx.supabase),
   ]);
-  return <PortfolioCockpit rows={rows} squads={squads} tribes={tribes.map((t) => ({ id: t.id, name: t.name, code: t.code }))} />;
+  return <PortfolioCockpit rows={rows} squads={squads} tribes={tribes.map((t) => ({ id: t.id, name: t.name, code: t.code }))} initialTribe={sp.tribe ?? null} />;
 }
