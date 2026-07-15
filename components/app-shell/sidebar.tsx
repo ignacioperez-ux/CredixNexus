@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import { Wordmark } from "./wordmark";
 import { Icon } from "@/components/ui/icon";
 import { canSeeNav } from "@/lib/nav/access";
-import { emphasisForRoles } from "@/lib/nav/role-ux";
 import { navForRoles, type NavigationItem, type NavCategory } from "@/lib/nav/navigation";
 
 // Sidebar de primer nivel = 8 categorias macro (Estructura Macro Aprobada - FASE 1).
@@ -35,11 +34,13 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   // especifico que contiene la ruta actual. Vale para MACRO_NAV y para el overlay de persona.
   const activeCat = activeCategoryId(cats, pathname);
 
-  // Enfasis por rol (FASE 2): categorias macro del cockpit del rol -> auto-expandidas.
-  const emphasis = emphasisForRoles(roles, isAdmin);
-  const [open, setOpen] = useState<Set<string>>(() => new Set(emphasis));
+  // Todas las categorias arrancan COMPRIMIDAS; se expanden solo si el usuario hace clic. Al
+  // navegar (salir de la vista) se vuelven a comprimir. La categoria activa se resalta pero NO
+  // se auto-expande (el usuario decide).
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+  useEffect(() => { setOpen(new Set()); }, [pathname]); // re-comprimir al cambiar de ruta
   const toggle = (id: string) => setOpen((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const isOpen = (id: string) => id === activeCat || open.has(id);
+  const isOpen = (id: string) => open.has(id);
 
   return (
     <aside style={{ width: 248, flexShrink: 0, background: "var(--sb-bg)", borderRight: "1px solid var(--sb-border)", display: "flex", flexDirection: "column", height: "100vh" }}>
