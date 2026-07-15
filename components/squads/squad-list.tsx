@@ -36,7 +36,11 @@ export function SquadList({ rows, businessUnits = [], canManage = false }: { row
         <Cell muted>{s.business_unit?.name ? <Drill onClick={() => f.set("bu", s.business_unit!.name)}>{s.business_unit.name}</Drill> : "—"}</Cell>
         <Cell mono>{s.member_count}</Cell>
         <Cell mono muted>{s.allocated_points}%{s.capacity_points ? ` / ${s.capacity_points}p` : ""}</Cell>
-        <Cell muted>{s.is_transversal ? t("sq.transversal") : t("sq.dedicated")}</Cell>
+        <Cell>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", background: s.is_transversal ? "var(--st-info-bg)" : "var(--paper)", color: s.is_transversal ? "var(--st-info)" : "var(--muted)" }}>
+            {s.is_transversal ? t("sq.type.transversal") : t("sq.type.dedicated")}
+          </span>
+        </Cell>
       </Link>
     );
   }
