@@ -27,6 +27,7 @@ const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
   { prefix: "/risk", title: "risk.title", subtitle: "risk.subtitle" },
   { prefix: "/workflows", title: "wf.title", subtitle: "wf.subtitle" },
   { prefix: "/rules", title: "rule.title", subtitle: "rule.subtitle" },
+  { prefix: "/casos-convertidos", title: "cc.title", subtitle: "cc.subtitle" },
   { prefix: "/projects", title: "proj.title", subtitle: "proj.subtitle" },
   { prefix: "/workload", title: "wl.title", subtitle: "wl.subtitle" },
   { prefix: "/squads", title: "sq.title", subtitle: "sq.subtitle" },

@@ -63,6 +63,7 @@ export const MACRO_NAV: NavCategory[] = [
     items: [
       { id: "nav.projects", label: "nav.projects", path: "/projects", perm: "project.read" },
       { id: "nav.portfolio", label: "nav.portfolio", path: "/projects/portafolio", perm: "project.read" },
+      { id: "nav.convertedcases", label: "nav.convertedcases", path: "/casos-convertidos", perm: ["project.read", "incident.read"] },
       { id: "nav.problems", label: "nav.problems", path: "/problems", perm: "problem.read" },
       { id: "nav.changes", label: "nav.changes", path: "/changes", perm: "change.read" },
       { id: "nav.squads", label: "nav.squads", path: "/squads", perm: "squad.read", absorbedInHub: true },
@@ -145,7 +146,7 @@ function buildRoleNav(spec: RoleNavSpec[]): NavCategory[] {
 //  - AYUDA: catalogo y autoservicio (mis solicitudes como cualquier usuario).
 export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
   { id: "ev.evolucion", label: "nav.ev.evolucion", icon: "zap", items: [
-    { id: "nav.projects" }, { id: "nav.portfolio" }, { id: "nav.squads" }, { id: "nav.resources" }, { id: "nav.talent" }, { id: "nav.vendors" },
+    { id: "nav.projects" }, { id: "nav.portfolio" }, { id: "nav.convertedcases" }, { id: "nav.squads" }, { id: "nav.resources" }, { id: "nav.talent" }, { id: "nav.vendors" },
   ] },
   { id: "ev.gobierno", label: "nav.ev.gobierno", icon: "shield", items: [
     { id: "nav.behavior" }, { id: "nav.analytics" }, { id: "nav.aicenter" }, { id: "nav.rules" }, { id: "nav.workflows" }, { id: "nav.processes" }, { id: "nav.knowledge" },
