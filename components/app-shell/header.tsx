@@ -31,6 +31,7 @@ const TITLES: { prefix: string; title: MessageKey; subtitle: MessageKey }[] = [
   { prefix: "/rules", title: "rule.title", subtitle: "rule.subtitle" },
   { prefix: "/casos-convertidos", title: "cc.title", subtitle: "cc.subtitle" },
   { prefix: "/evolucion/mapa", title: "tribe.title", subtitle: "tribe.subtitle" },
+  { prefix: "/evolucion", title: "evh.title", subtitle: "evh.subtitle" },
   { prefix: "/projects", title: "proj.title", subtitle: "proj.subtitle" },
   { prefix: "/workload", title: "wl.title", subtitle: "wl.subtitle" },
   { prefix: "/squads", title: "sq.title", subtitle: "sq.subtitle" },

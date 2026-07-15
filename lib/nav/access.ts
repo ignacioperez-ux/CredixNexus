@@ -33,6 +33,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = 
   { prefix: "/projects", perm: "project.read" },
   { prefix: "/casos-convertidos", perm: ["project.read", "incident.read"] },
   { prefix: "/evolucion/mapa", perm: "squad.read" },
+  { prefix: "/evolucion", perm: "project.read" },
   { prefix: "/squads", perm: "squad.read" },
   { prefix: "/talent", perm: "talent.read" },
   { prefix: "/workload", perm: "squad.read" },

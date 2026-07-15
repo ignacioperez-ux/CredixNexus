@@ -17,3 +17,15 @@ export async function getConvertedCases(supabase: SupabaseClient): Promise<Conve
   if (error) throw new Error(error.message);
   return (data ?? []) as ConvertedCase[];
 }
+
+// Home de Evolucion: funnel + salud + senales (RPC agregado).
+export type EvolutionHome = {
+  funnel: { candidates: number; rec_pending: number; rec_approved: number; in_evolution: number; proj_active: number; proj_done: number };
+  health: { blocked: number; at_risk: number; open_projects: number };
+  signals: number;
+};
+export async function getEvolutionHome(supabase: SupabaseClient): Promise<EvolutionHome> {
+  const { data, error } = await supabase.rpc("evolution_home");
+  if (error) throw new Error(error.message);
+  return (data ?? { funnel: {}, health: {}, signals: 0 }) as EvolutionHome;
+}
