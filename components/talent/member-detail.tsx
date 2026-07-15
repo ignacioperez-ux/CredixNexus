@@ -10,6 +10,7 @@ import {
   addMemberExpertise, removeMemberExpertise, addMemberEvaluation, deleteMemberEvaluation,
 } from "@/lib/talent/actions";
 import { EXTERNAL_TYPES, DISCIPLINES, SENIORITIES, EXPERTISE_ENTITIES, EVAL_TYPES } from "@/lib/talent/validation";
+import { email as vEmail } from "@/lib/validation";
 import { scoreColor } from "@/lib/incidents/labels";
 import { BackButton } from "@/components/common/back-button";
 import { Icon } from "@/components/ui/icon";
@@ -40,7 +41,7 @@ export function MemberDetail({ detail, options, canManage }: { detail: MemberDet
           {m.status !== "active" && <span style={{ fontSize: 11, color: "var(--st-critical-fg)" }}>({t("md.status.inactive")})</span>}
         </div>
         {canManage && (
-          <button onClick={() => { if (m.status === "active" && !confirm(t("tal.confirm_deactivate"))) return; run(() => setMemberStatus(m.id, m.status === "active" ? "inactive" : "active")); }}
+          <button onClick={() => { if (m.status === "active" && !confirm(t("tal.confirm_deactivate"))) return; run(() => setMemberStatus(m.id, m.status === "active" ? "inactive" : "active"), t("tal.ok.status")); }}
             disabled={pending} style={{ fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: m.status === "active" ? "var(--st-critical-fg)" : "var(--st-low-fg)", cursor: "pointer" }}>
             {m.status === "active" ? t("tal.deactivate") : t("tal.activate")}
           </button>
@@ -67,10 +68,26 @@ export function MemberDetail({ detail, options, canManage }: { detail: MemberDet
 function ProfileCard({ m, options, canManage, onSave, pending }: { m: MemberDetail["member"]; options: TalentOptions; canManage: boolean; onSave: (input: MemberInputLite, cb: () => void) => void; pending: boolean }) {
   const { t } = useI18n();
   const [edit, setEdit] = useState(false);
+  const [fe, setFe] = useState<{ name?: string; email?: string; capacity?: string }>({});
   const [form, setForm] = useState({
     name: m.name, email: m.email ?? "", isExternal: m.is_external, externalType: m.external_type ?? "subcontractor",
     deliveryAreaId: m.delivery_area_id ?? "", discipline: m.discipline ?? "", seniority: m.seniority ?? "", capacityPoints: String(m.capacity_points),
   });
+
+  // Validacion por campo (§10.3/§10.6): feedback inmediato antes de tocar el servidor.
+  function validate(): boolean {
+    const errs: { name?: string; email?: string; capacity?: string } = {};
+    if (form.name.trim().length < 3) errs.name = t("tal.err.name");
+    if (form.email.trim() && vEmail(form.email.trim())) errs.email = t("tal.err.email");
+    const cap = Number(form.capacityPoints);
+    if (!Number.isInteger(cap) || cap < 1 || cap > 40) errs.capacity = t("tal.err.capacity");
+    setFe(errs);
+    return Object.keys(errs).length === 0;
+  }
+  function submit() {
+    if (!validate()) return;
+    onSave({ name: form.name, email: form.email || undefined, isExternal: form.isExternal, externalType: form.isExternal ? form.externalType : undefined, deliveryAreaId: form.deliveryAreaId, discipline: form.discipline || undefined, seniority: form.seniority || undefined, capacityPoints: Number(form.capacityPoints) }, () => { setEdit(false); setFe({}); });
+  }
 
   if (!edit) {
     return (
@@ -86,8 +103,8 @@ function ProfileCard({ m, options, canManage, onSave, pending }: { m: MemberDeta
   return (
     <Card title={t("tal.section.profile")}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <Lbl t={t("tal.f.name")}><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inp} /></Lbl>
-        <Lbl t={t("tal.f.email")}><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={inp} /></Lbl>
+        <Lbl t={t("tal.f.name")}><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={fe.name ? inpErr : inp} />{fe.name && <FieldErr msg={fe.name} />}</Lbl>
+        <Lbl t={t("tal.f.email")}><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={fe.email ? inpErr : inp} />{fe.email && <FieldErr msg={fe.email} />}</Lbl>
         <Lbl t={t("tal.f.stream")}>
           <select value={form.deliveryAreaId} onChange={(e) => setForm({ ...form, deliveryAreaId: e.target.value })} style={inp}>
             {options.areas.map((a) => <option key={a.id} value={a.id}>{t(("tal.stream." + a.code) as MessageKey)}{a.lead_name ? ` · ${a.lead_name}` : ""}</option>)}
@@ -105,12 +122,11 @@ function ProfileCard({ m, options, canManage, onSave, pending }: { m: MemberDeta
             <Lbl t={t("tal.f.seniority")}><select value={form.seniority} onChange={(e) => setForm({ ...form, seniority: e.target.value })} style={inp}><option value="">—</option>{SENIORITIES.map((s) => <option key={s} value={s}>{s}</option>)}</select></Lbl>
           )}
           <Lbl t={t("tal.f.discipline")}><select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} style={inp}><option value="">—</option>{DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}</select></Lbl>
-          <Lbl t={t("tal.f.capacity")}><input type="number" min={1} max={40} value={form.capacityPoints} onChange={(e) => setForm({ ...form, capacityPoints: e.target.value })} style={inp} /></Lbl>
+          <Lbl t={t("tal.f.capacity")}><input type="number" min={1} max={40} value={form.capacityPoints} onChange={(e) => setForm({ ...form, capacityPoints: e.target.value })} style={fe.capacity ? inpErr : inp} />{fe.capacity && <FieldErr msg={fe.capacity} />}</Lbl>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => onSave({ name: form.name, email: form.email || undefined, isExternal: form.isExternal, externalType: form.isExternal ? form.externalType : undefined, deliveryAreaId: form.deliveryAreaId, discipline: form.discipline || undefined, seniority: form.seniority || undefined, capacityPoints: Number(form.capacityPoints) }, () => setEdit(false))}
-            disabled={pending} style={cta}>{t("tal.save")}</button>
-          <button onClick={() => setEdit(false)} style={ghost}>{t("common.cancel")}</button>
+          <button onClick={submit} disabled={pending} style={cta}>{t("tal.save")}</button>
+          <button onClick={() => { setEdit(false); setFe({}); }} style={ghost}>{t("common.cancel")}</button>
         </div>
       </div>
     </Card>
@@ -134,7 +150,7 @@ function SkillsCard({ detail, options, canManage, run }: { detail: MemberDetail;
           <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--line-soft)" }}>
             <span style={{ fontSize: 12.5, flex: 1, color: "var(--text)" }}>{s.skill?.name ?? "—"}</span>
             <LevelDots n={s.level} />
-            {canManage && <RemoveBtn onClick={() => run(() => removeMemberSkill(s.id, detail.member.id))} />}
+            {canManage && <RemoveBtn onClick={() => run(() => removeMemberSkill(s.id, detail.member.id), t("tal.ok.removed"))} />}
           </div>
         ))}
       </div>
@@ -145,7 +161,7 @@ function SkillsCard({ detail, options, canManage, run }: { detail: MemberDetail;
             {avail.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <select value={level} onChange={(e) => setLevel(e.target.value)} style={{ ...inp, width: 70 }}>{[1, 2, 3, 4, 5].map((l) => <option key={l} value={l}>{l}</option>)}</select>
-          <button onClick={() => { if (skillId) run(() => addMemberSkill(detail.member.id, { skillId, level: Number(level) }).then((r) => { if (r.ok) setSkillId(""); return r; })); }} disabled={!skillId} style={cta}>+</button>
+          <button onClick={() => { if (skillId) run(() => addMemberSkill(detail.member.id, { skillId, level: Number(level) }).then((r) => { if (r.ok) setSkillId(""); return r; }), t("tal.ok.added")); }} disabled={!skillId} style={cta}>+</button>
         </div>
       )}
     </Card>
@@ -170,7 +186,7 @@ function ExpertiseCard({ detail, options, canManage, run, entName }: { detail: M
             <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", color: "var(--accent-2)", width: 90, flexShrink: 0 }}>{t(("tal.ent." + e.entity_type) as MessageKey)}</span>
             <span style={{ fontSize: 12.5, flex: 1, color: "var(--text)" }}>{entName(e.entity_type, e.entity_id)}</span>
             <LevelDots n={e.level} />
-            {canManage && <RemoveBtn onClick={() => run(() => removeMemberExpertise(e.id, detail.member.id))} />}
+            {canManage && <RemoveBtn onClick={() => run(() => removeMemberExpertise(e.id, detail.member.id), t("tal.ok.removed"))} />}
           </div>
         ))}
       </div>
@@ -184,7 +200,7 @@ function ExpertiseCard({ detail, options, canManage, run, entName }: { detail: M
             {avail.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
           <select value={level} onChange={(e) => setLevel(e.target.value)} style={{ ...inp, width: 62 }}>{[1, 2, 3, 4, 5].map((l) => <option key={l} value={l}>{l}</option>)}</select>
-          <button onClick={() => { if (eid) run(() => addMemberExpertise(detail.member.id, { entityType: etype, entityId: eid, level: Number(level) }).then((r) => { if (r.ok) setEid(""); return r; })); }} disabled={!eid} style={cta}>+</button>
+          <button onClick={() => { if (eid) run(() => addMemberExpertise(detail.member.id, { entityType: etype, entityId: eid, level: Number(level) }).then((r) => { if (r.ok) setEid(""); return r; }), t("tal.ok.added")); }} disabled={!eid} style={cta}>+</button>
         </div>
       )}
     </Card>
@@ -233,7 +249,7 @@ function EvalsCard({ detail, canManage, run, locale }: { detail: MemberDetail; c
               {e.performance_score != null && <ScorePill label={t("tal.effectiveness")} v={Number(e.performance_score)} />}
               {e.empathy_score != null && <ScorePill label={t("tal.empathy")} v={Number(e.empathy_score)} />}
               <span style={{ fontSize: 10.5, color: "var(--muted)", marginLeft: "auto" }}>{new Date(e.created_at).toLocaleDateString(locale)}{e.evaluator ? ` · ${t("tal.eval.by")} ${e.evaluator.full_name}` : ""}</span>
-              {canManage && <RemoveBtn onClick={() => run(() => deleteMemberEvaluation(e.id, detail.member.id))} />}
+              {canManage && <RemoveBtn onClick={() => run(() => deleteMemberEvaluation(e.id, detail.member.id), t("tal.ok.removed"))} />}
             </div>
             {(e.comment || e.behavior_note || e.strengths) && <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "var(--text)", lineHeight: 1.5 }}>{e.comment || e.behavior_note || e.strengths}</p>}
           </div>
@@ -265,6 +281,9 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 function Lbl({ t, children }: { t: string; children: React.ReactNode }) {
   return <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{t}{children}</label>;
 }
+function FieldErr({ msg }: { msg: string }) {
+  return <span style={{ fontSize: 10.5, color: "var(--st-critical-fg)", fontWeight: 600 }}>{msg}</span>;
+}
 function LevelDots({ n }: { n: number }) {
   return <span style={{ display: "inline-flex", gap: 2 }}>{[1, 2, 3, 4, 5].map((i) => <span key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: i <= n ? "var(--accent-2)" : "var(--track)" }} />)}</span>;
 }
@@ -278,5 +297,6 @@ function RemoveBtn({ onClick }: { onClick: () => void }) {
 }
 
 const inp: React.CSSProperties = { width: "100%", fontSize: 12.5, padding: "8px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" };
+const inpErr: React.CSSProperties = { ...inp, border: "1px solid var(--st-critical)" };
 const cta: React.CSSProperties = { fontSize: 12.5, fontWeight: 700, padding: "8px 14px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: "pointer" };
 const ghost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, padding: "6px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", cursor: "pointer" };

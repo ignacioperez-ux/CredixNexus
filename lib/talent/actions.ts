@@ -55,12 +55,23 @@ export async function assignIncidentMember(incidentId: string, memberId: string,
 
 // ---- CRUD de profesionales (Talento) — regla §10 completa ---------------------
 
+/** Duplicado de email (§10.4 capa servicio): mismo email (case-insensitive) en el tenant, no borrado. */
+async function emailTaken(ctx: NonNullable<Awaited<ReturnType<typeof talentGuard>>["ctx"]>, email: string | undefined, exceptId?: string): Promise<boolean> {
+  const e = email?.trim();
+  if (!e) return false;
+  let q = ctx.supabase.from("team_member").select("id").eq("tenant_id", ctx.tenantId).ilike("email", e).neq("status", "deleted");
+  if (exceptId) q = q.neq("id", exceptId);
+  const { data } = await q.limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
 /** Alta de profesional (interno/externo) asociado a un stream (operaciones/evolucion). */
 export async function createMember(input: MemberInput): Promise<TalentResult> {
   const { ctx, err } = await talentGuard();
   if (!ctx) return { ok: false, error: err! };
   const v = validateMember(input);
   if (v) return { ok: false, error: v };
+  if (await emailTaken(ctx, input.email)) return { ok: false, error: ErrorCode.DUPLICATE };
   const { data, error } = await ctx.supabase.from("team_member").insert({
     tenant_id: ctx.tenantId,
     name: input.name.trim(),
@@ -84,6 +95,7 @@ export async function updateMember(id: string, input: MemberInput): Promise<Tale
   if (!ctx) return { ok: false, error: err! };
   const v = validateMember(input);
   if (v) return { ok: false, error: v };
+  if (await emailTaken(ctx, input.email, id)) return { ok: false, error: ErrorCode.DUPLICATE };
   const { error } = await ctx.supabase.from("team_member").update({
     name: input.name.trim(),
     email: input.email?.trim() || null,
