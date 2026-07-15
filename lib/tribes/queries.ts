@@ -8,7 +8,7 @@ export type TribeRow = {
 };
 export type SquadLite = {
   id: string; code: string; name: string; squad_type: SquadType; tribe_id: string | null;
-  is_transversal: boolean; capacity_points: number | null; status: string;
+  is_transversal: boolean; capacity_points: number | null; status: string; type_locked: boolean;
 };
 
 export async function listTribes(supabase: SupabaseClient): Promise<TribeRow[]> {
@@ -24,7 +24,7 @@ export async function listTribes(supabase: SupabaseClient): Promise<TribeRow[]> 
 export async function listSquadsLite(supabase: SupabaseClient): Promise<SquadLite[]> {
   const { data, error } = await supabase
     .from("squad")
-    .select("id, code, name, squad_type, tribe_id, is_transversal, capacity_points, status")
+    .select("id, code, name, squad_type, tribe_id, is_transversal, capacity_points, status, type_locked")
     .neq("status", "deleted")
     .order("name");
   if (error) throw new Error(error.message);

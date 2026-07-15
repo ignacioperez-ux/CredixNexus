@@ -6,7 +6,7 @@ import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { TribeRow, SquadLite } from "@/lib/tribes/queries";
 import { SQUAD_TYPES } from "@/lib/tribes/validation";
-import { createTribe, updateTribe, setTribeStatus, assignSquadToTribe } from "@/lib/tribes/actions";
+import { createTribe, updateTribe, setTribeStatus, assignSquadToTribe, setSquadTypeLock } from "@/lib/tribes/actions";
 import { ConceptTip } from "@/components/help/concept-tip";
 import { Icon } from "@/components/ui/icon";
 
@@ -103,6 +103,7 @@ export function TribeMap({ tribes, squads, canManage }: { tribes: TribeRow[]; sq
             typeLabel={typeLabel} onEdit={() => edit(tr)}
             onToggle={() => run(() => setTribeStatus(tr.id, "inactive"), t("tribe.saved"))}
             onAssign={(sid, tid, ty) => run(() => assignSquadToTribe(sid, tid, ty), t("tribe.saved"))}
+            onLock={(sid, locked) => run(() => setSquadTypeLock(sid, locked), t("tribe.saved"))}
             t={t} pending={pending} />
         ))}
         {/* Squads sin tribu */}
@@ -112,7 +113,8 @@ export function TribeMap({ tribes, squads, canManage }: { tribes: TribeRow[]; sq
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {untribed.map((s) => (
                 <SquadRow key={s.id} s={s} tribes={active} canManage={canManage} typeLabel={typeLabel}
-                  onAssign={(tid, ty) => run(() => assignSquadToTribe(s.id, tid, ty), t("tribe.saved"))} t={t} pending={pending} />
+                  onAssign={(tid, ty) => run(() => assignSquadToTribe(s.id, tid, ty), t("tribe.saved"))}
+                  onLock={(locked) => run(() => setSquadTypeLock(s.id, locked), t("tribe.saved"))} t={t} pending={pending} />
               ))}
             </div>
           </div>
@@ -122,9 +124,9 @@ export function TribeMap({ tribes, squads, canManage }: { tribes: TribeRow[]; sq
   );
 }
 
-function TribeCard({ tr, squads, tribes, canManage, typeLabel, onEdit, onToggle, onAssign, t, pending }: {
+function TribeCard({ tr, squads, tribes, canManage, typeLabel, onEdit, onToggle, onAssign, onLock, t, pending }: {
   tr: TribeRow; squads: SquadLite[]; tribes: TribeRow[]; canManage: boolean; typeLabel: (ty: string) => string;
-  onEdit: () => void; onToggle: () => void; onAssign: (sid: string, tid: string | null, ty?: string) => void; t: (k: MessageKey) => string; pending: boolean;
+  onEdit: () => void; onToggle: () => void; onAssign: (sid: string, tid: string | null, ty?: string) => void; onLock: (sid: string, locked: boolean) => void; t: (k: MessageKey) => string; pending: boolean;
 }) {
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card, none)", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -140,27 +142,33 @@ function TribeCard({ tr, squads, tribes, canManage, typeLabel, onEdit, onToggle,
         {squads.length === 0 && <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("tribe.nosquads")}</span>}
         {squads.map((s) => (
           <SquadRow key={s.id} s={s} tribes={tribes} canManage={canManage} typeLabel={typeLabel}
-            onAssign={(tid, ty) => onAssign(s.id, tid, ty)} t={t} pending={pending} />
+            onAssign={(tid, ty) => onAssign(s.id, tid, ty)} onLock={(locked) => onLock(s.id, locked)} t={t} pending={pending} />
         ))}
       </div>
     </div>
   );
 }
 
-function SquadRow({ s, tribes, canManage, typeLabel, onAssign, t, pending }: {
+function SquadRow({ s, tribes, canManage, typeLabel, onAssign, onLock, t, pending }: {
   s: SquadLite; tribes: TribeRow[]; canManage: boolean; typeLabel: (ty: string) => string;
-  onAssign: (tid: string | null, ty?: string) => void; t: (k: MessageKey) => string; pending: boolean;
+  onAssign: (tid: string | null, ty?: string) => void; onLock: (locked: boolean) => void; t: (k: MessageKey) => string; pending: boolean;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <span style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_COLOR[s.squad_type], flexShrink: 0 }} />
       <span style={{ fontSize: 12.5, color: "var(--text)", flex: 1, minWidth: 120 }}>{s.name}</span>
-      {!canManage && <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{typeLabel(s.squad_type)}</span>}
+      {!canManage && <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{typeLabel(s.squad_type)}{s.type_locked ? " 🔒" : ""}</span>}
       {canManage && (
         <>
           <select value={s.squad_type} onChange={(e) => onAssign(s.tribe_id, e.target.value)} disabled={pending} title={t("tribe.col.type")} style={sel}>
             {SQUAD_TYPES.map((ty) => <option key={ty} value={ty}>{typeLabel(ty)}</option>)}
           </select>
+          <button onClick={() => onLock(!s.type_locked)} disabled={pending}
+            title={s.type_locked ? t("tribe.lock.on") : t("tribe.lock.off")}
+            style={{ display: "inline-flex", padding: 5, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", cursor: "pointer",
+              background: s.type_locked ? "var(--accent-soft)" : "var(--card)", color: s.type_locked ? "var(--accent)" : "var(--muted)" }}>
+            <Icon name="lock" size={12} />
+          </button>
           <select value={s.tribe_id ?? ""} onChange={(e) => onAssign(e.target.value || null)} disabled={pending} title={t("tribe.col.tribe")} style={sel}>
             <option value="">{t("tribe.untribed.opt")}</option>
             {tribes.map((tr) => <option key={tr.id} value={tr.id}>{tr.name}</option>)}
