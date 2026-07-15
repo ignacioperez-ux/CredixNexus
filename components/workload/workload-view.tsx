@@ -9,12 +9,11 @@ import { loadTone, toneColor, toneFg } from "@/lib/capacity/compute";
 import { Icon } from "@/components/ui/icon";
 
 const CSS = `
-.wl { display:flex; flex-direction:column; gap:16px; }
-.wl .wl-card { background:var(--card); border:1px solid var(--line); border-radius:var(--r-xl); box-shadow:var(--sh-card); padding:20px; }
-.wl .wl-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-@media (max-width:640px){ .wl .wl-kpis { grid-template-columns:repeat(2,1fr); } }
-.wl .wl-row2 { display:grid; grid-template-columns:1fr; gap:16px; align-items:start; }
-@media (min-width:1024px){ .wl .wl-row2 { grid-template-columns:1.5fr 1fr; } }
+.wl { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.wl .wl-card { background:var(--card); border:1px solid var(--line); border-radius:var(--r-xl); box-shadow:var(--sh-card); padding:20px; min-width:0; }
+.wl .wl-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+.wl .wl-row2 { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
+@media (min-width:1280px){ .wl .wl-row2 { grid-template-columns:minmax(0,2.4fr) minmax(0,1fr); } }
 .wl .wl-wrap { overflow-x:auto; margin-top:12px; }
 .wl .wl-t { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
 .wl .wl-t th { position:sticky; top:0; background:var(--card); z-index:2; text-align:right; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#8A948A; padding:10px 12px; white-space:nowrap; border-bottom:1px solid var(--line); }
@@ -61,13 +60,13 @@ export function WorkloadView({ data, squads }: { data: Workload; squads: SquadCa
       </div>
 
       {suggestion && (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--st-high-bg, var(--paper))", border: "1px solid var(--st-high-border, var(--line))", borderRadius: 12, padding: "12px 16px" }}>
-          <Icon name="alert" size={17} color="var(--st-high-fg)" />
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "var(--st-high-bg, var(--paper))", border: "1px solid var(--st-high-border, var(--line))", borderRadius: 12, padding: "12px 16px" }}>
+          <Icon name="alert" size={17} color="var(--st-high-fg)" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".4px", color: "var(--st-high-fg)", marginBottom: 2 }}>{t("wl.suggest.title")}</div>
-            <div style={{ fontSize: 12.5, color: "var(--text)" }}>{suggestion}</div>
+            <div style={{ fontSize: 12.5, color: "var(--text)", wordBreak: "break-word" }}>{suggestion}</div>
           </div>
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
             {over && <Link href={`/squads/${over.id}`} style={chip}>{over.name}</Link>}
             {idle && <Link href={`/squads/${idle.id}`} style={chip}>{idle.name}</Link>}
           </div>
@@ -106,8 +105,8 @@ export function WorkloadView({ data, squads }: { data: Workload; squads: SquadCa
                   return (
                     <tr key={m.id}>
                       <td className="wl-first" title={m.name}>{m.name}</td>
-                      <td className="wl-l wl-hide" style={{ color: "var(--muted)", whiteSpace: "normal" }}>{m.squads.length ? m.squads.map((s) => s.name).join(", ") : "—"}</td>
-                      <td className="wl-l wl-hide" style={{ color: "var(--muted)" }}>{m.discipline ?? "—"}</td>
+                      <td className="wl-l wl-hide" title={m.squads.map((s) => s.name).join(", ")} style={{ color: "var(--muted)", whiteSpace: "normal" }}>{m.squads.length ? m.squads.map((s) => s.name).join(", ") : "—"}</td>
+                      <td className="wl-l wl-hide" title={m.discipline ?? undefined} style={{ color: "var(--muted)", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{m.discipline ?? "—"}</td>
                       <td>{m.openIncidents}</td>
                       <td>{m.taskPoints}</td>
                       <td className="wl-hide">{m.capacity_points}</td>
@@ -135,13 +134,14 @@ export function WorkloadView({ data, squads }: { data: Workload; squads: SquadCa
             {squads.map((s) => {
               const tone = loadTone(s.load_pct);
               return (
-                <Link key={s.id} href={`/squads/${s.id}`} style={{ textDecoration: "none", display: "block" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4, gap: 8 }}>
-                    <span style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: toneFg(tone), fontWeight: 700, flexShrink: 0 }}>{s.demand_points}/{s.capacity_points} · {s.load_pct ?? "—"}%</span>
-                  </div>
-                  <div style={{ height: 8, borderRadius: 4, background: "var(--track,var(--paper))", overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, s.load_pct ?? 0)}%`, height: "100%", borderRadius: 4, background: toneColor(tone) }} />
+                <Link key={s.id} href={`/squads/${s.id}`} title={s.name} style={{ textDecoration: "none", display: "block" }}>
+                  {/* Dos lineas: nombre completo arriba (nunca se trunca sin tooltip), carga + barra abajo. */}
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", marginBottom: 5, lineHeight: 1.25, wordBreak: "break-word" }}>{s.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, height: 8, borderRadius: 4, background: "var(--track,var(--paper))", overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(100, s.load_pct ?? 0)}%`, height: "100%", borderRadius: 4, background: toneColor(tone) }} />
+                    </div>
+                    <span style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", fontSize: 11.5, color: toneFg(tone), fontWeight: 700, flexShrink: 0 }}>{s.demand_points}/{s.capacity_points} · {s.load_pct ?? "—"}%</span>
                   </div>
                 </Link>
               );
