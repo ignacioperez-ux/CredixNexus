@@ -44,6 +44,7 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
 
   return (
     <aside style={{ width: 248, flexShrink: 0, background: "var(--sb-bg)", borderRight: "1px solid var(--sb-border)", display: "flex", flexDirection: "column", height: "100vh" }}>
+      <style>{`.sb-cat,.sb-link{transition:background .13s ease,color .13s ease}.sb-cat:hover,.sb-link:hover:not(.sb-active){background:var(--sb-hover)}`}</style>
       <div style={{ padding: 22, borderBottom: "1px solid var(--sb-border)" }}>
         <Wordmark />
         <div style={{ marginTop: 8, fontSize: 9.5, letterSpacing: "2px", textTransform: "uppercase", color: "var(--sb-muted)" }}>
@@ -60,7 +61,8 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
               <button
                 onClick={() => toggle(cat.id)}
                 aria-expanded={expanded}
-                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: "transparent", color: activeHere ? "var(--sb-fg-active)" : "var(--sb-fg)", fontSize: 13, fontWeight: 700 }}>
+                className="sb-cat"
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: activeHere ? "var(--sb-hover)" : "transparent", color: activeHere ? "var(--sb-fg-active)" : "var(--sb-fg)", fontSize: 13, fontWeight: 700 }}>
                 <Icon name={cat.icon} size={16} color={activeHere ? "var(--accent)" : "var(--sb-muted)"} />
                 <span style={{ flex: 1, textAlign: "left", letterSpacing: "0.2px" }}>{t(cat.label)}</span>
                 <Icon name={expanded ? "chevron-down" : "chevron-right"} size={14} color="var(--sb-muted)" />
@@ -96,8 +98,8 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
 
 function NavLink({ href, active, label, readOnly, readOnlyLabel }: { href: string; active: boolean; label: string; readOnly?: boolean; readOnlyLabel?: string }) {
   return (
-    <Link href={href} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-hover)" : "transparent" }}>
-      {active && <span style={{ position: "absolute", left: 16, top: 9, bottom: 9, width: 3, borderRadius: 3, background: "var(--accent)" }} />}
+    <Link href={href} className={active ? "sb-link sb-active" : "sb-link"} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-hover)" : "transparent" }}>
+      {active && <span style={{ position: "absolute", left: 14, top: 7, bottom: 7, width: 3.5, borderRadius: 3, background: "var(--accent)" }} />}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
       {readOnly && (
         <span title={readOnlyLabel} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 5, padding: "1px 5px" }}>
