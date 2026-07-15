@@ -8,23 +8,40 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { TalentProfile } from "@/lib/talent/queries";
 import { createMember } from "@/lib/talent/actions";
 import { EXTERNAL_TYPES, DISCIPLINES, SENIORITIES } from "@/lib/talent/validation";
-import { scoreColor } from "@/lib/incidents/labels";
-import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
+import { loadTone, toneColor, toneFg } from "@/lib/capacity/compute";
+import { useListFilters, FilterBar, useGrouping, GroupBar, EmptyState, type FilterDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
 type Area = { id: string; code: string; name: string; lead_name: string | null };
 
-export function TalentList({ profiles, areas = [], canManage = false }: { profiles: TalentProfile[]; areas?: Area[]; canManage?: boolean }) {
+const CSS = `
+.tl-wrap { overflow-x:auto; }
+.tl-t { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
+.tl-t th { position:sticky; top:0; background:var(--card); z-index:2; text-align:right; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#8A948A; padding:10px 12px; white-space:nowrap; border-bottom:1px solid var(--line); }
+.tl-t th.tl-l { text-align:left; }
+.tl-t th.tl-first, .tl-t td.tl-first { position:sticky; left:0; text-align:left; background:var(--card); }
+.tl-t th.tl-first { z-index:3; }
+.tl-t td { padding:9px 12px; text-align:right; white-space:nowrap; color:var(--text); border-bottom:1px solid var(--line-soft,var(--line)); background:var(--card); vertical-align:middle; }
+.tl-t td.tl-l { text-align:left; }
+.tl-t tbody tr.tl-row { cursor:pointer; }
+.tl-t tbody tr.tl-row:nth-child(even) td { background:var(--paper); }
+.tl-t tbody tr.tl-row:hover td { background:var(--accent-soft); }
+.tl-t tr.tl-grp td { background:var(--head-bg); font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); padding:8px 12px; text-align:left; }
+@media (max-width:1000px){ .tl-t .tl-hide { display:none; } }
+`;
+function effColor(v: number): string { return v >= 85 ? "var(--st-low-fg)" : v >= 70 ? "var(--st-high-fg)" : "var(--st-critical-fg)"; }
+
+export function TalentList({ profiles, areas = [], canManage = false, load = {} }: { profiles: TalentProfile[]; areas?: Area[]; canManage?: boolean; load?: Record<string, number> }) {
   const { t } = useI18n();
   const errMsg = useErrorMessage();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState("");
   const empty = { name: "", email: "", isExternal: false, externalType: "subcontractor", deliveryAreaId: areas[0]?.id ?? "", discipline: "", seniority: "", capacityPoints: "8" };
   const [form, setForm] = useState(empty);
 
-  const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };
   const defs: FilterDef<TalentProfile>[] = [
     { key: "stream", label: t("tal.col.stream"), get: (p) => p.stream_name, allLabel: t("md.filter.all") },
     { key: "type", label: t("tal.col.type"), get: (p) => (p.is_external ? "external" : "internal"), allLabel: t("md.filter.all"), render: (v) => t(("tal.type." + v) as MessageKey) },
@@ -48,20 +65,48 @@ export function TalentList({ profiles, areas = [], canManage = false }: { profil
     });
   }
 
-  function Line(p: TalentProfile) {
+  const matchQ = (p: TalentProfile) => !q.trim() || p.name.toLowerCase().includes(q.trim().toLowerCase());
+
+  function Row(p: TalentProfile) {
+    const points = load[p.id] ?? 0;
+    const util = p.capacity_points > 0 ? Math.round((points / p.capacity_points) * 100) : 0;
+    const uTone = loadTone(p.capacity_points > 0 ? util : null);
+    const topSkills = p.skills.slice().sort((a, b) => b.level - a.level).slice(0, 2);
     return (
-      <Link key={p.id} href={`/talent/${p.id}`} className="cx-row" style={{ display: "contents", textDecoration: "none" }}>
-        <Cell>
-          <span style={{ fontWeight: 600, color: "var(--text)" }}>{p.name}</span>
-          {p.is_external && <span style={{ fontSize: 9.5, fontWeight: 700, marginLeft: 8, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--paper)", color: "var(--muted)" }}>{p.external_type ? t(("tal.ext." + p.external_type) as MessageKey) : t("tal.type.external")}</span>}
-          {p.status !== "active" && <span style={{ fontSize: 9.5, marginLeft: 8, color: "var(--muted)" }}>({t("md.status.inactive")})</span>}
-        </Cell>
-        <Cell muted>{p.discipline ? <Drill onClick={() => f.set("disc", p.discipline!)}>{p.discipline}</Drill> : "—"}</Cell>
-        <Cell muted>{p.stream_name ? <Drill onClick={() => f.set("stream", p.stream_name!)}>{p.stream_name}</Drill> : "—"}{p.stream_lead ? <span style={{ fontSize: 10.5, color: "var(--muted)" }}> · {p.stream_lead}</span> : ""}</Cell>
-        <Cell mono muted right>{p.openIncidents}</Cell>
-        <Cell right>{p.effectiveness != null ? <Score v={p.effectiveness} /> : <span style={{ color: "var(--muted)" }}>—</span>}</Cell>
-        <Cell right>{p.empathy != null ? <Score v={p.empathy} /> : <span style={{ color: "var(--muted)" }}>—</span>}</Cell>
-      </Link>
+      <tr key={p.id} className="tl-row" onClick={() => router.push(`/talent/${p.id}`)}>
+        <td className="tl-first">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 600, color: "var(--text)" }}>{p.name}</span>
+            {p.is_external && <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--paper)", color: "var(--muted)" }}>{p.external_type ? t(("tal.ext." + p.external_type) as MessageKey) : t("tal.type.external")}</span>}
+            {p.status !== "active" && <span style={{ fontSize: 9.5, color: "var(--muted)" }}>({t("md.status.inactive")})</span>}
+          </div>
+          {topSkills.length > 0 && (
+            <div style={{ display: "flex", gap: 5, marginTop: 5, flexWrap: "wrap" }}>
+              {topSkills.map((s) => <span key={s.name} style={{ fontSize: 10, color: "var(--accent-2)", background: "var(--accent-soft)", borderRadius: 6, padding: "1px 7px" }}>{s.name}</span>)}
+              {p.skills.length > 2 && <span style={{ fontSize: 10, color: "var(--muted)" }}>+{p.skills.length - 2}</span>}
+            </div>
+          )}
+        </td>
+        <td className="tl-l tl-hide">
+          {p.stream_name ? <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", padding: "2px 9px" }}>{p.stream_name}</span> : <span style={{ color: "var(--muted)" }}>—</span>}
+          {p.stream_lead && <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 3 }}>{p.stream_lead}</div>}
+        </td>
+        <td className="tl-l tl-hide" style={{ color: "var(--muted)" }}>{p.discipline ?? "—"}</td>
+        <td title={t("tal.carga.def")}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+            <div style={{ width: 56, height: 7, background: "var(--track,var(--paper))", borderRadius: 4, overflow: "hidden" }}><div style={{ width: `${Math.min(100, util)}%`, height: "100%", background: toneColor(uTone), borderRadius: 4 }} /></div>
+            <span style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: toneFg(uTone), fontWeight: 700, width: 40, textAlign: "right" }}>{p.capacity_points > 0 ? `${util}%` : "—"}</span>
+          </div>
+        </td>
+        <td>
+          {p.effectiveness != null
+            ? <span title={t("tal.eff.def")} style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", fontSize: 14, fontWeight: 700, color: effColor(p.effectiveness) }}>{p.effectiveness}</span>
+            : <Link href={`/talent/${p.id}`} onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
+                <span style={{ fontSize: 11, color: "var(--muted)", fontStyle: "italic", opacity: 0.8 }}>{t("tal.unrated")}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent-2)", background: "var(--accent-soft)", borderRadius: 7, padding: "2px 8px" }}>{t("tal.evaluate")}</span>
+              </Link>}
+        </td>
+      </tr>
     );
   }
 
@@ -124,40 +169,53 @@ export function TalentList({ profiles, areas = [], canManage = false }: { profil
       )}
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <FilterBar defs={defs} filters={f} />
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--line)", borderRadius: 9, padding: "0 10px", background: "var(--card)" }}>
+            <Icon name="search" size={14} color="var(--muted)" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("tal.search")} style={{ border: "none", background: "transparent", color: "var(--text)", fontSize: 12.5, padding: "8px 0", outline: "none", width: 170 }} />
+          </div>
+          <FilterBar defs={defs} filters={f} />
+        </div>
         <GroupBar defs={defs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
       </div>
 
+      <style>{CSS}</style>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 110px 1.4fr 90px 110px 110px", minWidth: 860 }}>
-            {[t("tal.col.member"), t("tal.f.discipline"), t("tal.col.stream"), t("tal.load"), t("tal.col.effectiveness"), t("tal.col.empathy")].map((h, i) => (
-              <div key={h} style={{ ...head, textAlign: i >= 3 ? "right" : "left" }}>{h}</div>
-            ))}
-            {f.filtered.length === 0 && <EmptyState text={t("tal.empty")} icon="users" />}
-            {g.groups
-              ? g.groups.map((grp) => (
-                  <div key={grp.value} style={{ display: "contents" }}>
-                    <GroupHeader label={grp.label} count={grp.rows.length} />
-                    {grp.rows.map(Line)}
-                  </div>
-                ))
-              : f.filtered.map(Line)}
-          </div>
+        <div className="tl-wrap">
+          <table className="tl-t">
+            <thead>
+              <tr>
+                <th className="tl-first">{t("tal.col.member")}</th>
+                <th className="tl-l tl-hide">{t("tal.col.stream")}</th>
+                <th className="tl-l tl-hide">{t("tal.f.discipline")}</th>
+                <th title={t("tal.carga.def")}>{t("tal.carga")}</th>
+                <th title={t("tal.eff.def")}>{t("tal.col.effectiveness")}</th>
+              </tr>
+            </thead>
+            {f.filtered.filter(matchQ).length === 0 ? (
+              <tbody><tr><td colSpan={5} style={{ textAlign: "center", padding: 0 }}><EmptyState text={t("tal.empty")} icon="users" /></td></tr></tbody>
+            ) : g.groups ? (
+              g.groups.map((grp) => {
+                const rows = grp.rows.filter(matchQ);
+                if (rows.length === 0) return null;
+                return (
+                  <tbody key={grp.value}>
+                    <tr className="tl-grp"><td colSpan={5}>{grp.label} · {rows.length}</td></tr>
+                    {rows.map(Row)}
+                  </tbody>
+                );
+              })
+            ) : (
+              <tbody>{f.filtered.filter(matchQ).map(Row)}</tbody>
+            )}
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-function Score({ v }: { v: number }) {
-  return <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: scoreColor(v) }}>{v}</span>;
-}
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{label}{children}</label>;
 }
 const inp: React.CSSProperties = { width: "100%", fontSize: 12.5, padding: "8px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" };
-const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)" };
-function Cell({ children, mono, muted, right }: { children: React.ReactNode; mono?: boolean; muted?: boolean; right?: boolean }) {
-  return <div style={{ ...cellSt, justifyContent: right ? "flex-end" : "flex-start", fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: muted ? "var(--muted)" : "var(--text)" }}>{children}</div>;
-}
