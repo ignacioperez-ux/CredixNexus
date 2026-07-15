@@ -18,14 +18,35 @@ export async function getConvertedCases(supabase: SupabaseClient): Promise<Conve
   return (data ?? []) as ConvertedCase[];
 }
 
-// Home de Evolucion: funnel + salud + senales (RPC agregado).
+// Torre de Control: funnel + aging + salud (con items) + senales (RPC agregado).
+export type FunnelStage = "candidates" | "rec_pending" | "rec_approved" | "in_evolution" | "proj_active" | "proj_done";
+export type HealthItem = { id: string; code: string; name: string; kind: "blocked" | "at_risk" };
 export type EvolutionHome = {
-  funnel: { candidates: number; rec_pending: number; rec_approved: number; in_evolution: number; proj_active: number; proj_done: number };
-  health: { blocked: number; at_risk: number; open_projects: number };
+  funnel: Record<FunnelStage, number>;
+  aging: Record<FunnelStage, number>;
+  health: { blocked: number; at_risk: number; open_projects: number; items: HealthItem[] };
   signals: number;
 };
 export async function getEvolutionHome(supabase: SupabaseClient): Promise<EvolutionHome> {
   const { data, error } = await supabase.rpc("evolution_home");
   if (error) throw new Error(error.message);
-  return (data ?? { funnel: {}, health: {}, signals: 0 }) as EvolutionHome;
+  const d = (data ?? {}) as Partial<EvolutionHome>;
+  return {
+    funnel: (d.funnel ?? {}) as Record<FunnelStage, number>,
+    aging: (d.aging ?? {}) as Record<FunnelStage, number>,
+    health: { blocked: 0, at_risk: 0, open_projects: 0, items: [], ...(d.health ?? {}) },
+    signals: d.signals ?? 0,
+  };
+}
+
+// Bandeja de decisiones (gateada por permiso por seccion en el RPC).
+export type DecisionKind = "mi_comm" | "cab" | "convert" | "signal" | "roi" | "kb";
+export type DecisionItem = {
+  kind: DecisionKind; rank: number; title?: string; code?: string | null; entity_id?: string;
+  age_days?: number; severity: "red" | "amber"; link: string; count?: number;
+};
+export async function getEvolutionDecisions(supabase: SupabaseClient): Promise<DecisionItem[]> {
+  const { data, error } = await supabase.rpc("evolution_decisions");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as DecisionItem[]).sort((a, b) => a.rank - b.rank || (b.age_days ?? 0) - (a.age_days ?? 0));
 }
