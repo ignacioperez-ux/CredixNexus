@@ -55,7 +55,7 @@ export const ROLE_UX: Record<string, RoleUx> = {
   // Navegacion de persona (EVOLUTION_NAV, 1.2): auto-expande sus bloques "ev.evolucion"/"ev.gobierno".
   // Se conservan los ids MACRO ("evolucion"/"conocimiento"/"analitica") para el caso multi-rol que
   // renderiza MACRO_NAV (p.ej. product_owner + support_agent), donde el overlay no aplica.
-  product_owner: { emphasis: ["evolucion", "conocimiento", "analitica", "ev.evolucion", "ev.gobierno"], home: "/evolucion", primaryAction: "newProject" },
+  product_owner: { emphasis: ["evolucion", "conocimiento", "analitica", "ev.evolucion", "ev.estrategia", "ev.analisis360"], home: "/evolucion", primaryAction: "newProject" },
   // Squad -> Delivery Hub
   squad_member: { emphasis: ["evolucion", "conocimiento"], home: "/projects", primaryAction: "openBacklog" },
   // Usuario final -> Autoservicio simple

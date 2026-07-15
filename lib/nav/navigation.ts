@@ -124,7 +124,7 @@ export const ALL_NAV_ITEMS: NavigationItem[] = MACRO_NAV.flatMap((c) => c.items)
 
 const ITEM_BY_ID: Record<string, NavigationItem> = Object.fromEntries(ALL_NAV_ITEMS.map((i) => [i.id, i]));
 
-type RoleNavRef = { id: string; readOnly?: boolean };
+type RoleNavRef = { id: string; readOnly?: boolean; label?: MessageKey };
 type RoleNavSpec = { id: string; label: MessageKey; icon: string; items: RoleNavRef[] };
 
 function buildRoleNav(spec: RoleNavSpec[]): NavCategory[] {
@@ -135,30 +135,39 @@ function buildRoleNav(spec: RoleNavSpec[]): NavCategory[] {
     items: c.items.map((ref) => {
       const base = ITEM_BY_ID[ref.id];
       if (!base) throw new Error(`nav de rol: referencia desconocida "${ref.id}"`);
-      return ref.readOnly ? { ...base, readOnly: true } : base;
+      // Override solo de presentacion (label / readOnly); path y perm SIEMPRE del item canonico.
+      if (ref.readOnly || ref.label) {
+        return { ...base, ...(ref.readOnly ? { readOnly: true } : {}), ...(ref.label ? { label: ref.label } : {}) };
+      }
+      return base;
     }),
   }));
 }
 
-// Persona "Gerente de Evolucion" (product_owner). Cuatro bloques:
-//  - EVOLUCION: el trabajo del squad (portafolio, squads, capacidad, talento, proveedores).
-//  - GOBIERNO Y ANALISIS: motor de reglas, IA, arquitectura, conocimiento y ANALISIS proactivo
-//    de comportamiento de casos (agregado). Aqui vive la vista de analisis (1.3).
-//  - CASOS Y COORDINACION: incidentes mayores (ACCIONABLE por ambas areas) + problemas y cambios
-//    (SOLO LECTURA: el rol lee/vincula pero no edita; badge lo indica).
-//  - AYUDA: catalogo y autoservicio (mis solicitudes como cualquier usuario).
+// Persona "Gerente de Evolucion" (product_owner). Sidebar por logica natural de trabajo:
+// vision -> portafolio -> ejecucion -> analisis -> inteligencia -> conocimiento. Mismos items
+// canonicos (paths/perms intactos); solo se reagrupan y se renombran etiquetas (override).
 export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
-  { id: "ev.evolucion", label: "nav.ev.evolucion", icon: "zap", items: [
-    { id: "nav.evhome" }, { id: "nav.tribemap" }, { id: "nav.projects" }, { id: "nav.portfolio" }, { id: "nav.convertedcases" }, { id: "nav.squads" }, { id: "nav.resources" }, { id: "nav.talent" }, { id: "nav.vendors" },
+  { id: "ev.evolucion", label: "nav.ev.evolucion", icon: "home", items: [
+    { id: "nav.evhome", label: "nav.evx.control" },
   ] },
-  { id: "ev.gobierno", label: "nav.ev.gobierno", icon: "shield", items: [
-    { id: "nav.behavior" }, { id: "nav.analytics" }, { id: "nav.aicenter" }, { id: "nav.rules" }, { id: "nav.workflows" }, { id: "nav.processes" }, { id: "nav.knowledge" },
+  { id: "ev.estrategia", label: "nav.ev.estrategia", icon: "star", items: [
+    { id: "nav.portfolio" }, { id: "nav.projects" }, { id: "nav.tribemap" },
   ] },
-  { id: "ev.casos", label: "nav.ev.casos", icon: "search", items: [
-    { id: "nav.majorincidents" }, { id: "nav.problems", readOnly: true }, { id: "nav.changes", readOnly: true },
+  { id: "ev.ejecucion", label: "nav.ev.ejecucion", icon: "users", items: [
+    { id: "nav.squads" }, { id: "nav.resources" }, { id: "nav.talent" }, { id: "nav.vendors" },
   ] },
-  { id: "ev.ayuda", label: "nav.ev.ayuda", icon: "help", items: [
-    { id: "nav.servicecatalog" }, { id: "nav.selfservice" },
+  { id: "ev.analisis360", label: "nav.ev.analisis360", icon: "activity", items: [
+    { id: "nav.behavior" }, { id: "nav.analytics", label: "nav.evx.analytics" }, { id: "nav.convertedcases" },
+    { id: "nav.majorincidents", label: "nav.evx.majorinc" }, { id: "nav.problems", readOnly: true, label: "nav.evx.problems" },
+    { id: "nav.changes", readOnly: true, label: "nav.evx.changes" },
+    { id: "nav.selfservice", label: "nav.evx.mycases" }, { id: "nav.servicecatalog", label: "nav.evx.myrequests" },
+  ] },
+  { id: "ev.inteligencia", label: "nav.ev.inteligencia", icon: "sparkle", items: [
+    { id: "nav.aicenter" }, { id: "nav.rules" }, { id: "nav.workflows" }, { id: "nav.processes" },
+  ] },
+  { id: "ev.km", label: "nav.ev.km", icon: "folder", items: [
+    { id: "nav.knowledge", label: "nav.evx.km" },
   ] },
 ]);
 

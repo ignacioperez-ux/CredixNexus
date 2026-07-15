@@ -81,10 +81,18 @@ describe("navegacion de persona (EVOLUTION_NAV / navForRoles)", () => {
   });
 
   it("problemas y cambios son solo-lectura; incidentes mayores accionable (ambas areas)", () => {
-    const casos = EVOLUTION_NAV.find((c) => c.id === "ev.casos")!;
+    const casos = EVOLUTION_NAV.find((c) => c.id === "ev.analisis360")!;
     expect(casos.items.find((i) => i.id === "nav.problems")?.readOnly).toBe(true);
     expect(casos.items.find((i) => i.id === "nav.changes")?.readOnly).toBe(true);
     expect(casos.items.find((i) => i.id === "nav.majorincidents")?.readOnly).toBeFalsy();
+  });
+
+  it("los overrides de etiqueta NO alteran path ni perm del item canonico", () => {
+    const analisis = EVOLUTION_NAV.find((c) => c.id === "ev.analisis360")!;
+    const analytics = analisis.items.find((i) => i.id === "nav.analytics")!;
+    expect(analytics.label).toBe("nav.evx.analytics");        // etiqueta override
+    expect(analytics.path).toBe("/analytics");                // path canonico intacto
+    expect(analytics.perm).toEqual(["incident.read", "analytics.read"]);
   });
 
   it("navForRoles: product_owner puro -> overlay; admin y multi-rol operativo -> MACRO_NAV", () => {
