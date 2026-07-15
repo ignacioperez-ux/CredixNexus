@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { addProjectTask, setTaskStatus, changeProjectStatus, softDeleteProject } from "@/lib/projects/actions";
-import { computeRoi, type AnchorCase, type InitiativeSquad } from "@/lib/projects/queries";
+import { computeRoi, type AnchorCase, type InitiativeSquad, type ProjectRisk } from "@/lib/projects/queries";
 import { statusKey, statusColors } from "@/lib/incidents/labels";
+import { initiativeHealth, openRiskCount } from "@/lib/projects/health";
 import { InitiativeSquads } from "./initiative-squads";
+import { InitiativeRisks } from "./initiative-risks";
 import { AiBusinessCase } from "./ai-business-case";
 import { BackButton } from "@/components/common/back-button";
 import { QaPanel } from "./qa-panel";
@@ -47,18 +49,22 @@ type Def = { id: string; code: string; name: string };
 
 const TASK_STATES = ["todo", "doing", "blocked", "done"];
 
-export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false, canManage = false, canReadIncident = false, anchor = null, initiativeSquads = [], squadOptions = [] }: {
+export function ProjectDetail({ project, tasks, validations = [], workflows = [], workflowDefs = [], qa = { canValidate: false, canDeploy: false, canRunWorkflow: false }, squadMembers = [], canManageTalent = false, canManage = false, canReadIncident = false, anchor = null, initiativeSquads = [], squadOptions = [], risks = [] }: {
   project: ProjectDetailData; tasks: Task[]; validations?: ValidationRow[]; workflows?: Wf[]; workflowDefs?: Def[];
   qa?: { canValidate: boolean; canDeploy: boolean; canRunWorkflow: boolean };
   squadMembers?: { id: string; name: string }[]; canManageTalent?: boolean;
   canManage?: boolean; canReadIncident?: boolean; anchor?: AnchorCase | null;
-  initiativeSquads?: InitiativeSquad[]; squadOptions?: { id: string; name: string }[];
+  initiativeSquads?: InitiativeSquad[]; squadOptions?: { id: string; name: string }[]; risks?: ProjectRisk[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [newTask, setNewTask] = useState("");
   const [busy, setBusy] = useState(false);
   const [taskErr, setTaskErr] = useState<string | null>(null);
+  const health = initiativeHealth(risks);
+  const openRisks = openRiskCount(risks);
+  const healthColor = health === "crit" ? "var(--st-critical-fg)" : health === "warn" ? "var(--st-high-fg)" : "var(--st-low-fg)";
+  const healthBg = health === "crit" ? "var(--st-critical-bg)" : health === "warn" ? "var(--st-high-bg)" : "var(--st-low-bg)";
 
   async function add() {
     setTaskErr(null);
@@ -92,6 +98,10 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
               {t(("init.type." + project.initiative_type) as MessageKey)}
             </span>
           )}
+          <span title={t(("irisk.health." + health) as MessageKey)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, color: healthColor, background: healthBg, padding: "3px 9px", borderRadius: "var(--r-pill)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: healthColor }} />
+            {t(("irisk.health." + health) as MessageKey)}{openRisks > 0 ? ` · ${openRisks}` : ""}
+          </span>
         </div>
         {canManage && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -138,6 +148,8 @@ export function ProjectDetail({ project, tasks, validations = [], workflows = []
           <Card title={t("proj.section.aibc")}>
             <AiBusinessCase projectId={project.id} current={project.business_case?.narrative ?? null} />
           </Card>
+
+          <InitiativeRisks projectId={project.id} risks={risks} squadOptions={squadOptions} canManage={canManage} />
 
           {project.incident && (
             <Card title={t("proj.section.origin")}>

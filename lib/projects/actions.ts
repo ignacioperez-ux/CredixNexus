@@ -180,6 +180,67 @@ export async function setInitiativeLead(projectId: string, squadId: string): Pro
   return { ok: true, id: projectId };
 }
 
+/** % de dedicacion de un squad a la iniciativa (0-100). */
+export async function updateProjectSquadAllocation(linkId: string, projectId: string, allocationPct: number): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  const pct = Math.round(allocationPct);
+  if (!Number.isInteger(pct) || pct < 0 || pct > 100) return { ok: false, error: ErrorCode.FORMAT };
+  const { error } = await ctx.supabase.from("project_squad").update({ allocation_pct: pct, updated_by: ctx.accountId }).eq("id", linkId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
+}
+
+// ---- Iniciativa 360 (Fase 2): blockers / riesgos / dependencias ------------------
+const RISK_KINDS = ["blocker", "risk", "dependency"];
+const RISK_SEV = ["low", "medium", "high", "critical"];
+const RISK_ST = ["open", "mitigating", "resolved"];
+export type RiskInput = { kind: string; title: string; description?: string; severity: string; relatedSquadId?: string; dueDate?: string };
+
+export async function addProjectRisk(projectId: string, input: RiskInput): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  const err = firstError(
+    minLength(input.title, 3),
+    RISK_KINDS.includes(input.kind) ? null : ErrorCode.FORMAT,
+    RISK_SEV.includes(input.severity) ? null : ErrorCode.FORMAT,
+  );
+  if (err) return { ok: false, error: err };
+  const { error } = await ctx.supabase.from("project_risk").insert({
+    tenant_id: ctx.tenantId, project_id: projectId, kind: input.kind, title: input.title.trim(),
+    description: input.description?.trim() || null, severity: input.severity,
+    related_squad_id: input.kind === "dependency" ? (input.relatedSquadId || null) : null,
+    due_date: input.dueDate || null, created_by: ctx.accountId, updated_by: ctx.accountId,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
+}
+
+export async function setProjectRiskStatus(id: string, projectId: string, status: string): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!RISK_ST.includes(status)) return { ok: false, error: ErrorCode.FORMAT };
+  const { error } = await ctx.supabase.from("project_risk").update({ status, updated_by: ctx.accountId, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
+}
+
+export async function removeProjectRisk(id: string, projectId: string): Promise<ProjectResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await canManageProject())) return { ok: false, error: ErrorCode.PERMISSION };
+  const { error } = await ctx.supabase.from("project_risk").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, id: projectId };
+}
+
 export async function addProjectTask(projectId: string, title: string): Promise<ProjectResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };

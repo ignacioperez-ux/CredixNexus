@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { InitiativeSquad } from "@/lib/projects/queries";
-import { addProjectSquad, removeProjectSquad, setInitiativeLead } from "@/lib/projects/actions";
+import { addProjectSquad, removeProjectSquad, setInitiativeLead, updateProjectSquadAllocation } from "@/lib/projects/actions";
 import { ConceptTip } from "@/components/help/concept-tip";
 import { Icon } from "@/components/ui/icon";
 
@@ -37,6 +37,11 @@ export function InitiativeSquads({ projectId, squads, options, canManage }: {
           <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_COLOR[s.squad?.squad_type ?? "domain"], flexShrink: 0 }} />
             <Link href="/evolucion/mapa" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.squad?.name ?? "—"}</Link>
+            {canManage
+              ? <input type="number" min={0} max={100} defaultValue={s.allocation_pct ?? ""} placeholder="%" title={t("initsq.alloc")}
+                  onBlur={(e) => { const v = e.target.value; if (v !== "" && Number(v) !== (s.allocation_pct ?? null)) run(() => updateProjectSquadAllocation(s.id, projectId, Number(v))); }}
+                  style={{ width: 46, fontSize: 11, padding: "3px 6px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-mono)", textAlign: "right" }} />
+              : s.allocation_pct != null && <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>{s.allocation_pct}%</span>}
             {s.role === "lead"
               ? <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".4px", color: "var(--accent)", background: "var(--accent-soft)", padding: "1px 7px", borderRadius: "var(--r-pill)" }}>{t("initsq.lead")}</span>
               : canManage && <button onClick={() => run(() => setInitiativeLead(projectId, s.squad_id))} disabled={pending} title={t("initsq.makelead")} style={mini}>{t("initsq.makelead")}</button>}

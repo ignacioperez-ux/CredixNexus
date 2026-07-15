@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getContext } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
-import { getProject, getProjectTasks, getProjectValidations, getAnchorCaseContext, getProjectSquads, getProjectOptions } from "@/lib/projects/queries";
+import { getProject, getProjectTasks, getProjectValidations, getAnchorCaseContext, getProjectSquads, getProjectOptions, getProjectRisks } from "@/lib/projects/queries";
 import { getWorkflowsForProject, getActiveDefinitions } from "@/lib/workflows/queries";
 import { getSquadRoster, type RosterRow } from "@/lib/squads/queries";
 import { ProjectDetail, type ProjectDetailData } from "@/components/projects/project-detail";
@@ -19,7 +19,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const squadId = (project as { squad_id?: string | null }).squad_id ?? null;
 
   const anchorIncidentId = (project as { incident?: { id: string } | null }).incident?.id ?? null;
-  const [tasks, validations, workflows, workflowDefs, roster, anchor, initiativeSquads, options] = await Promise.all([
+  const [tasks, validations, workflows, workflowDefs, roster, anchor, initiativeSquads, options, risks] = await Promise.all([
     getProjectTasks(ctx.supabase, id),
     getProjectValidations(ctx.supabase, id),
     getWorkflowsForProject(ctx.supabase, id),
@@ -28,6 +28,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     anchorIncidentId ? getAnchorCaseContext(ctx.supabase, anchorIncidentId) : Promise.resolve(null),
     getProjectSquads(ctx.supabase, id),
     getProjectOptions(ctx.supabase),
+    getProjectRisks(ctx.supabase, id),
   ]);
   const canValidate = can("project.validate");
   const canDeploy = can("project.deploy");
@@ -51,6 +52,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       anchor={anchor}
       initiativeSquads={initiativeSquads}
       squadOptions={options.squads}
+      risks={risks}
     />
   );
 }

@@ -150,16 +150,33 @@ export async function getProjectTasks(supabase: SupabaseClient, projectId: strin
 }
 
 // Iniciativa 360 (Fase 2): squads que participan en la iniciativa (lead + contribuyentes).
-export type InitiativeSquad = { id: string; squad_id: string; role: string; squad: { name: string; code: string; squad_type: string } | null };
+export type InitiativeSquad = { id: string; squad_id: string; role: string; allocation_pct: number | null; squad: { name: string; code: string; squad_type: string } | null };
 export async function getProjectSquads(supabase: SupabaseClient, projectId: string): Promise<InitiativeSquad[]> {
   const { data, error } = await supabase
     .from("project_squad")
-    .select("id, squad_id, role, squad:squad_id(name, code, squad_type)")
+    .select("id, squad_id, role, allocation_pct, squad:squad_id(name, code, squad_type)")
     .eq("project_id", projectId)
     .neq("status", "deleted")
     .order("role");
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as InitiativeSquad[];
+}
+
+// Iniciativa 360 (Fase 2): blockers/riesgos/dependencias.
+export type ProjectRisk = {
+  id: string; kind: "blocker" | "risk" | "dependency"; title: string; description: string | null;
+  severity: "low" | "medium" | "high" | "critical"; status: "open" | "mitigating" | "resolved";
+  due_date: string | null; related_squad_id: string | null; related_squad: { name: string } | null; created_at: string;
+};
+export async function getProjectRisks(supabase: SupabaseClient, projectId: string): Promise<ProjectRisk[]> {
+  const { data, error } = await supabase
+    .from("project_risk")
+    .select("id, kind, title, description, severity, status, due_date, related_squad_id, related_squad:related_squad_id(name), created_at")
+    .eq("project_id", projectId)
+    .order("status")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as ProjectRisk[];
 }
 
 export async function getProjectOptions(supabase: SupabaseClient) {
