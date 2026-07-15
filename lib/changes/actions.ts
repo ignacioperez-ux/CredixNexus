@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
+import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode } from "@/lib/validation";
 import { validateChange, canTransition, canDecideCab } from "@/lib/changes/validation";
 
@@ -95,6 +96,12 @@ export async function changeStatus(id: string, next: string): Promise<ChangeResu
   if (next === "review" || next === "closed") patch.actual_end = now;
   const { error } = await ctx.supabase.from("change_request").update(patch).eq("id", id);
   if (error) return { ok: false, error: error.message };
+  // Knowledge al cierre: registra el cambio y su resultado (draft) para reuso.
+  if (next === "closed") {
+    await captureClosureKnowledge(ctx.supabase, ctx.tenantId, ctx.accountId, {
+      kind: "change", id, title: (cur.title as string) || (cur.change_number as string), category: "change",
+    });
+  }
   // Campanita v2: al entrar a CAB, avisa a quien preside el CAB (change_manager).
   if (next === "pending_cab") {
     await ctx.supabase.rpc("notify_role", {

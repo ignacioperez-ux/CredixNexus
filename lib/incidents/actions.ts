@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
+import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 
@@ -206,8 +207,14 @@ export async function changeStatus(incidentId: string, status: string): Promise<
   if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const patch: Record<string, unknown> = { status };
   if (status === "resolved") patch.resolved_at = new Date().toISOString();
-  const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId);
+  const { data: inc, error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId).select("title, category, description").single();
   if (error) return { ok: false, error: error.message };
+  // Knowledge al cierre: registra el caso como articulo (draft) para reuso ante casos similares.
+  if (status === "resolved" || status === "closed") {
+    await captureClosureKnowledge(ctx.supabase, ctx.tenantId, ctx.accountId, {
+      kind: "incident", id: incidentId, title: inc?.title as string, category: inc?.category as string | undefined, symptom: inc?.description as string | undefined,
+    });
+  }
   revalidatePath(`/incidents/${incidentId}`);
   revalidatePath("/incidents");
   return { ok: true };

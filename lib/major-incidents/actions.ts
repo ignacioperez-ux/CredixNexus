@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
+import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode } from "@/lib/validation";
 import { validateMajorIncident, validateUpdate, canTransition } from "@/lib/major-incidents/validation";
 
@@ -85,7 +86,7 @@ export async function postUpdate(miId: string, updateType: string, body: string,
 export async function changeMiStatus(miId: string, next: string): Promise<MiResult> {
   const { ctx, err } = await guard();
   if (!ctx) return { ok: false, error: err! };
-  const { data: cur } = await ctx.supabase.from("major_incident").select("status").eq("id", miId).maybeSingle();
+  const { data: cur } = await ctx.supabase.from("major_incident").select("status, title, summary, impact_summary").eq("id", miId).maybeSingle();
   if (!cur) return { ok: false, error: "not_found" };
   if (!canTransition(cur.status as string, next)) return { ok: false, error: ErrorCode.FORMAT };
 
@@ -95,6 +96,14 @@ export async function changeMiStatus(miId: string, next: string): Promise<MiResu
   if (next === "stood_down") patch.stood_down_at = now;
   const { error } = await ctx.supabase.from("major_incident").update(patch).eq("id", miId);
   if (error) return { ok: false, error: error.message };
+
+  // Knowledge al cierre: registra el incidente mayor y su solucion (draft) para reuso.
+  if (next === "resolved" || next === "stood_down") {
+    await captureClosureKnowledge(ctx.supabase, ctx.tenantId, ctx.accountId, {
+      kind: "major_incident", id: miId, title: cur.title as string, category: "major_incident",
+      symptom: (cur.impact_summary as string) || (cur.summary as string) || undefined,
+    });
+  }
 
   await ctx.supabase.from("major_incident_update").insert({
     tenant_id: ctx.tenantId, mi_id: miId, update_type: "status",

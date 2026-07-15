@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
+import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode, minLength, firstError } from "@/lib/validation";
 
 async function canManageProject(): Promise<boolean> {
@@ -127,8 +128,15 @@ export async function changeProjectStatus(id: string, status: string): Promise<P
   const patch: Record<string, unknown> = { status };
   if (status === "active") patch.actual_start = new Date().toISOString().slice(0, 10);
   if (status === "completed") patch.actual_end = new Date().toISOString().slice(0, 10);
-  const { data: proj, error } = await ctx.supabase.from("project").update(patch).eq("id", id).select("name, created_from_incident_id").single();
+  const { data: proj, error } = await ctx.supabase.from("project").update(patch).eq("id", id).select("name, created_from_incident_id, description, validation_notes").single();
   if (error) return { ok: false, error: error.message };
+  // Knowledge al cierre: registra la mejora/proyecto y su solucion (draft) para reuso.
+  if (status === "completed") {
+    await captureClosureKnowledge(ctx.supabase, ctx.tenantId, ctx.accountId, {
+      kind: "project", id, title: proj?.name as string, category: "evolution",
+      symptom: proj?.description as string | undefined, solution: proj?.validation_notes as string | undefined,
+    });
+  }
   // Campanita v2: al COMPLETAR una evolucion, avisa a Operaciones y al RC que cierra el hilo (§0).
   if (status === "completed") {
     const link = proj?.created_from_incident_id ? `/incidents/${proj.created_from_incident_id}` : `/projects/${id}`;
