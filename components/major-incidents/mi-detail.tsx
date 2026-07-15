@@ -33,6 +33,9 @@ export function MiDetail({ mi, updates, people, ledger, canManage }: { mi: MiVie
   const [uBody, setUBody] = useState("");
   const [nextMin, setNextMin] = useState("30");
   const nexts = MI_NEXT[mi.status] ?? [];
+  // Solo se enlaza al war-room si es una URL externa http(s) valida. Una URL relativa o con otro
+  // esquema (p.ej. javascript:) NO se convierte en enlace: evita navegacion in-app rota o insegura.
+  const bridgeHref = safeExternalUrl(mi.bridge_url);
   const overdue = mi.next_update_due_at && new Date(mi.next_update_due_at).toISOString() < new Date().toISOString() && mi.status !== "resolved" && mi.status !== "stood_down";
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
@@ -50,9 +53,21 @@ export function MiDetail({ mi, updates, people, ledger, canManage }: { mi: MiVie
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, margin: 0, color: "var(--text)" }}>{mi.title}</h1>
           <MiStatusBadge status={mi.status} />
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {mi.bridge_url && <a href={mi.bridge_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: "none" } as React.CSSProperties}><Icon name="link" size={13} style={{ verticalAlign: "-2px" }} /> {t("mi.bridge")}</a>}
-          {canManage && nexts.map((s) => <button key={s} onClick={() => run(() => changeMiStatus(mi.id, s))} disabled={pending} style={btnGhost}>→ {t(("mi.st." + s) as MessageKey)}</button>)}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Avanzar de estado (cadena de mando ITIL): acciones IN-APP, agrupadas y rotuladas. */}
+          {canManage && nexts.length > 0 && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".3px", color: "var(--muted)" }}>{t("mi.advance")}</span>
+              {nexts.map((s) => <button key={s} onClick={() => run(() => changeMiStatus(mi.id, s))} disabled={pending} style={btnGhost}>{t(("mi.st." + s) as MessageKey)}</button>)}
+            </div>
+          )}
+          {/* Enlace EXTERNO al puente/sala virtual: estilo distinto (guiones + flecha externa) para
+              que no se confunda con un paso de la cadena de estado. Abre en pestana nueva y seguro. */}
+          {bridgeHref && (
+            <a href={bridgeHref} target="_blank" rel="noopener noreferrer" style={{ ...btnGhost, color: "var(--accent-2)", borderStyle: "dashed", textDecoration: "none" } as React.CSSProperties}>
+              <Icon name="link" size={13} color="var(--accent-2)" style={{ verticalAlign: "-2px" }} /> {t("mi.bridge")} <span aria-hidden>&#8599;</span>
+            </a>
+          )}
         </div>
       </div>
       {msg && <div style={{ fontSize: 12, color: "var(--st-critical)" }}>{msg}</div>}
@@ -134,6 +149,15 @@ export function MiDetail({ mi, updates, people, ledger, canManage }: { mi: MiVie
       </div>
     </div>
   );
+}
+
+/** Solo acepta URLs externas absolutas http(s). Evita enlaces relativos (navegacion in-app rota)
+ *  o esquemas peligrosos (javascript:, data:) que romperian o comprometerian la pantalla. */
+function safeExternalUrl(u: string | null): string | null {
+  if (!u) return null;
+  const s = u.trim();
+  if (!/^https?:\/\//i.test(s)) return null;
+  try { new URL(s); return s; } catch { return null; }
 }
 
 const inp: React.CSSProperties = { fontSize: 12.5, padding: "8px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%" };
