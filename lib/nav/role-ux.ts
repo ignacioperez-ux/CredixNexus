@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { MACRO_NAV, EVOLUTION_NAV, OPERATIONS_NAV } from "./navigation";
+import { MACRO_NAV, EVOLUTION_NAV, OPERATIONS_NAV, SQUAD_MEMBER_NAV } from "./navigation";
 import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 
 // ---------------------------------------------------------------------------
@@ -58,8 +58,10 @@ export const ROLE_UX: Record<string, RoleUx> = {
   // Se conservan los ids MACRO ("evolucion"/"conocimiento"/"analitica") para el caso multi-rol que
   // renderiza MACRO_NAV (p.ej. product_owner + support_agent), donde el overlay no aplica.
   product_owner: { emphasis: ["evolucion", "conocimiento", "analitica", "ev.evolucion", "ev.estrategia", "ev.analisis360"], home: "/evolucion", primaryAction: "newProject" },
-  // Squad -> Delivery Hub
-  squad_member: { emphasis: ["evolucion", "conocimiento"], home: "/projects", primaryAction: "openBacklog" },
+  // Miembro de Squad -> "Mi trabajo" (persona SQUAD_MEMBER_NAV). Ve solo lo suyo. CTA para
+  // reportar un caso por el portal (no tiene acceso al backlog global). Se conservan ids MACRO
+  // para el caso multi-rol que renderiza MACRO_NAV.
+  squad_member: { emphasis: ["sm.trabajo", "sm.squads", "sm.iniciativas", "evolucion", "conocimiento"], home: "/mi-trabajo", primaryAction: "reportCase" },
   // Usuario final -> Autoservicio simple
   // Usuario final: sin CTA en el header (el intake ya vive en /portal). Sin primaryAction, el
   // fallback newTicket exige incident.read (que no tiene) -> resolvePrimaryAction devuelve null.
@@ -110,7 +112,7 @@ export function resolvePrimaryAction(roles: string[], perms: string[], isAdmin: 
 }
 
 // Guard de coherencia: todos los ids de emphasis existen como categoria (macro o de persona).
-const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV, ...OPERATIONS_NAV].map((c) => c.id));
+const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV, ...OPERATIONS_NAV, ...SQUAD_MEMBER_NAV].map((c) => c.id));
 export function unknownEmphasisIds(): string[] {
   const bad: string[] = [];
   for (const ux of Object.values(ROLE_UX)) for (const id of ux.emphasis) if (!CATEGORY_IDS.has(id)) bad.push(id);

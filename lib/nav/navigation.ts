@@ -201,16 +201,40 @@ export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
   ] },
 ]);
 
+// Persona "Miembro de Squad" (squad_member). Ve SOLO lo suyo: su trabajo, sus squads, sus
+// iniciativas (sin financieros/WSJF/hilo del caso ancla), su perfil. Rutas nuevas /mi-* con datos
+// acotados a la persona; la segregacion dura (no ver Portafolio/Torre/Workload/Squads global/Mapa
+// de Tribus) es de capa de aplicacion (ROLE_ROUTE_DENY + guard). §0.
+export const SQUAD_MEMBER_NAV: NavCategory[] = [
+  { id: "sm.trabajo", label: "nav.sm.trabajo", icon: "inbox", items: [
+    { id: "nav.mywork", label: "nav.mywork", path: "/mi-trabajo", perm: "project.read" },
+  ] },
+  { id: "sm.squads", label: "nav.sm.squads", icon: "users", items: [
+    { id: "nav.mysquad", label: "nav.mysquad", path: "/mi-squad", perm: "squad.read" },
+  ] },
+  { id: "sm.iniciativas", label: "nav.sm.iniciativas", icon: "zap", items: [
+    { id: "nav.myinitiatives", label: "nav.myinitiatives", path: "/mis-iniciativas", perm: "project.read" },
+  ] },
+  { id: "sm.perfil", label: "nav.sm.perfil", icon: "user", items: [
+    { id: "nav.myprofile", label: "nav.myprofile", path: "/mi-perfil", perm: "project.read" },
+  ] },
+  { id: "sm.ayuda", label: "nav.sm.ayuda", icon: "help", items: [
+    ITEM_BY_ID["nav.selfservice"], ITEM_BY_ID["nav.knowledge"],
+  ].filter(Boolean) },
+];
+
 // Roles con navegacion completa (MACRO_NAV) aunque tambien tengan product_owner: no degradar
 // a un multi-rol operativo/admin. Solo el product_owner "puro" recibe el overlay de persona.
 const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin", "support_agent"]);
 
 /** Arbol de navegacion para un conjunto de roles: overlay de persona para el Gerente de Operaciones
- *  (support_lead) y para el Gerente de Evolucion puro (product_owner); MACRO_NAV para el resto y admin. */
+ *  (support_lead), el Gerente de Evolucion puro (product_owner) y el Miembro de Squad puro
+ *  (squad_member); MACRO_NAV para el resto y admin. */
 export function navForRoles(roles: string[], isAdmin: boolean): NavCategory[] {
   if (isAdmin) return MACRO_NAV;
   if (roles.includes("support_lead")) return OPERATIONS_NAV;
   if (roles.includes("product_owner") && !roles.some((r) => FULL_NAV_ROLES.has(r))) return EVOLUTION_NAV;
+  if (roles.includes("squad_member") && !roles.some((r) => FULL_NAV_ROLES.has(r) || r === "product_owner")) return SQUAD_MEMBER_NAV;
   return MACRO_NAV;
 }
 

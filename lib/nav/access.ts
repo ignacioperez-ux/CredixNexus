@@ -12,6 +12,10 @@ export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = 
   { prefix: "/dashboard", perm: "incident.read" },
   { prefix: "/workspace", perm: "incident.read" },
   { prefix: "/operaciones", perm: "incident.read" },
+  { prefix: "/mi-trabajo", perm: "project.read" },
+  { prefix: "/mi-squad", perm: "squad.read" },
+  { prefix: "/mis-iniciativas", perm: "project.read" },
+  { prefix: "/mi-perfil", perm: "project.read" },
   { prefix: "/incidents", perm: "incident.read" },
   { prefix: "/triage", perm: "triage.manage" },
   { prefix: "/sla-governance", perm: "sla.read" },
@@ -62,6 +66,10 @@ export function requiredPermForPath(pathname: string): string | string[] | undef
 // menu (OPERATIONS_NAV): lo que no esta en su persona, no se alcanza por URL. NO toca RLS ni perms.
 export const ROLE_ROUTE_DENY: Record<string, string[]> = {
   support_lead: ["/projects", "/squads", "/evolucion", "/delivery-areas", "/rules", "/ai-center"],
+  // Miembro de Squad: conserva project.read/squad.read (para sus vistas /mi-*), pero NO alcanza el
+  // portafolio global, la Torre/Mapa de Evolucion, el listado global de Squads, el Workload global,
+  // los casos convertidos ni el motor de reglas/AI. Usa las rutas /mi-* acotadas.
+  squad_member: ["/projects", "/squads", "/workload", "/evolucion", "/casos-convertidos", "/rules", "/ai-center"],
 };
 
 /** true si alguna ruta esta vedada para los roles del usuario (denylist de persona). Admin nunca
