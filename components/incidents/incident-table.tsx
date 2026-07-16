@@ -49,6 +49,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const [prio, setPrio] = useState("");
   const [resp, setResp] = useState(initialResp);
   const [q, setQ] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());  // seleccion para acciones en lote
   const [pending, startBulk] = useTransition();
 
@@ -137,6 +138,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
     filter !== "all" && { label: t("inc.col.status"), value: t(("st." + filter) as MessageKey), clear: () => setFilter("all") },
   ].filter(Boolean) as { label: string; value: string; clear: () => void }[];
 
+  const activeCount = (domain !== "all" ? 1 : 0) + (filter !== "all" ? 1 : 0) + (bu ? 1 : 0) + (app ? 1 : 0) + (resp ? 1 : 0) + (prio ? 1 : 0);
   function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); setQ(""); }
 
   // --- Seleccion multiple + acciones en lote (FASE 3.1 pilar 5) ---
@@ -196,55 +198,70 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
         </button>
       </div>
 
-      {/* Filtro por dominio: Negocio vs TI vs Servicio */}
-      <div style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line-soft)", flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700 }}>{t("inc.domain")}</span>
-        {DOMAIN_FILTERS.map((d) => {
-          const active = domain === d;
-          const count = d === "all" ? rows.length : rows.filter((r) => domainOf(r) === d).length;
-          return (
-            <button key={d} onClick={() => setDomain(d)}
-              style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: active ? "none" : "1px solid var(--line)",
-                background: active ? (d === "all" ? "var(--cta-bg)" : domainColor[d]) : "var(--card)",
-                color: active ? "#fff" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", gap: 6 }}>
-              {t(("dom." + d) as MessageKey)}<span style={{ fontFamily: "var(--font-mono)", opacity: 0.7 }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Filtros por estado */}
-      <div style={{ display: "flex", gap: 8, padding: "14px 20px 10px", flexWrap: "wrap" }}>
-        {STATUS_FILTERS.map((f) => {
-          const active = filter === f;
-          const count = f === "all" ? rows.length : rows.filter((r) => r.status === f).length;
-          return (
-            <button key={f} onClick={() => setFilter(f)}
-              style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: active ? "none" : "1px solid var(--line)",
-                background: active ? "var(--cta-bg)" : "var(--card)", color: active ? "var(--cta-fg)" : "var(--muted)",
-                fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", gap: 6 }}>
-              {f === "all" ? t("nav.incidents") : t(("st." + f) as MessageKey)}
-              <span style={{ fontFamily: "var(--font-mono)", opacity: 0.6 }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Filtros por campo (dropdowns) */}
-      <div style={{ display: "flex", gap: 10, padding: "0 20px 12px", flexWrap: "wrap", alignItems: "center" }}>
+      {/* Buscador (siempre visible) + toggle del panel de filtros (C3: consolidacion) */}
+      <div style={{ display: "flex", gap: 10, padding: "12px 20px", borderBottom: filtersOpen ? "1px solid var(--line-soft)" : "1px solid var(--line)", flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)" }}>
           <Icon name="search" size={13} color="var(--muted)" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("inc.search.placeholder")} aria-label={t("inc.search.placeholder")}
             style={{ border: "none", outline: "none", background: "transparent", color: "var(--text)", fontSize: 12.5, fontFamily: "var(--font-ui)", width: 190 }} />
           {q && <button onClick={() => setQ("")} aria-label={t("inc.filter.clear")} style={{ display: "inline-flex", border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", padding: 0 }}><Icon name="x" size={12} /></button>}
         </div>
-        <FieldSelect label={t("inc.field.bu")} value={bu} onChange={setBu} options={buOptions} allLabel={t("inc.filter.allbu")} />
-        <FieldSelect label={t("inc.field.app")} value={app} onChange={setApp} options={appOptions} allLabel={t("inc.filter.allapp")} />
-        <FieldSelect label={t("flt.responsible")} value={resp} onChange={setResp} options={respOptions} allLabel={t("flt.allresp")} />
-        <FieldSelect label={t("inc.col.priority")} value={prio} onChange={setPrio}
-          options={prioOptions} allLabel={t("inc.filter.allprio")} render={(p) => t(priorityKey(p))} />
-        <GroupBar defs={groupDefs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+        <button onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: activeCount > 0 ? "var(--accent-soft)" : "var(--card)", color: activeCount > 0 ? "var(--accent-2)" : "var(--muted)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+          <Icon name="sliders" size={14} color={activeCount > 0 ? "var(--accent-2)" : "var(--muted)"} /> {t("inc.filters.panel")}
+          {activeCount > 0 && <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, minWidth: 16, textAlign: "center", padding: "0 5px", borderRadius: "var(--r-pill)", background: "var(--accent)", color: "var(--cta-fg)" }}>{activeCount}</span>}
+          <Icon name={filtersOpen ? "chevron-up" : "chevron-down"} size={13} color="var(--muted)" />
+        </button>
       </div>
+
+      {filtersOpen && (
+        <div style={{ borderBottom: "1px solid var(--line)", paddingBottom: 6 }}>
+          {/* Dominio: Negocio vs TI vs Servicio */}
+          <div style={{ display: "flex", gap: 8, padding: "12px 20px 6px", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700, width: 74 }}>{t("inc.domain")}</span>
+            {DOMAIN_FILTERS.map((d) => {
+              const active = domain === d;
+              const count = d === "all" ? rows.length : rows.filter((r) => domainOf(r) === d).length;
+              return (
+                <button key={d} onClick={() => setDomain(d)}
+                  style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: active ? "none" : "1px solid var(--line)",
+                    background: active ? (d === "all" ? "var(--cta-bg)" : domainColor[d]) : "var(--card)",
+                    color: active ? "#fff" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", gap: 6 }}>
+                  {t(("dom." + d) as MessageKey)}<span style={{ fontFamily: "var(--font-mono)", opacity: 0.7 }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Estado */}
+          <div style={{ display: "flex", gap: 8, padding: "6px 20px", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700, width: 74 }}>{t("inc.col.status")}</span>
+            {STATUS_FILTERS.map((f) => {
+              const active = filter === f;
+              const count = f === "all" ? rows.length : rows.filter((r) => r.status === f).length;
+              return (
+                <button key={f} onClick={() => setFilter(f)}
+                  style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: active ? "none" : "1px solid var(--line)",
+                    background: active ? "var(--cta-bg)" : "var(--card)", color: active ? "var(--cta-fg)" : "var(--muted)",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", gap: 6 }}>
+                  {f === "all" ? t("nav.incidents") : t(("st." + f) as MessageKey)}
+                  <span style={{ fontFamily: "var(--font-mono)", opacity: 0.6 }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Campos + agrupar */}
+          <div style={{ display: "flex", gap: 10, padding: "6px 20px 10px", flexWrap: "wrap", alignItems: "center" }}>
+            <FieldSelect label={t("inc.field.bu")} value={bu} onChange={setBu} options={buOptions} allLabel={t("inc.filter.allbu")} />
+            <FieldSelect label={t("inc.field.app")} value={app} onChange={setApp} options={appOptions} allLabel={t("inc.filter.allapp")} />
+            <FieldSelect label={t("flt.responsible")} value={resp} onChange={setResp} options={respOptions} allLabel={t("flt.allresp")} />
+            <FieldSelect label={t("inc.col.priority")} value={prio} onChange={setPrio}
+              options={prioOptions} allLabel={t("inc.filter.allprio")} render={(p) => t(priorityKey(p))} />
+            <GroupBar defs={groupDefs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />
+          </div>
+        </div>
+      )}
 
       {/* Chips de filtro activo (× para volver / quitar el filtro) */}
       {chips.length > 0 && (

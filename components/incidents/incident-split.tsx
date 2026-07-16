@@ -54,7 +54,9 @@ function Preview({ row, caseTypes, canResolve, canEvolve, canPriority, canAssign
     setMsg(null);
     start(async () => {
       const r = await fn();
-      if (!r.ok) { setMsg(r.error ?? t("common.error")); return; }
+      // C5: mismo manejo que el detalle — traducir codigos de error (ERR_*) del backend
+      // (validaciones A1/A3 compartidas) en vez de mostrar el codigo crudo.
+      if (!r.ok) { setMsg(r.error ? (r.error.startsWith("ERR_") ? t(("err." + r.error) as MessageKey) : r.error) : t("common.error")); return; }
       router.refresh();
       onClose();
     });
