@@ -93,7 +93,9 @@ function ProfileCard({ m, options, canManage, onSave, pending }: { m: MemberDeta
     return (
       <Card title={t("tal.section.profile")} action={canManage ? <button onClick={() => setEdit(true)} style={ghost}><Icon name="edit" size={13} style={{ verticalAlign: "-2px" }} /> {t("common.edit")}</button> : undefined}>
         <Row label={t("tal.f.stream")} value={m.area ? `${t(("tal.stream." + m.area.code) as MessageKey)}${m.area.lead_name ? " · " + m.area.lead_name : ""}` : "—"} />
-        <Row label={t("tal.f.discipline")} value={m.discipline ?? "—"} />
+        {/* La disciplina (dev/po/ux/qa) es concepto de squad (Evolucion). No aplica a quienes
+            atienden casos (Gestion de TI, stream operations): no se muestra. */}
+        {m.area?.code !== "operations" && <Row label={t("tal.f.discipline")} value={m.discipline ?? "—"} />}
         <Row label={t("tal.f.seniority")} value={m.seniority ?? "—"} />
         <Row label={t("tal.f.email")} value={m.email ?? "—"} />
         <Row label={t("tal.f.capacity")} value={String(m.capacity_points)} mono />
@@ -121,7 +123,7 @@ function ProfileCard({ m, options, canManage, onSave, pending }: { m: MemberDeta
           ) : (
             <Lbl t={t("tal.f.seniority")}><select value={form.seniority} onChange={(e) => setForm({ ...form, seniority: e.target.value })} style={inp}><option value="">—</option>{SENIORITIES.map((s) => <option key={s} value={s}>{s}</option>)}</select></Lbl>
           )}
-          <Lbl t={t("tal.f.discipline")}><select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} style={inp}><option value="">—</option>{DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}</select></Lbl>
+          {m.area?.code !== "operations" && <Lbl t={t("tal.f.discipline")}><select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })} style={inp}><option value="">—</option>{DISCIPLINES.map((d) => <option key={d} value={d}>{d}</option>)}</select></Lbl>}
           <Lbl t={t("tal.f.capacity")}><input type="number" min={1} max={40} value={form.capacityPoints} onChange={(e) => setForm({ ...form, capacityPoints: e.target.value })} style={fe.capacity ? inpErr : inp} />{fe.capacity && <FieldErr msg={fe.capacity} />}</Lbl>
         </div>
         <div style={{ display: "flex", gap: 8 }}>

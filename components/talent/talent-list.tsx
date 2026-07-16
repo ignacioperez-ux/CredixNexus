@@ -91,7 +91,7 @@ export function TalentList({ profiles, areas = [], canManage = false, load = {} 
           {p.stream_name ? <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", padding: "2px 9px" }}>{p.stream_name}</span> : <span style={{ color: "var(--muted)" }}>—</span>}
           {p.stream_lead && <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 3 }}>{p.stream_lead}</div>}
         </td>
-        <td className="tl-l tl-hide" style={{ color: "var(--muted)" }}>{p.discipline ?? "—"}</td>
+        <td className="tl-l tl-hide" style={{ color: "var(--muted)" }}>{p.stream_code === "operations" ? "—" : (p.discipline ?? "—")}</td>
         <td title={t("tal.carga.def")}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
             <div style={{ width: 56, height: 7, background: "var(--track,var(--paper))", borderRadius: 4, overflow: "hidden" }}><div style={{ width: `${Math.min(100, util)}%`, height: "100%", background: toneColor(uTone), borderRadius: 4 }} /></div>
