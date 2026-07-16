@@ -17,7 +17,7 @@ export function BucketBadge({ bucket, pct }: { bucket: RiskBucket; pct?: number 
   const c = BUCKET_COLOR[bucket];
   return (
     <span style={{ fontSize: 10.5, fontWeight: 600, color: c.fg, background: c.bg, padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>
-      {t(("sla.bucket." + bucket) as MessageKey)}{pct != null && bucket !== "na" ? ` · ${pct}%` : ""}
+      {t(("sla.bucket." + bucket) as MessageKey)}{pct != null && bucket !== "na" ? ` · ${Math.min(pct, 100)}%` : ""}
     </span>
   );
 }

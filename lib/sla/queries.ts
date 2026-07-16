@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { elapsedPct, riskBucket, worstBucket, atRisk, type RiskBucket } from "./thresholds";
+import { clockView, worstBucket, atRisk, bucketRank, type RiskBucket, type ClockView } from "./thresholds";
 
 // Gobierno SLA/OLA. RLS aisla por tenant; consultas acotadas al contexto.
 
@@ -11,12 +11,12 @@ export type AtRiskIncident = {
   title: string;
   priority: string;
   status: string;
-  assigned_team: string | null;
-  response_pct: number | null;
-  resolution_pct: number | null;
-  response_bucket: RiskBucket;
-  resolution_bucket: RiskBucket;
+  assigned_team: string | null;   // Responsable (equipo destino)
+  system: string | null;          // Aplicacion / Sistema afectado (CI o servicio)
+  response: ClockView;
+  resolution: ClockView;
   overall: RiskBucket;
+  worstOverdueMs: number | null;   // vencimiento del peor reloj (para chips de antiguedad)
 };
 
 export type GovernanceStats = { atRisk: number; warning: number; critical: number; breached: number; openEvents: number };
@@ -25,17 +25,19 @@ export type AtRiskData = { incidents: AtRiskIncident[]; stats: GovernanceStats }
 export async function getAtRiskIncidents(supabase: SupabaseClient): Promise<AtRiskData> {
   const { data, error } = await supabase
     .from("incident")
-    .select("id, incident_number, title, priority, status, assigned_team, opened_at, first_response_at, resolved_at, sla_response_due_at, sla_resolution_due_at")
+    .select("id, incident_number, title, priority, status, assigned_team, opened_at, first_response_at, resolved_at, sla_response_due_at, sla_resolution_due_at, ci:affected_ci_id(name), service:affected_service_id(name)")
     .not("status", "in", `(${OPEN_STATES_EXCLUDE.join(",")})`)
     .order("opened_at", { ascending: true });
   if (error) throw new Error(error.message);
 
   const now = Date.now();
   const incidents: AtRiskIncident[] = (data ?? []).map((i) => {
-    const rp = elapsedPct(i.opened_at as string, i.sla_response_due_at as string | null, i.first_response_at as string | null, now);
-    const xp = elapsedPct(i.opened_at as string, i.sla_resolution_due_at as string | null, i.resolved_at as string | null, now);
-    const rb = riskBucket(rp);
-    const xb = riskBucket(xp);
+    const resp = clockView(i.opened_at as string, i.sla_response_due_at as string | null, i.first_response_at as string | null, now);
+    const reso = clockView(i.opened_at as string, i.sla_resolution_due_at as string | null, i.resolved_at as string | null, now);
+    const one = (v: unknown): { name: string } | null => (Array.isArray(v) ? (v[0] ?? null) : (v as { name: string } | null));
+    const ci = one(i.ci);
+    const service = one(i.service);
+    const overdue = [resp.overdueMs, reso.overdueMs].filter((x): x is number => x != null);
     return {
       id: i.id as string,
       incident_number: i.incident_number as string,
@@ -43,11 +45,11 @@ export async function getAtRiskIncidents(supabase: SupabaseClient): Promise<AtRi
       priority: i.priority as string,
       status: i.status as string,
       assigned_team: (i.assigned_team as string | null) ?? null,
-      response_pct: rp,
-      resolution_pct: xp,
-      response_bucket: rb,
-      resolution_bucket: xb,
-      overall: worstBucket(rb, xb),
+      system: ci?.name ?? service?.name ?? null,
+      response: resp,
+      resolution: reso,
+      overall: worstBucket(resp.bucket, reso.bucket),
+      worstOverdueMs: overdue.length ? Math.max(...overdue) : null,
     };
   });
 
@@ -68,10 +70,6 @@ export async function getAtRiskIncidents(supabase: SupabaseClient): Promise<AtRi
       openEvents: openEvents ?? 0,
     },
   };
-}
-
-function bucketRank(b: RiskBucket): number {
-  return { na: 0, ok: 1, warning: 2, critical: 3, breached: 4 }[b];
 }
 
 export type OlaPolicyRow = {

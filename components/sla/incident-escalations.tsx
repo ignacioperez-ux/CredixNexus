@@ -24,7 +24,7 @@ export function IncidentEscalations({ escalations }: { escalations: Esc[] }) {
       {escalations.map((e) => (
         <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: "var(--r-md)", background: "var(--paper)" }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: actionColor[e.action] ?? "var(--text)", whiteSpace: "nowrap" }}>{t(("sla.act." + e.action) as MessageKey)}</span>
-          <span style={{ fontSize: 12, color: "var(--text)", flex: 1 }}>{t(("sla.clock." + e.sla_type) as MessageKey)} · {e.threshold_pct}% <span style={{ color: "var(--muted)", fontFamily: "var(--font-mono)" }}>({e.elapsed_pct}%)</span></span>
+          <span style={{ fontSize: 12, color: "var(--text)", flex: 1 }}>{t(("sla.clock." + e.sla_type) as MessageKey)} · {e.threshold_pct}% <span title={e.elapsed_pct > 100 ? `${e.elapsed_pct}%` : undefined} style={{ color: e.elapsed_pct > 100 ? "var(--st-critical-fg)" : "var(--muted)", fontFamily: "var(--font-mono)" }}>({Math.min(e.elapsed_pct, 100)}%{e.elapsed_pct > 100 ? "+" : ""})</span></span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)" }}>{new Date(e.triggered_at).toLocaleDateString(locale)}</span>
           {e.acknowledged && <span style={{ color: "var(--st-low-fg)", display: "inline-flex" }}><Icon name="check" size={13} /></span>}
         </div>
