@@ -6,7 +6,7 @@ import { CommandMenu } from "@/components/app-shell/command-menu";
 import { HelpFab } from "@/components/app-shell/help-fab";
 import { NavHistoryProvider } from "@/components/app-shell/nav-history-provider";
 import { PageBack } from "@/components/app-shell/page-back";
-import { canSeeNav, requiredPermForPath } from "@/lib/nav/access";
+import { canSeeNav, requiredPermForPath, isRouteDeniedForRoles } from "@/lib/nav/access";
 import { getSessionUser, getSessionAccount, getAccessControl, tenantNameOf } from "@/lib/auth/session";
 import { getContext } from "@/lib/auth/context";
 import { listNotifications } from "@/lib/notifications/queries";
@@ -28,6 +28,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const pathname = (await headers()).get("x-pathname") ?? "";
   const required = requiredPermForPath(pathname);
   if (required && !canSeeNav(required, permList, isAdmin)) {
+    redirect("/unauthorized");
+  }
+  // Segregacion por persona (§0 Operaciones): el support_lead conserva project.read/squad.read pero
+  // NO debe alcanzar los modulos de Evolucion/definicion por URL. Admin nunca se bloquea.
+  if (!isAdmin && isRouteDeniedForRoles(pathname, roleList)) {
     redirect("/unauthorized");
   }
 

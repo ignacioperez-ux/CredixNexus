@@ -52,6 +52,7 @@ export const MACRO_NAV: NavCategory[] = [
   {
     id: "operaciones", label: "nav.macro.operaciones", icon: "sliders",
     items: [
+      { id: "nav.ophome", label: "nav.ophome", path: "/operaciones", perm: "incident.read" },
       { id: "nav.sla", label: "nav.sla", path: "/sla-governance", perm: "sla.read" },
       { id: "nav.customers", label: "nav.customers", path: "/customers", perm: "incident.read" },
       { id: "nav.frauddisputes", label: "nav.frauddisputes", path: "/fraud-disputes", perm: ["fraud.read", "dispute.read"] },
@@ -171,14 +172,44 @@ export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
   ] },
 ]);
 
+// Persona "Gerente de Operaciones" (support_lead). Mesa de ayuda / service management (ITIL·ITSM):
+// decision -> casos -> equipo -> clientes/riesgo -> servicio -> analitica. Mismos items canonicos
+// (paths/perms intactos); reagrupacion + renombres de presentacion. La UNICA ventana hacia
+// Evolucion es "Casos en Evolucion" (nav.convertedcases) en SOLO LECTURA: el ancla del caso que
+// Operaciones derivo, para comunicar avances al cliente (sin WSJF/ROI/squads). La segregacion dura
+// (no ver Proyectos/Portafolio/Squads/Tribus/Reglas/AI aunque tenga el perm) es de capa de
+// aplicacion: ROLE_ROUTE_DENY en access.ts + el guard del layout.
+export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
+  { id: "op.torre", label: "nav.op.torre", icon: "home", items: [
+    { id: "nav.ophome" },
+  ] },
+  { id: "op.casos", label: "nav.op.casos", icon: "inbox", items: [
+    { id: "nav.triage" }, { id: "nav.incidents" }, { id: "nav.majorincidents" }, { id: "nav.sla" },
+    { id: "nav.convertedcases", readOnly: true, label: "nav.opx.evolcases" },
+  ] },
+  { id: "op.equipo", label: "nav.op.equipo", icon: "users", items: [
+    { id: "nav.resources", label: "nav.opx.workload" }, { id: "nav.talent", label: "nav.opx.performance" },
+  ] },
+  { id: "op.clientes", label: "nav.op.clientes", icon: "shield", items: [
+    { id: "nav.customers" }, { id: "nav.frauddisputes" }, { id: "nav.risk" },
+  ] },
+  { id: "op.servicio", label: "nav.op.servicio", icon: "sliders", items: [
+    { id: "nav.servicecatalog" }, { id: "nav.selfservice" }, { id: "nav.knowledge" },
+  ] },
+  { id: "op.analitica", label: "nav.op.analitica", icon: "activity", items: [
+    { id: "nav.analytics" }, { id: "nav.behavior" },
+  ] },
+]);
+
 // Roles con navegacion completa (MACRO_NAV) aunque tambien tengan product_owner: no degradar
 // a un multi-rol operativo/admin. Solo el product_owner "puro" recibe el overlay de persona.
-const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin", "support_agent", "support_lead"]);
+const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin", "support_agent"]);
 
-/** Arbol de navegacion para un conjunto de roles: overlay de persona para el Gerente de
- *  Evolucion puro; MACRO_NAV para el resto (y para admin). */
+/** Arbol de navegacion para un conjunto de roles: overlay de persona para el Gerente de Operaciones
+ *  (support_lead) y para el Gerente de Evolucion puro (product_owner); MACRO_NAV para el resto y admin. */
 export function navForRoles(roles: string[], isAdmin: boolean): NavCategory[] {
   if (isAdmin) return MACRO_NAV;
+  if (roles.includes("support_lead")) return OPERATIONS_NAV;
   if (roles.includes("product_owner") && !roles.some((r) => FULL_NAV_ROLES.has(r))) return EVOLUTION_NAV;
   return MACRO_NAV;
 }

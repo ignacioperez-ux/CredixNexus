@@ -11,6 +11,7 @@ export function canSeeNav(perm: string | string[] | undefined, perms: string[], 
 export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = [
   { prefix: "/dashboard", perm: "incident.read" },
   { prefix: "/workspace", perm: "incident.read" },
+  { prefix: "/operaciones", perm: "incident.read" },
   { prefix: "/incidents", perm: "incident.read" },
   { prefix: "/triage", perm: "triage.manage" },
   { prefix: "/sla-governance", perm: "sla.read" },
@@ -51,6 +52,27 @@ export function requiredPermForPath(pathname: string): string | string[] | undef
   if (matches.length === 0) return undefined;
   // el prefijo mas largo gana (mas especifico)
   return matches.sort((a, b) => b.prefix.length - a.prefix.length)[0].perm;
+}
+
+// Denylist de ruta POR PERSONA (segregacion de capa de aplicacion, §0 Operaciones). El perm de
+// ruta NO alcanza para segregar cuando el rol conserva permisos amplios: el Gerente de Operaciones
+// (support_lead) tiene project.read / squad.read / area.read (los usa para "Casos en Evolucion",
+// Workload y catalogos), asi que por perm solo podria entrar a /projects o /squads. Aqui se bloquea
+// por rol el acceso a los modulos de Evolucion/definicion aunque tenga el permiso. Coherente con su
+// menu (OPERATIONS_NAV): lo que no esta en su persona, no se alcanza por URL. NO toca RLS ni perms.
+export const ROLE_ROUTE_DENY: Record<string, string[]> = {
+  support_lead: ["/projects", "/squads", "/evolucion", "/delivery-areas", "/rules", "/ai-center"],
+};
+
+/** true si alguna ruta esta vedada para los roles del usuario (denylist de persona). Admin nunca
+ *  se ve afectado (se evalua fuera, con isAdmin). Ignora roles sin denylist declarada. */
+export function isRouteDeniedForRoles(pathname: string, roles: string[]): boolean {
+  for (const role of roles) {
+    for (const prefix of ROLE_ROUTE_DENY[role] ?? []) {
+      if (pathname === prefix || pathname.startsWith(prefix + "/")) return true;
+    }
+  }
+  return false;
 }
 
 // Nota: el "cockpit" por rol (que categorias se auto-expanden) vive ahora en lib/nav/role-ux.ts

@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { MACRO_NAV, EVOLUTION_NAV } from "./navigation";
+import { MACRO_NAV, EVOLUTION_NAV, OPERATIONS_NAV } from "./navigation";
 import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 
 // ---------------------------------------------------------------------------
@@ -46,8 +46,10 @@ export const ROLE_UX: Record<string, RoleUx> = {
   system_admin: { emphasis: [], home: "/dashboard", primaryAction: "newTicket" },
   tenant_admin: { emphasis: [], home: "/dashboard", primaryAction: "newTicket" },
 
-  // Gte. Operaciones -> Command Center (gestiona incidencias)
-  support_lead: { emphasis: ["tickets", "operaciones", "analitica"], home: "/dashboard", primaryAction: "assignTicket" },
+  // Gte. Operaciones -> Torre de Control de Operaciones (persona OPERATIONS_NAV). Home en su Torre;
+  // auto-expande sus bloques de persona. Se conservan ids MACRO para el caso multi-rol que renderiza
+  // MACRO_NAV (p.ej. support_lead + admin), donde el overlay no aplica.
+  support_lead: { emphasis: ["op.torre", "op.casos", "op.clientes", "tickets", "operaciones", "analitica"], home: "/operaciones", primaryAction: "assignTicket" },
   // Operador -> Work Queue
   support_agent: { emphasis: ["inicio", "tickets", "conocimiento"], home: "/workspace", primaryAction: "takeNext" },
   // Gte. Evolucion/TI -> Transformation Hub (gestiona mejoras y proyectos)
@@ -108,7 +110,7 @@ export function resolvePrimaryAction(roles: string[], perms: string[], isAdmin: 
 }
 
 // Guard de coherencia: todos los ids de emphasis existen como categoria (macro o de persona).
-const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV].map((c) => c.id));
+const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV, ...OPERATIONS_NAV].map((c) => c.id));
 export function unknownEmphasisIds(): string[] {
   const bad: string[] = [];
   for (const ux of Object.values(ROLE_UX)) for (const id of ux.emphasis) if (!CATEGORY_IDS.has(id)) bad.push(id);
