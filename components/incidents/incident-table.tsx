@@ -48,6 +48,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const [app, setApp] = useState("");
   const [prio, setPrio] = useState("");
   const [resp, setResp] = useState(initialResp);
+  const [q, setQ] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());  // seleccion para acciones en lote
   const [pending, startBulk] = useTransition();
 
@@ -62,6 +63,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const respOptions = useMemo(() => distinct(rows.map((r) => r.assignee?.name)), [rows]);
   const prioOptions = useMemo(() => PRIORITY_ORDER.filter((p) => rows.some((r) => r.priority === p)), [rows]);
 
+  const ql = q.trim().toLowerCase();
   const filtered = useMemo(
     () => rows.filter((r) =>
       viewPred(r, myMemberId, now) &&
@@ -70,9 +72,10 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
       (!bu || r.business_unit?.name === bu) &&
       (!app || r.ci?.name === app) &&
       (!resp || r.assignee?.name === resp) &&
-      (!prio || r.priority === prio)),
+      (!prio || r.priority === prio) &&
+      (!ql || r.incident_number.toLowerCase().includes(ql) || r.title.toLowerCase().includes(ql))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, view, filter, domain, bu, app, prio, resp, myMemberId, now],
+    [rows, view, filter, domain, bu, app, prio, resp, ql, myMemberId, now],
   );
 
   // Agrupacion por campo de maestro (estado, responsable, aplicacion, unidad, prioridad).
@@ -134,7 +137,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
     filter !== "all" && { label: t("inc.col.status"), value: t(("st." + filter) as MessageKey), clear: () => setFilter("all") },
   ].filter(Boolean) as { label: string; value: string; clear: () => void }[];
 
-  function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); }
+  function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); setQ(""); }
 
   // --- Seleccion multiple + acciones en lote (FASE 3.1 pilar 5) ---
   const filteredIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
@@ -146,7 +149,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   }
 
   // --- Vistas guardadas por usuario (persistentes) ---
-  const currentFilters = { view, filter, domain, bu, app, prio, resp };
+  const currentFilters = { view, filter, domain, bu, app, prio, resp, q };
   function saveCurrentView() {
     const name = window.prompt(t("view.name.prompt"));
     if (!name || !name.trim()) return;
@@ -154,7 +157,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   }
   function loadView(f: Record<string, unknown>) {
     setView((f.view as string) ?? "all"); setFilter((f.filter as string) ?? "all"); setDomain((f.domain as string) ?? "all");
-    setBu((f.bu as string) ?? ""); setApp((f.app as string) ?? ""); setPrio((f.prio as string) ?? ""); setResp((f.resp as string) ?? "");
+    setBu((f.bu as string) ?? ""); setApp((f.app as string) ?? ""); setPrio((f.prio as string) ?? ""); setResp((f.resp as string) ?? ""); setQ((f.q as string) ?? "");
   }
   function removeView(id: string) {
     if (!window.confirm(t("view.delete.confirm"))) return;
@@ -229,6 +232,12 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
 
       {/* Filtros por campo (dropdowns) */}
       <div style={{ display: "flex", gap: 10, padding: "0 20px 12px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)" }}>
+          <Icon name="search" size={13} color="var(--muted)" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("inc.search.placeholder")} aria-label={t("inc.search.placeholder")}
+            style={{ border: "none", outline: "none", background: "transparent", color: "var(--text)", fontSize: 12.5, fontFamily: "var(--font-ui)", width: 190 }} />
+          {q && <button onClick={() => setQ("")} aria-label={t("inc.filter.clear")} style={{ display: "inline-flex", border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", padding: 0 }}><Icon name="x" size={12} /></button>}
+        </div>
         <FieldSelect label={t("inc.field.bu")} value={bu} onChange={setBu} options={buOptions} allLabel={t("inc.filter.allbu")} />
         <FieldSelect label={t("inc.field.app")} value={app} onChange={setApp} options={appOptions} allLabel={t("inc.filter.allapp")} />
         <FieldSelect label={t("flt.responsible")} value={resp} onChange={setResp} options={respOptions} allLabel={t("flt.allresp")} />
