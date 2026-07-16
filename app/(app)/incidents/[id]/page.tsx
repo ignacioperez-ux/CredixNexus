@@ -14,6 +14,7 @@ import { getCsatForIncident } from "@/lib/csat/queries";
 import { getFinancialCaseForIncident } from "@/lib/fraud/queries";
 import { getAttachments, getTasks } from "@/lib/casework/queries";
 import { getAssignableMembers } from "@/lib/talent/queries";
+import { getAssignees } from "@/lib/incidents/assignees";
 import { getProjectsForIncident } from "@/lib/projects/queries";
 import { listMacros } from "@/lib/macros/queries";
 import { IncidentDetail, type IncidentDetailData } from "@/components/incidents/detail/incident-detail";
@@ -32,7 +33,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const access = await getAccessControl();
   const can = (code: string) => access.isAdmin || access.perms.includes(code);
 
-  const [comments, ledger, knowledge, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members, projects, macros] = await Promise.all([
+  const [comments, ledger, knowledge, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members, projects, macros, assignees] = await Promise.all([
     getComments(ctx.supabase, id),
     getLedgerForEntity(ctx.supabase, id),
     getSuggestedKnowledge(ctx.supabase, (inc.category as string) ?? null, (inc.affected_ci_id as string) ?? null),
@@ -52,6 +53,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     getAssignableMembers(ctx.supabase),
     getProjectsForIncident(ctx.supabase, id),
     listMacros(ctx.supabase),
+    getAssignees(ctx.supabase, id),
   ]);
 
   const canManageRisk = can("risk.manage");
@@ -101,6 +103,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       tasks={tasks}
       members={members}
       canManageTalent={canManageTalent}
+      assignees={assignees}
     />
   );
 }
