@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { FraudRow, FraudStats } from "@/lib/fraud/queries";
+import { money, moneyShort } from "@/lib/format/money";
 import { FraudStatusBadge } from "./badges";
 import { useListFilters, FilterBar, Drill, useGrouping, GroupBar, GroupHeader, EmptyState, type FilterDef } from "@/components/common/filters";
 
 export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats }) {
   const { t, locale } = useI18n();
-  const money = (n: number, c = "CRC") => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
-  const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)" };
+  const cur = rows[0]?.currency ?? "CRC";
+  const head: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", color: "#8A948A", padding: "10px 12px", background: "var(--head-bg)", whiteSpace: "nowrap" };
 
   const defs: FilterDef<FraudRow>[] = [
     { key: "status", label: t("obs.col.status"), get: (r) => r.status, allLabel: t("inc.filter.allstatus"), render: (v) => t(("fr.st." + v) as MessageKey) },
@@ -33,7 +34,7 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
         <Cell muted><Drill onClick={() => f.set("type", r.fraud_type)}>{t(("fr.type." + r.fraud_type) as MessageKey)}</Drill></Cell>
         <Cell muted><Drill onClick={() => f.set("src", r.detection_source)}>{t(("fr.src." + r.detection_source) as MessageKey)}</Drill></Cell>
         <Cell mono>{r.risk_score ?? "—"}</Cell>
-        <Cell mono muted>{r.amount_exposed != null ? money(r.amount_exposed, r.currency) : "—"}</Cell>
+        <Cell mono muted right>{r.amount_exposed != null ? <span title={money(r.amount_exposed, r.currency, locale)}>{moneyShort(r.amount_exposed, r.currency, locale)}</span> : "—"}</Cell>
         <Cell><Drill onClick={() => f.set("status", r.status)}><FraudStatusBadge status={r.status} /></Drill></Cell>
       </Link>
     );
@@ -45,8 +46,8 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         <Kpi label={t("fr.kpi.open")} value={String(stats.open)} color={stats.open > 0 ? "var(--st-high-fg)" : undefined} />
         <Kpi label={t("fr.kpi.confirmed")} value={String(stats.confirmed)} color={stats.confirmed > 0 ? "var(--st-critical-fg)" : undefined} />
-        <Kpi label={t("fr.kpi.exposed")} value={money(stats.exposed)} />
-        <Kpi label={t("fr.kpi.recovered")} value={money(stats.recovered)} color="var(--st-low-fg)" />
+        <Kpi label={t("fr.kpi.exposed")} value={money(stats.exposed, cur, locale)} />
+        <Kpi label={t("fr.kpi.recovered")} value={money(stats.recovered, cur, locale)} color="var(--st-low-fg)" />
       </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between" }}>
         <FilterBar defs={defs} filters={f} />
@@ -55,7 +56,7 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 150px 150px 90px 110px 120px", minWidth: 940 }}>
-            {[t("fr.col.number"), t("fr.col.case"), t("fr.col.type"), t("fr.col.source"), t("fr.col.risk"), t("fr.col.exposed"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
+            {[t("fr.col.number"), t("fr.col.case"), t("fr.col.type"), t("fr.col.source"), t("fr.col.risk"), t("fr.col.exposed"), t("obs.col.status")].map((h, i) => <div key={h} style={{ ...head, textAlign: i === 5 ? "right" : "left" }}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("fr.empty")} icon="shield" />}
             {g.groups
               ? g.groups.map((grp) => (
@@ -72,9 +73,9 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
   );
 }
 
-const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)" };
-function Cell({ children, mono, accent, muted }: { children: React.ReactNode; mono?: boolean; accent?: boolean; muted?: boolean }) {
-  return <div style={{ ...cellSt, fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: accent ? "var(--accent-2)" : muted ? "var(--muted)" : "var(--text)" }}>{children}</div>;
+const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)", minWidth: 0 };
+function Cell({ children, mono, accent, muted, right }: { children: React.ReactNode; mono?: boolean; accent?: boolean; muted?: boolean; right?: boolean }) {
+  return <div style={{ ...cellSt, justifyContent: right ? "flex-end" : "flex-start", fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: accent ? "var(--accent-2)" : muted ? "var(--muted)" : "var(--text)" }}>{children}</div>;
 }
 function Kpi({ label, value, color }: { label: string; value: string; color?: string }) {
   return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16 }}>
