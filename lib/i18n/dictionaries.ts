@@ -950,6 +950,8 @@ export const dictionaries = {
 
     "an.title": "Analítica ejecutiva",
     "an.subtitle": "Salud del servicio, tendencias y reportes",
+    "analytics.unavailable.title": "Analítica no disponible",
+    "analytics.unavailable.hint": "Tu rol no incluye el permiso de analítica (analytics.read), o el módulo no está disponible en este momento.",
     "an.tab.exec": "Ejecutivo",
     "an.tab.supervisor": "Supervisor",
     "an.tab.reports": "Reportes",
@@ -3276,6 +3278,8 @@ export const dictionaries = {
 
     "an.title": "Executive analytics",
     "an.subtitle": "Service health, trends and reports",
+    "analytics.unavailable.title": "Analytics unavailable",
+    "analytics.unavailable.hint": "Your role doesn't include the analytics permission (analytics.read), or the module is unavailable right now.",
     "an.tab.exec": "Executive",
     "an.tab.supervisor": "Supervisor",
     "an.tab.reports": "Reports",

@@ -183,6 +183,9 @@ export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
   { id: "op.torre", label: "nav.op.torre", icon: "home", items: [
     { id: "nav.ophome" },
   ] },
+  { id: "op.analitica", label: "nav.op.analitica", icon: "activity", items: [
+    { id: "nav.analytics" }, { id: "nav.behavior" },
+  ] },
   { id: "op.casos", label: "nav.op.casos", icon: "inbox", items: [
     { id: "nav.triage" }, { id: "nav.incidents" }, { id: "nav.majorincidents" }, { id: "nav.sla" },
     { id: "nav.convertedcases", readOnly: true, label: "nav.opx.evolcases" },
@@ -195,9 +198,6 @@ export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
   ] },
   { id: "op.servicio", label: "nav.op.servicio", icon: "sliders", items: [
     { id: "nav.servicecatalog" }, { id: "nav.selfservice" }, { id: "nav.knowledge" },
-  ] },
-  { id: "op.analitica", label: "nav.op.analitica", icon: "activity", items: [
-    { id: "nav.analytics" }, { id: "nav.behavior" },
   ] },
 ]);
 
