@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getContext } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
-import { getIncident, getComments, getLedgerForEntity, getSuggestedKnowledge } from "@/lib/incidents/queries";
+import { getIncident, getComments, getLedgerForEntity, getSuggestedKnowledge, getCaseTypeMeta } from "@/lib/incidents/queries";
 import { getRiskEventForIncident } from "@/lib/risk/queries";
 import { getProblemsForIncident } from "@/lib/problems/queries";
 import { getEscalationsForIncident } from "@/lib/sla/queries";
@@ -33,7 +33,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const access = await getAccessControl();
   const can = (code: string) => access.isAdmin || access.perms.includes(code);
 
-  const [comments, ledger, knowledge, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members, projects, macros, assignees] = await Promise.all([
+  const [comments, ledger, knowledge, riskEvent, problems, escalations, workflows, workflowDefs, changes, majorIncident, vendor, effort, survey, financialCase, attachments, tasks, members, projects, macros, assignees, caseTypes] = await Promise.all([
     getComments(ctx.supabase, id),
     getLedgerForEntity(ctx.supabase, id),
     getSuggestedKnowledge(ctx.supabase, (inc.category as string) ?? null, (inc.affected_ci_id as string) ?? null),
@@ -54,7 +54,9 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     getProjectsForIncident(ctx.supabase, id),
     listMacros(ctx.supabase),
     getAssignees(ctx.supabase, id),
+    getCaseTypeMeta(ctx.supabase),
   ]);
+  const caseTypeName = caseTypes[inc.case_type as string]?.name ?? (inc.case_type as string);
 
   const canManageRisk = can("risk.manage");
   const canManageProblem = can("problem.manage");
@@ -104,6 +106,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       members={members}
       canManageTalent={canManageTalent}
       assignees={assignees}
+      caseTypeName={caseTypeName}
     />
   );
 }

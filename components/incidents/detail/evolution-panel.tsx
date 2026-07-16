@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/icon";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
+import { InfoTip } from "@/components/help/info-tip";
 import { DeriveModal } from "./derive-modal";
 
 export function EvolutionPanel({ incidentId, status, score, candidate }: { incidentId: string; status: string; score: number; candidate: boolean }) {
@@ -16,7 +17,10 @@ export function EvolutionPanel({ incidentId, status, score, candidate }: { incid
   return (
     <div style={{ background: "var(--dark-surface)", border: "1px solid var(--dark-surface-border)", borderRadius: "var(--r-xl)", padding: 18, color: "var(--dark-surface-fg)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5 }}>{t("inc.section.evolution")}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5 }}>{t("inc.section.evolution")}</span>
+          <InfoTip tip="inc.tip.transform" />
+        </span>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 500, color: "var(--accent-bright)" }}>{Math.round(score)}</span>
       </div>
 

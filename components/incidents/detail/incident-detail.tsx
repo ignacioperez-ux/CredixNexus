@@ -30,6 +30,7 @@ import { RiskLink } from "@/components/risk/risk-link";
 import { ProblemLink } from "@/components/problems/problem-link";
 import { IncidentEscalations } from "@/components/sla/incident-escalations";
 import { SlaStatusRow } from "@/components/sla/sla-status";
+import { InfoTip } from "@/components/help/info-tip";
 import { IncidentWorkflows } from "@/components/workflows/incident-workflows";
 import { ChangeLink } from "@/components/changes/change-link";
 import { DeclareMi } from "@/components/major-incidents/declare-mi";
@@ -98,7 +99,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [] }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[] }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [], caseTypeName = "" }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[]; caseTypeName?: string }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -133,7 +134,15 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent-2)" }}>{inc.incident_number}</span>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, letterSpacing: "-0.3px", margin: 0, color: "var(--text)" }}>{inc.title}</h1>
-          <StatusStepper status={inc.status} />
+          {/* Tipo de caso: chip GRIS con icono (dato de clasificacion). Se distingue del ESTADO
+              del flujo (stepper de color) y de la prioridad (badge de color) — C2. */}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: "var(--muted)", background: "var(--paper)", border: "1px solid var(--line)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>
+            <Icon name="inbox" size={11} color="var(--muted)" /> {caseTypeName || inc.case_type}
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <StatusStepper status={inc.status} />
+            <InfoTip tip="inc.tip.stepper" />
+          </span>
           <PriorityTag priority={inc.priority} />
           {inc.intake_status === "pending" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.pending")}</span>}
           {inc.intake_status === "discarded" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", background: "var(--paper)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.discarded")}</span>}
@@ -208,7 +217,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Card>
 
             {effort && (
-              <Card title={t("wl2.title")}>
+              <Card title={t("wl2.title")} tip="inc.tip.effort">
                 <WorkLog incidentId={inc.id} effort={effort} canLog={canLogWork} />
               </Card>
             )}
@@ -239,12 +248,12 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
       {tab === "analisis" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {(majorIncident || inc.priority === "p1_critical" || canManageMi) && (
-            <Collapsible title={t("mi.section.incident")} count={majorIncident ? 1 : 0} defaultOpen={!!majorIncident}>
+            <Collapsible title={t("mi.section.incident")} tip="inc.tip.mi" count={majorIncident ? 1 : 0} defaultOpen={!!majorIncident}>
               <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
             </Collapsible>
           )}
 
-          <Collapsible title={t("inc.section.knowledge")} count={knowledge.length} defaultOpen={knowledge.length > 0}>
+          <Collapsible title={t("inc.section.knowledge")} tip="inc.tip.kb" count={knowledge.length} defaultOpen={knowledge.length > 0}>
             {knowledge.length === 0 ? (
               <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("inc.kb.none")}</div>
             ) : (
@@ -260,20 +269,20 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             )}
           </Collapsible>
 
-          <Collapsible title={t("prob.linked")} count={problems.length} defaultOpen={problems.length > 0}>
+          <Collapsible title={t("prob.linked")} tip="inc.tip.problem" count={problems.length} defaultOpen={problems.length > 0}>
             <ProblemLink incidentId={inc.id} problems={problems} canManage={canManageProblem} />
           </Collapsible>
 
-          <Collapsible title={t("chg.section.incident")} count={changes.length} defaultOpen={changes.length > 0}>
+          <Collapsible title={t("chg.section.incident")} tip="inc.tip.changes" count={changes.length} defaultOpen={changes.length > 0}>
             <ChangeLink changes={changes} canManage={canManageChange} newHref={`/changes/new?incident=${inc.id}`} />
           </Collapsible>
 
-          <Collapsible title={t("wf.section.incident")} count={workflows.length} defaultOpen={workflows.length > 0}>
+          <Collapsible title={t("wf.section.incident")} tip="inc.tip.workflows" count={workflows.length} defaultOpen={workflows.length > 0}>
             <IncidentWorkflows incidentId={inc.id} incidentTitle={inc.title} linked={workflows} definitions={workflowDefs} canRun={canRunWorkflow} />
           </Collapsible>
 
           {(financialCase || canManageFraud || canManageDispute) && (
-            <Collapsible title={t("fc.section")} count={financialCase ? 1 : 0} defaultOpen={hasFinancial}>
+            <Collapsible title={t("fc.section")} tip="inc.tip.financial" count={financialCase ? 1 : 0} defaultOpen={hasFinancial}>
               <FinancialCaseLink incidentId={inc.id} existing={financialCase} amount={inc.amount} canFraud={canManageFraud} canDispute={canManageDispute} />
             </Collapsible>
           )}
@@ -298,7 +307,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           {(canUpdateIncident || canTriage) && <EvaluatePanel incidentId={inc.id} />}
           {(canUpdateIncident || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
 
-          <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")}>
+          <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")} tip="inc.tip.ai">
             <Card title={t("inc.section.rca")}>
               <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
             </Card>
@@ -311,7 +320,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Card>
           </AiSuggestions>
 
-          <Collapsible title={t("inc.section.classification")} defaultOpen>
+          <Collapsible title={t("inc.section.classification")} tip="inc.tip.classification" defaultOpen>
             <Row label={t("area.field")} value={inc.area?.name} />
             <Row label={t("inc.field.category")} value={inc.category?.name} />
             <Row label={t("inc.team")} value={inc.category?.default_team} />
@@ -319,7 +328,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             <Row label="KB" value={inc.category?.requires_kb ? "Sí" : "No"} />
           </Collapsible>
 
-          <Collapsible title={t("inc.section.fintech")} defaultOpen={hasFinancial}>
+          <Collapsible title={t("inc.section.fintech")} tip="inc.tip.fintech" defaultOpen={hasFinancial}>
             <Row label={t("inc.f.casetype")} value={inc.case_type} />
             <Row label={t("inc.f.amount")} value={inc.amount != null ? new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: inc.currency || "CRC", maximumFractionDigits: 0 }).format(inc.amount) : null} mono />
             <Row label={t("inc.f.txn")} value={inc.transaction_reference} mono />
@@ -335,7 +344,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
           </Collapsible>
 
-          <Collapsible title={t("inc.section.impact")} defaultOpen={hasFinancial}>
+          <Collapsible title={t("inc.section.impact")} tip="inc.tip.fintech" defaultOpen={hasFinancial}>
             <Row label={t("inc.field.financial")} value={formatCurrency(inc.financial_impact_estimate, locale)} mono />
             <Row label="Transacciones" value={String(inc.affected_transaction_count)} mono />
             <Row label="Partner" value={inc.partner_impact ? "Sí" : "No"} />
@@ -346,17 +355,23 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
   );
 }
 
-// Modulo plegable: encabezado con contador (vacio -> cerrado) para no ocupar pantalla.
-function Collapsible({ title, count, defaultOpen = false, children }: { title: string; count?: number; defaultOpen?: boolean; children: React.ReactNode }) {
+// Modulo plegable: encabezado con contador (vacio -> cerrado) para no ocupar pantalla. El header
+// es un div clicable (no un <button>) para poder anidar el InfoTip (que es un boton) sin invalidar
+// el HTML; el InfoTip detiene la propagacion para no plegar al abrirse.
+function Collapsible({ title, tip, count, defaultOpen = false, children }: { title: string; tip?: MessageKey; count?: number; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
+  const toggle = () => setOpen((o) => !o);
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "15px 20px", background: "transparent", border: "none", cursor: "pointer" }}>
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", flex: 1, textAlign: "left" }}>{title}</span>
+      <div role="button" tabIndex={0} aria-expanded={open} onClick={toggle}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } }}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "15px 20px", cursor: "pointer" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{title}</span>
+        {tip && <span onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex" }}><InfoTip tip={tip} /></span>}
+        <span style={{ flex: 1 }} />
         {count != null && <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, minWidth: 22, textAlign: "center", padding: "1px 8px", borderRadius: "var(--r-pill)", background: count > 0 ? "var(--accent-soft)" : "var(--paper)", color: count > 0 ? "var(--accent-2)" : "var(--muted)" }}>{count}</span>}
         <Icon name={open ? "chevron-up" : "chevron-down"} size={16} color="var(--muted)" />
-      </button>
+      </div>
       {open && <div style={{ padding: "0 20px 20px" }}>{children}</div>}
     </div>
   );
@@ -364,12 +379,13 @@ function Collapsible({ title, count, defaultOpen = false, children }: { title: s
 
 // Envuelve los paneles de IA/reglas en un plegable cerrado por defecto: la IA queda como
 // sugerencia opcional, no como la vista principal del caso.
-function AiSuggestions({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+function AiSuggestions({ title, hint, tip, children }: { title: string; hint: string; tip?: MessageKey; children: React.ReactNode }) {
   return (
     <details style={{ background: "var(--card)", border: "1px dashed var(--line)", borderRadius: "var(--r-xl)", padding: "4px 16px" }}>
       <summary style={{ cursor: "pointer", listStyle: "none", padding: "12px 0", display: "flex", alignItems: "center", gap: 8 }}>
         <Icon name="sparkle" size={14} color="var(--accent-bright)" />
         <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{title}</span>
+        {tip && <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: "inline-flex" }}><InfoTip tip={tip} /></span>}
       </summary>
       <div style={{ fontSize: 11, color: "var(--muted)", paddingBottom: 6 }}>{hint}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0 14px" }}>
@@ -379,10 +395,13 @@ function AiSuggestions({ title, hint, children }: { title: string; hint: string;
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, tip, children }: { title: string; tip?: MessageKey; children: React.ReactNode }) {
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
-      <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 14, color: "var(--text)" }}>{title}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{title}</span>
+        {tip && <InfoTip tip={tip} />}
+      </div>
       {children}
     </div>
   );
