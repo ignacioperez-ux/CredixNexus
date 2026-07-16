@@ -24,25 +24,18 @@ export function AssignResponsible({ incidentId, members, currentName, canAssign 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const [disc, setDisc] = useState("");
   const [kind, setKind] = useState<"all" | "internal" | "external">("all");
   const [fit, setFit] = useState<Map<string, number> | null>(null);
   const [loadingSug, setLoadingSug] = useState(false);
-
-  const disciplines = useMemo(
-    () => [...new Set(members.map((m) => m.discipline).filter((d): d is string => !!d))].sort((a, b) => a.localeCompare(b)),
-    [members],
-  );
 
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
     const list = members.filter((m) =>
       (!term || m.name.toLowerCase().includes(term)) &&
-      (!disc || m.discipline === disc) &&
       (kind === "all" || (kind === "external" ? m.is_external : !m.is_external)));
     if (fit) return [...list].sort((a, b) => (fit.get(b.id) ?? -1) - (fit.get(a.id) ?? -1));
     return [...list].sort((a, b) => a.name.localeCompare(b.name));
-  }, [members, q, disc, kind, fit]);
+  }, [members, q, kind, fit]);
 
   async function assign(memberId: string, viaSuggestion = false) {
     setBusy(true);
@@ -77,11 +70,6 @@ export function AssignResponsible({ incidentId, members, currentName, canAssign 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("asg.search")}
               style={{ flex: 1, minWidth: 120, fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
-            <select value={disc} onChange={(e) => setDisc(e.target.value)}
-              style={{ fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)" }}>
-              <option value="">{t("asg.f.alldisc")}</option>
-              {disciplines.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
             <select value={kind} onChange={(e) => setKind(e.target.value as "all" | "internal" | "external")}
               style={{ fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)" }}>
               <option value="all">{t("asg.f.alltype")}</option>
@@ -105,7 +93,7 @@ export function AssignResponsible({ incidentId, members, currentName, canAssign 
                   {fit && <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, width: 24, textAlign: "right", color: f != null ? scoreColor(f) : "var(--muted)" }}>{f ?? "—"}</span>}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{m.discipline ?? "—"} · {m.is_external ? t("asg.ext") : t("asg.int")}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{m.is_external ? t("asg.ext") : t("asg.int")}</div>
                   </div>
                   <button onClick={() => assign(m.id, !!fit)} disabled={busy}
                     style={{ fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: busy ? "default" : "pointer" }}>

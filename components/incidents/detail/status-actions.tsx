@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { changeStatus, softDeleteIncident } from "@/lib/incidents/actions";
+import { requiresAssignee } from "@/lib/incidents/transitions";
 
 // Transiciones sugeridas desde cada estado (guiado, sin flechas que parezcan un "flujo").
 // El progreso del ciclo de vida lo muestra el StatusStepper; aqui solo se avanza.
@@ -22,15 +23,18 @@ const NEXT: Record<string, string[]> = {
   closed: ["reopened"],
 };
 
-export function StatusActions({ incidentId, status }: { incidentId: string; status: string }) {
+export function StatusActions({ incidentId, status, hasAssignee }: { incidentId: string; status: string; hasAssignee: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function move(s: string) {
     setBusy(true);
-    await changeStatus(incidentId, s);
+    setErr(null);
+    const r = await changeStatus(incidentId, s);
     setBusy(false);
+    if (!r.ok) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
     router.refresh();
   }
 
@@ -47,11 +51,17 @@ export function StatusActions({ incidentId, status }: { incidentId: string; stat
 
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-      {nexts.map((s, i) => (
-        <button key={s} onClick={() => move(s)} disabled={busy} style={i === 0 ? primaryBtn : ghostBtn}>
-          {i === 0 && <Icon name="chevron-right" size={13} style={{ verticalAlign: "-2px" }} />} {t(("st." + s) as MessageKey)}
-        </button>
-      ))}
+      {nexts.map((s, i) => {
+        // A1: no se puede pasar a "Asignado" sin al menos un responsable (regla pura compartida).
+        const blocked = requiresAssignee(s) && !hasAssignee;
+        return (
+          <button key={s} onClick={() => move(s)} disabled={busy || blocked}
+            title={blocked ? t("err.ERR_NO_ASSIGNEE") : undefined}
+            style={{ ...(i === 0 ? primaryBtn : ghostBtn), ...(blocked ? { opacity: 0.5, cursor: "not-allowed" } : {}) }}>
+            {i === 0 && <Icon name="chevron-right" size={13} style={{ verticalAlign: "-2px" }} />} {t(("st." + s) as MessageKey)}
+          </button>
+        );
+      })}
       <Link href={`/incidents/${incidentId}/edit`} style={{ ...ghostBtn, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}>
         <Icon name="edit" size={13} /> {t("common.edit")}
       </Link>
@@ -59,6 +69,7 @@ export function StatusActions({ incidentId, status }: { incidentId: string; stat
       <button onClick={cancelCase} disabled={busy} style={cancelBtn} title={t("inc.cancelcase")}>
         {t("inc.cancelcase")}
       </button>
+      {err && <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--st-critical-fg)", fontWeight: 600 }}>{err}</div>}
     </div>
   );
 }

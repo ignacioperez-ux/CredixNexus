@@ -1843,6 +1843,7 @@ export const dictionaries = {
 
     "err.ERR_REQUIRED_FIELD": "El campo es obligatorio.",
     "err.ERR_INVALID_FORMAT": "El formato del campo no es válido.",
+    "err.ERR_NO_ASSIGNEE": "Asigná al menos un responsable antes de pasar el caso a Asignado.",
     "err.ERR_MIN_LENGTH": "El valor es demasiado corto.",
     "err.ERR_INVALID_REFERENCE": "El valor seleccionado no existe o no está activo.",
     "err.ERR_PERMISSION_DENIED": "No tiene permisos para ejecutar esta acción.",
@@ -4171,6 +4172,7 @@ export const dictionaries = {
 
     "err.ERR_REQUIRED_FIELD": "This field is required.",
     "err.ERR_INVALID_FORMAT": "The field format is invalid.",
+    "err.ERR_NO_ASSIGNEE": "Assign at least one owner before moving the case to Assigned.",
     "err.ERR_MIN_LENGTH": "The value is too short.",
     "err.ERR_INVALID_REFERENCE": "The selected value does not exist or is not active.",
     "err.ERR_PERMISSION_DENIED": "You do not have permission to perform this action.",

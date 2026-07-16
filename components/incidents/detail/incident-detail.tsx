@@ -116,7 +116,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           {inc.intake_status === "discarded" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", background: "var(--paper)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.discarded")}</span>}
           {inc.classified_as && inc.intake_status === "accepted" && <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--st-info)", background: "var(--st-info-bg)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t(("tri.class." + inc.classified_as) as MessageKey)}</span>}
         </div>
-        {(canUpdateIncident || canTriage) && <StatusActions incidentId={inc.id} status={inc.status} />}
+        {(canUpdateIncident || canTriage) && <StatusActions incidentId={inc.id} status={inc.status} hasAssignee={!!inc.assigned_member_id} />}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>

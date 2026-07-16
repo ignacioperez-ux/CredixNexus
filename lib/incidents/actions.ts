@@ -6,6 +6,7 @@ import { getAccessControl } from "@/lib/auth/session";
 import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
+import { requiresAssignee, assignmentGuard } from "@/lib/incidents/transitions";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
 
@@ -205,6 +206,13 @@ export async function changeStatus(incidentId: string, status: string): Promise<
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
   if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // A1 (validacion de negocio, tambien en backend): no se puede pasar a "Asignado" sin al menos un
+  // responsable. assigned_member_id es el responsable principal (espejo). Regla pura compartida.
+  if (requiresAssignee(status)) {
+    const { data: cur } = await ctx.supabase.from("incident").select("assigned_member_id").eq("id", incidentId).maybeSingle();
+    const guard = assignmentGuard(status, !!cur?.assigned_member_id);
+    if (guard) return { ok: false, error: guard };
+  }
   const patch: Record<string, unknown> = { status };
   if (status === "resolved") patch.resolved_at = new Date().toISOString();
   const { data: inc, error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId).select("title, category, description").single();

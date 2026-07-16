@@ -49,7 +49,10 @@ export async function assignIncidentMember(incidentId: string, memberId: string,
     visibility: "internal",
     is_system_generated: true,
   });
+  // A2 fix: revalidar TAMBIEN la lista. Antes solo se revalidaba el detalle, por lo que tras
+  // asignar desde el detalle la ruta /incidents quedaba con cache viejo y mostraba "Sin asignar".
   revalidatePath(`/incidents/${incidentId}`);
+  revalidatePath("/incidents");
   return { ok: true };
 }
 
