@@ -95,3 +95,14 @@ export function fmtDurationShort(ms: number): string {
   if (h >= 1) return `${h} h`;
   return `${Math.max(1, Math.floor(abs / 60_000))} m`;
 }
+
+/** Duracion humana de dos unidades: "5 d 18 h", "4 h 20 m", "30 m". */
+export function fmtDurationLong(ms: number): string {
+  const abs = Math.abs(ms);
+  const d = Math.floor(abs / MS_DAY);
+  const h = Math.floor((abs % MS_DAY) / 3_600_000);
+  const m = Math.floor((abs % 3_600_000) / 60_000);
+  if (d >= 1) return h > 0 ? `${d} d ${h} h` : `${d} d`;
+  if (h >= 1) return m > 0 ? `${h} h ${m} m` : `${h} h`;
+  return `${Math.max(1, m)} m`;
+}
