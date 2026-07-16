@@ -74,7 +74,7 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
                 onClick={() => toggle(cat.id)}
                 aria-expanded={expanded}
                 className="sb-cat"
-                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: activeHere ? "var(--sb-hover)" : "transparent", color: activeHere ? "var(--sb-fg-active)" : "var(--sb-fg)", fontSize: 13, fontWeight: 700 }}>
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: activeHere ? "var(--sb-active, var(--sb-hover))" : "transparent", color: activeHere ? "var(--sb-fg-active)" : "var(--sb-fg)", fontSize: 13, fontWeight: 700, boxShadow: activeHere ? "var(--sh-black, none)" : "none" }}>
                 <Icon name={cat.icon} size={16} color={activeHere ? "var(--accent)" : "var(--sb-muted)"} />
                 <span style={{ flex: 1, textAlign: "left", letterSpacing: "0.2px" }}>{t(cat.label)}</span>
                 <Icon name={expanded ? "chevron-down" : "chevron-right"} size={14} color="var(--sb-muted)" />
@@ -110,7 +110,7 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
 
 function NavLink({ href, active, label, readOnly, readOnlyLabel }: { href: string; active: boolean; label: string; readOnly?: boolean; readOnlyLabel?: string }) {
   return (
-    <Link href={href} className={active ? "sb-link sb-active" : "sb-link"} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-hover)" : "transparent" }}>
+    <Link href={href} className={active ? "sb-link sb-active" : "sb-link"} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-active, var(--sb-hover))" : "transparent", boxShadow: active ? "var(--sh-black, none)" : "none" }}>
       {active && <span style={{ position: "absolute", left: 14, top: 7, bottom: 7, width: 3.5, borderRadius: 3, background: "var(--accent)" }} />}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
       {readOnly && (

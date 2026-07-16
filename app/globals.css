@@ -138,78 +138,83 @@
    gris/blanco) intacta. AA en texto sobre fondos tintados.
    ============================================================================ */
 [data-theme="claro"] {
-  /* Neutrales calidos */
-  --bg: #F5F4F7;            /* canvas gris calido, nunca blanco puro */
+  /* ===== CLARO GRAFITO — gris-frio premium; negro carbon en nav, rojo solo acciones ===== */
+  /* Neutros gris-frio — nada de blanco puro */
+  --bg: #EDEFF3;            /* canvas app */
   --card: #FFFFFF;          /* superficie de tarjeta */
-  --line: #ECE9F0;          /* borde calido sutil (la sombra da la separacion) */
-  --line-soft: #F1EFF4;     /* separadores internos */
-  --text: #1B1622;          /* ink-900 (titulos/cuerpo) */
-  --muted: #8E8898;         /* ink-500 (secundario) */
-  --paper: #FBFAFC;         /* surface-2 / bandas alternas */
-  --track: #EEEBF1;         /* pista de donut/anillos */
-  --head-bg: #F7F5FA;       /* cabeceras de tabla */
-  --row-hover: #F7F5FA;
-  --chart-bar: #E6E1EC;
+  --line: #E2E5EA;          /* bordes 1px */
+  --line-soft: #EBEDF1;     /* separadores internos */
+  --text: #14161A;          /* ink-900 (titulos/cuerpo) */
+  --muted: #868D98;         /* ink-500 (secundario) */
+  --paper: #F6F7F9;         /* surface-2 / inputs / headers de tabla / filas alternas */
+  --track: #E6E8EC;         /* pista de donut/anillos */
+  --head-bg: #F6F7F9;       /* cabeceras de tabla */
+  --row-hover: #F6F7F9;
+  --chart-bar: #33363C;     /* barras de categoria en negro carbon */
 
-  /* Marca */
-  --accent: #E4002B;        /* rojo Credix */
+  /* Marca — rojo Credix SOLO para acciones */
+  --accent: #E4002B;
   --accent-2: #C10025;      /* rojo hover / IDs-enlaces */
   --accent-bright: #E4002B;
-  --accent-soft: #FDECEF;   /* rojo suave (fondos rojos) */
+  --accent-soft: #FCE8EC;   /* rojo suave (fondos rojos) */
   --on-accent: #FFFFFF;
-  --red-soft: #FDECEF; --red-border: #F5D3DA;
+  --red-soft: #FCE8EC; --red-border: #F6C9D3;
 
   /* Alias forward-compat */
-  --surface: #FFFFFF; --surface-alt: #FBFAFC;
-  --ink: #3B3646; --ink-strong: #1B1622;
+  --surface: #FFFFFF; --surface-alt: #F6F7F9;
+  --ink: #3A3F47; --ink-strong: #14161A;   /* ink-700 / ink-900 */
   --primary: #E4002B; --primary-hover: #C10025; --on-primary: #FFFFFF;
 
-  --teal: #0E8F82; --teal-soft: #E4F5F3;
+  --teal: #0E8177; --teal-soft: #E2F2F0;
 
-  /* Sidebar con vida: gradiente calido; item activo = tarjeta blanca (--sb-hover) + barra roja */
-  --sb-bg: linear-gradient(180deg, #FCFBFE 0%, #F4F0F8 100%);
-  --sb-fg: #3B3646; --sb-fg-active: #1B1622;
-  --sb-muted: #8E8898; --sb-label: #8E8898;
-  --sb-border: #ECE9F0; --sb-hover: #FFFFFF;
+  /* Sidebar: gradiente frio; item ACTIVO = pill negro carbon (--sb-active) + texto blanco +
+     barra izquierda roja. Hover de subitems = #EEF0F4. */
+  --sb-bg: linear-gradient(180deg, #FFFFFF 0%, #F4F6F9 100%);
+  --sb-fg: #3A3F47; --sb-fg-active: #FFFFFF;
+  --sb-muted: #868D98; --sb-label: #868D98;
+  --sb-border: #E2E5EA; --sb-hover: #EEF0F4;
+  --sb-active: linear-gradient(150deg, #232428, #121317);
 
   --cta-bg: #E4002B; --cta-fg: #FFFFFF; --cta-icon: #FFFFFF;
-  --cta-grad: linear-gradient(180deg, #E4002B 0%, #C40025 100%);
+  --cta-grad: linear-gradient(150deg, #E4002B 0%, #C40025 100%);
 
-  --dark-surface: #1B1622; --dark-surface-border: #3B3646; --dark-surface-fg: #FFFFFF; --dark-chip: rgba(255, 255, 255, .08);
+  /* Negro carbon (chip de logo, avatar, paneles oscuros dentro del claro) */
+  --dark-surface: linear-gradient(150deg, #232428, #121317);
+  --dark-surface-border: #2E323A; --dark-surface-fg: #FFFFFF; --dark-chip: rgba(255, 255, 255, .08);
 
   /* Sombras — cajas que flotan (adios plano) */
-  --sh-sm: 0 1px 2px rgba(27, 22, 34, .05);
-  --sh-card: 0 1px 2px rgba(27, 22, 34, .04), 0 14px 30px -22px rgba(27, 22, 34, .28);
-  /* Elevacion estatica de tarjeta — SOLO Claro (en Nexus el token no existe -> none). */
-  --sh-e1: 0 1px 2px rgba(27, 22, 34, .04), 0 14px 30px -22px rgba(27, 22, 34, .28);
-  --sh-float: 0 18px 40px -18px rgba(27, 22, 34, .35);
-  --sh-red: 0 8px 18px -8px rgba(228, 0, 43, .6);
+  --sh-sm: 0 1px 2px rgba(20, 22, 26, .04);
+  --sh-card: 0 1px 2px rgba(20, 22, 26, .04), 0 16px 30px -24px rgba(20, 22, 26, .32);
+  --sh-e1: 0 1px 2px rgba(20, 22, 26, .04), 0 16px 30px -24px rgba(20, 22, 26, .32);
+  --sh-float: 0 18px 40px -18px rgba(20, 22, 26, .35);
+  --sh-red: 0 8px 18px -8px rgba(228, 0, 43, .55);
+  --sh-black: 0 10px 22px -12px rgba(20, 22, 26, .65);
 
-  /* Radios mas generosos (premium) — SOLO Claro */
-  --r-md: 12px; --r-lg: 14px; --r-xl: 18px; --r-2xl: 20px;
+  /* Radios (premium) */
+  --r-md: 12px; --r-lg: 14px; --r-xl: 16px; --r-2xl: 18px;
 
-  /* Gradiente del hero (mesa de ayuda / conocimiento) */
-  --hero-grad: linear-gradient(115deg, #FFF3F5 0%, #FCE7EC 46%, #F1EAFC 100%);
+  /* Gradiente del hero */
+  --hero-grad: linear-gradient(115deg, #F3F5F8 0%, #FCE8EC 58%, #EDECF4 100%);
 
-  /* Estado (pills/dots/donut) — acento coordinado, texto AA sobre bg tintado */
-  --st-critical: #C63066; --st-critical-fg: #C63066; --st-critical-bg: #FDEBF0;
-  --st-high: #B4740A;     --st-high-fg: #B4740A;     --st-high-bg: #FCF1DD;
-  --st-medium: #B4740A;   --st-medium-fg: #B4740A;   --st-medium-bg: #FCF1DD;
-  --st-low: #0E8C55;      --st-low-fg: #0E8C55;      --st-low-bg: #E6F6EE;
-  --st-verified: #0E8C55; --st-verified-bg: #E6F6EE;
-  --st-info: #1D69D6;     --st-info-bg: #E9F2FE;
-  --st-eval: #4F46E5;     --st-eval-bg: #EEF0FF;
+  /* Estado (pills/dots/donut) — familia sobria Claro Grafito, texto AA sobre bg tintado */
+  --st-critical: #D11A3A; --st-critical-fg: #D11A3A; --st-critical-bg: #FCE8EC;  /* red */
+  --st-high: #A67908;     --st-high-fg: #A67908;     --st-high-bg: #F6EEDB;       /* amber */
+  --st-medium: #A67908;   --st-medium-fg: #A67908;   --st-medium-bg: #F6EEDB;     /* amber */
+  --st-low: #2E7D46;      --st-low-fg: #2E7D46;      --st-low-bg: #E8F3EA;        /* green */
+  --st-verified: #2E7D46; --st-verified-bg: #E8F3EA;
+  --st-info: #2563A8;     --st-info-bg: #EAF1F8;                                  /* steel */
+  --st-eval: #565A8A;     --st-eval-bg: #EDECF4;                                  /* plum */
 
-  /* Familias de acento (tinte de categorias/KPIs; en Nexus se usa fallback) */
-  --acc-blue-bg: #E9F2FE;    --acc-blue-ink: #1D69D6;    --acc-blue-border: #CFE2FB;
-  --acc-indigo-bg: #EEF0FF;  --acc-indigo-ink: #4F46E5;  --acc-indigo-border: #DBDFFB;
-  --acc-emerald-bg: #E6F6EE; --acc-emerald-ink: #0E8C55; --acc-emerald-border: #C9EBD8;
-  --acc-amber-bg: #FCF1DD;   --acc-amber-ink: #B4740A;   --acc-amber-border: #F3E0BE;
-  --acc-rose-bg: #FDEBF0;    --acc-rose-ink: #C63066;    --acc-rose-border: #F7CFDD;
-  --acc-violet-bg: #F3ECFD;  --acc-violet-ink: #7A3FE0;  --acc-violet-border: #E4D4FA;
-  --acc-teal-bg: #E4F5F3;    --acc-teal-ink: #0E8F82;    --acc-teal-border: #C6E9E4;
-  --acc-cyan-bg: #E4F4FA;    --acc-cyan-ink: #0E7FA8;    --acc-cyan-border: #C6E7F1;
-  --acc-slate-bg: #EEF0F4;   --acc-slate-ink: #4A5568;   --acc-slate-border: #DBDFE8;
+  /* Familias de acento (tinte de categorias/KPIs) — steel/amber/red/green/teal/plum/graphite */
+  --acc-blue-bg: #EAF1F8;    --acc-blue-ink: #2563A8;    --acc-blue-border: #CFE0F0;   /* steel */
+  --acc-indigo-bg: #EDECF4;  --acc-indigo-ink: #565A8A;  --acc-indigo-border: #D8D7E6; /* plum */
+  --acc-emerald-bg: #E8F3EA; --acc-emerald-ink: #2E7D46; --acc-emerald-border: #CDE6D3;/* green */
+  --acc-amber-bg: #F6EEDB;   --acc-amber-ink: #A67908;   --acc-amber-border: #EBDCB8;  /* amber */
+  --acc-rose-bg: #FCE8EC;    --acc-rose-ink: #D11A3A;    --acc-rose-border: #F6C9D3;   /* red */
+  --acc-violet-bg: #EDECF4;  --acc-violet-ink: #565A8A;  --acc-violet-border: #D8D7E6; /* plum */
+  --acc-teal-bg: #E2F2F0;    --acc-teal-ink: #0E8177;    --acc-teal-border: #C4E4E0;   /* teal */
+  --acc-cyan-bg: #E2F2F0;    --acc-cyan-ink: #0E8177;    --acc-cyan-border: #C4E4E0;   /* teal */
+  --acc-slate-bg: #EDEFF2;   --acc-slate-ink: #3A3F47;   --acc-slate-border: #DDE0E5;  /* graphite */
 }
 
 /* ============================================================================
