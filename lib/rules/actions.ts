@@ -6,6 +6,36 @@ import { ErrorCode } from "@/lib/validation";
 
 export type DecideResult = { ok: boolean; error?: string };
 
+export type EvalFactor = { code: string; raw: number; weight: number; weighted: number };
+export type IncidentEvaluation = { ok: boolean; error?: string; score?: number; decision?: string; factors?: EvalFactor[] };
+
+/** Lectura READ-ONLY de la ultima evaluacion de regla de un caso (score + factores + decision).
+ *  Se usa para mostrar el score y su explicacion ANTES de derivar, sin re-ejecutar el motor
+ *  (re-evaluar tendria efectos: persistir y crear recomendacion). Devuelve ok sin factores si
+ *  el caso aun no fue evaluado. */
+export async function getIncidentEvaluation(incidentId: string): Promise<IncidentEvaluation> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await hasPermission(ctx.supabase, "incident.read"))) return { ok: false, error: ErrorCode.PERMISSION };
+  const { data, error } = await ctx.supabase
+    .from("rule_evaluation")
+    .select("score, decision, output_json")
+    .eq("entity_type", "incident")
+    .eq("entity_id", incidentId)
+    .order("evaluated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: true }; // sin evaluacion previa
+  const out = (data.output_json ?? {}) as { factors?: EvalFactor[] };
+  return {
+    ok: true,
+    score: data.score == null ? undefined : Number(data.score),
+    decision: (data.decision as string | null) ?? undefined,
+    factors: out.factors,
+  };
+}
+
 /**
  * Decision del area de negocio (RC) sobre una recomendacion. El RC aprueba/rechaza/
  * difiere y fija la prioridad de negocio. Aprobar la envia a Evolucion manteniendo

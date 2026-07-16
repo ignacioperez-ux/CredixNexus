@@ -84,7 +84,7 @@ export async function getOperationsTower(supabase: SupabaseClient): Promise<Oper
     decisions.push({ kind: "intake", rank: 3, severity: "amber", count: intakeAging.length, link: "/triage", oldestDays: Math.max(...pending.map((i) => ageDays(i.opened_at))) });
   }
   if (unassignedCritList.length) decisions.push({ kind: "assign", rank: 4, severity: "red", count: unassignedCritList.length, link: "/incidents" });
-  if (deriveList.length) decisions.push({ kind: "derive", rank: 5, severity: "amber", count: deriveList.length, link: "/triage" });
+  if (deriveList.length) decisions.push({ kind: "derive", rank: 5, severity: "amber", count: deriveList.length, link: "/incidents?view=candidates" });
   decisions.sort((a, b) => a.rank - b.rank);
 
   const pipeline: OpsPipelineStage[] = PIPELINE_STAGES.map((k) => {

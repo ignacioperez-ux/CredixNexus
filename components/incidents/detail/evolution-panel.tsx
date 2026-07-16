@@ -5,20 +5,13 @@ import { Icon } from "@/components/ui/icon";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
-import { sendToEvolution } from "@/lib/incidents/actions";
+import { DeriveModal } from "./derive-modal";
 
 export function EvolutionPanel({ incidentId, status, score, candidate }: { incidentId: string; status: string; score: number; candidate: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   const inEvolution = status === "in_evolution";
-
-  async function send() {
-    setBusy(true);
-    await sendToEvolution(incidentId);
-    setBusy(false);
-    router.refresh();
-  }
 
   return (
     <div style={{ background: "var(--dark-surface)", border: "1px solid var(--dark-surface-border)", borderRadius: "var(--r-xl)", padding: 18, color: "var(--dark-surface-fg)" }}>
@@ -40,12 +33,13 @@ export function EvolutionPanel({ incidentId, status, score, candidate }: { incid
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--accent-bright)", marginBottom: 8 }}><Icon name="sparkle" size={13} fill="currentColor" /> {t("inc.evolution.candidate")}</div>
           )}
           <p style={{ margin: "0 0 12px", fontSize: 12.5, opacity: 0.85, lineHeight: 1.5 }}>{t("inc.evolution.note")}</p>
-          <button onClick={send} disabled={busy}
-            style={{ width: "100%", padding: "10px", borderRadius: "var(--r-md)", background: "var(--accent)", color: "var(--on-accent)", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: busy ? 0.7 : 1 }}>
+          <button onClick={() => setOpen(true)}
+            style={{ width: "100%", padding: "10px", borderRadius: "var(--r-md)", background: "var(--accent)", color: "var(--on-accent)", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             {t("inc.evolution.send")}
           </button>
         </div>
       )}
+      {open && <DeriveModal incidentId={incidentId} initialScore={score} onClose={() => setOpen(false)} onDone={() => { setOpen(false); router.refresh(); }} />}
     </div>
   );
 }
