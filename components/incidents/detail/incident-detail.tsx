@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { PriorityTag } from "../badges";
@@ -97,6 +99,24 @@ type VendorChip = { id: string; name: string; criticality: string } | null;
 
 export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [] }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[] }) {
   const { t, locale } = useI18n();
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const tab: "gestion" | "analisis" = sp.get("tab") === "analisis" ? "analisis" : "gestion";
+  function setTab(v: "gestion" | "analisis") {
+    const params = new URLSearchParams(sp.toString());
+    if (v === "gestion") params.delete("tab"); else params.set("tab", v);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  // Fintech/Impacto solo se expande si el caso tiene relevancia financiera (monto / caso financiero
+  // / risk score) — proxy de "Disputa / Problema de pago / Sospecha de fraude".
+  const hasFinancial = !!financialCase || inc.amount != null || inc.risk_score != null;
+  // Badge de "Analisis y vinculos": cuenta de vinculos relevantes en la pestaña 2.
+  const linkCount = problems.length + changes.length + workflows.length + projects.length
+    + (majorIncident ? 1 : 0) + (financialCase ? 1 : 0)
+    + (inc.transformation_candidate || inc.status === "in_evolution" ? 1 : 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -107,7 +127,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
         <TriagePanel incidentId={inc.id} knowledge={knowledge} />
       )}
 
-      {/* Header */}
+      {/* Header (persistente en ambas pestañas) */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent-2)" }}>{inc.incident_number}</span>
@@ -121,29 +141,109 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
         {(canUpdateIncident || canTriage) && <StatusActions incidentId={inc.id} status={inc.status} hasAssignee={!!inc.assigned_member_id} />}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
-        {/* Columna principal */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Card title={t("inc.field.description")}>
-            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>{inc.description}</p>
-          </Card>
+      {/* Pestañas: Gestion (operacion diaria) / Analisis y vinculos (avanzado) */}
+      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
+        {([["gestion", t("inc.tab.gestion"), undefined], ["analisis", t("inc.tab.analisis"), linkCount]] as const).map(([k, label, badge]) => {
+          const active = tab === k;
+          return (
+            <button key={k} onClick={() => setTab(k)}
+              style={{ position: "relative", fontSize: 13, fontWeight: 600, padding: "10px 16px", border: "none", background: "transparent", color: active ? "var(--text)" : "var(--muted)", cursor: "pointer", borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent", marginBottom: -1, display: "flex", alignItems: "center", gap: 8 }}>
+              {label}
+              {badge != null && badge > 0 ? <span title={t("inc.tab.linkshint")} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, minWidth: 18, textAlign: "center", padding: "1px 6px", borderRadius: "var(--r-pill)", background: active ? "var(--accent)" : "var(--paper)", color: active ? "var(--cta-fg)" : "var(--muted)" }}>{badge}</span> : null}
+            </button>
+          );
+        })}
+      </div>
 
-          <Card title={t("inc.section.affected")}>
-            <Row label={t("inc.field.app")} value={inc.ci?.name} />
-            {vendor && (
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--line-soft)" }}>
-                <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("vnd.provider")}</span>
-                <Link href={`/vendors/${vendor.id}`} style={{ fontSize: 12.5, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600 }}>{vendor.name}</Link>
-              </div>
+      {/* ---- Pestaña 1: GESTION ---- */}
+      {tab === "gestion" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <Card title={t("inc.field.description")}>
+              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>{inc.description}</p>
+            </Card>
+
+            <Card title={t("inc.section.affected")}>
+              <Row label={t("inc.field.app")} value={inc.ci?.name} />
+              {vendor && (
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--line-soft)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("vnd.provider")}</span>
+                  <Link href={`/vendors/${vendor.id}`} style={{ fontSize: 12.5, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600 }}>{vendor.name}</Link>
+                </div>
+              )}
+              <Row label={t("inc.field.service")} value={inc.service?.name} />
+              <Row label={t("inc.field.product")} value={inc.product?.name} />
+              <Row label={t("inc.field.channel")} value={inc.channel?.name} />
+              <Row label={t("inc.field.bu")} value={inc.business_unit?.name} />
+              <Row label={t("inc.reported")} value={inc.reporter?.full_name} />
+            </Card>
+
+            <Card title={`${t("task.section")}${tasks && tasks.tasks.length > 0 ? ` (${tasks.done}/${tasks.open + tasks.done})` : ""}`}>
+              <CaseTasks incidentId={inc.id} data={tasks ?? { tasks: [], open: 0, done: 0, progress: null }} canManage={canUpdateIncident} />
+            </Card>
+
+            <Card title={`${t("att.section")}${attachments.length > 0 ? ` (${attachments.length})` : ""}`}>
+              <Attachments incidentId={inc.id} attachments={attachments} canManage={canUpdateIncident} />
+            </Card>
+
+            <Card title={t("inc.section.timeline")}>
+              <CommentThread incidentId={inc.id} comments={comments} macros={macros} />
+            </Card>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <AssignResponsible incidentId={inc.id} members={members} assignees={assignees} editable={assignmentEditable(inc.status)} canAssign={canUpdateIncident} />
+            {(inc.status === "resolved" || inc.status === "closed") && inc.assigned_member_id && inc.assignee && canManageTalent && (
+              <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
             )}
-            <Row label={t("inc.field.service")} value={inc.service?.name} />
-            <Row label={t("inc.field.product")} value={inc.product?.name} />
-            <Row label={t("inc.field.channel")} value={inc.channel?.name} />
-            <Row label={t("inc.field.bu")} value={inc.business_unit?.name} />
-            <Row label={t("inc.reported")} value={inc.reporter?.full_name} />
-          </Card>
 
-          <Card title={t("inc.section.knowledge")}>
+            <Card title="SLA">
+              <SlaBar label={t("inc.sla.response")} dueAt={inc.sla_response_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} />
+              <SlaBar label={t("inc.sla.resolution")} dueAt={inc.sla_resolution_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} last />
+            </Card>
+
+            <Card title={t("sla.section.escalations")}>
+              <IncidentEscalations escalations={escalations} />
+            </Card>
+
+            {effort && (
+              <Card title={t("wl2.title")}>
+                <WorkLog incidentId={inc.id} effort={effort} canLog={canLogWork} />
+              </Card>
+            )}
+
+            {(survey || inc.status === "resolved" || inc.status === "closed") && (
+              <Card title={t("csat.title")}>
+                <CsatPanel incidentId={inc.id} survey={survey} canSubmit={canSubmitCsat} />
+              </Card>
+            )}
+
+            <Card title={t("inc.section.ledger")}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {ledger.map((l) => (
+                  <div key={l.block_height} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
+                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", width: 34 }}>#{l.block_height}</span>
+                    <span style={{ color: "var(--text)", flex: 1 }}>{l.action}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-2)", fontSize: 10.5 }}>{l.current_hash.slice(0, 10)}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", fontSize: 10.5 }}>{new Date(l.timestamp).toLocaleString(locale)}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Pestaña 2: ANALISIS Y VINCULOS (modulos vacios colapsados) ---- */}
+      {tab === "analisis" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {(majorIncident || inc.priority === "p1_critical" || canManageMi) && (
+            <Collapsible title={t("mi.section.incident")} count={majorIncident ? 1 : 0} defaultOpen={!!majorIncident}>
+              <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
+            </Collapsible>
+          )}
+
+          <Collapsible title={t("inc.section.knowledge")} count={knowledge.length} defaultOpen={knowledge.length > 0}>
             {knowledge.length === 0 ? (
               <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("inc.kb.none")}</div>
             ) : (
@@ -157,23 +257,28 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
                 ))}
               </div>
             )}
-          </Card>
+          </Collapsible>
 
-          <Card title={t("prob.linked")}>
+          <Collapsible title={t("prob.linked")} count={problems.length} defaultOpen={problems.length > 0}>
             <ProblemLink incidentId={inc.id} problems={problems} canManage={canManageProblem} />
-          </Card>
+          </Collapsible>
 
-          <Card title={t("wf.section.incident")}>
-            <IncidentWorkflows incidentId={inc.id} incidentTitle={inc.title} linked={workflows} definitions={workflowDefs} canRun={canRunWorkflow} />
-          </Card>
-
-          <Card title={t("chg.section.incident")}>
+          <Collapsible title={t("chg.section.incident")} count={changes.length} defaultOpen={changes.length > 0}>
             <ChangeLink changes={changes} canManage={canManageChange} newHref={`/changes/new?incident=${inc.id}`} />
-          </Card>
+          </Collapsible>
 
-          {/* Proyectos de Evolucion nacidos de este incidente: el ancla conserva el hilo (§0) */}
+          <Collapsible title={t("wf.section.incident")} count={workflows.length} defaultOpen={workflows.length > 0}>
+            <IncidentWorkflows incidentId={inc.id} incidentTitle={inc.title} linked={workflows} definitions={workflowDefs} canRun={canRunWorkflow} />
+          </Collapsible>
+
+          {(financialCase || canManageFraud || canManageDispute) && (
+            <Collapsible title={t("fc.section")} count={financialCase ? 1 : 0} defaultOpen={hasFinancial}>
+              <FinancialCaseLink incidentId={inc.id} existing={financialCase} amount={inc.amount} canFraud={canManageFraud} canDispute={canManageDispute} />
+            </Collapsible>
+          )}
+
           {projects.length > 0 && (
-            <Card title={t("inc.section.projects")}>
+            <Collapsible title={t("inc.section.projects")} count={projects.length} defaultOpen>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {projects.map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`} className="cx-lift"
@@ -185,54 +290,13 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
                   </Link>
                 ))}
               </div>
-            </Card>
+            </Collapsible>
           )}
 
-          {(financialCase || canManageFraud || canManageDispute) && (
-            <Card title={t("fc.section")}>
-              <FinancialCaseLink incidentId={inc.id} existing={financialCase} amount={inc.amount} canFraud={canManageFraud} canDispute={canManageDispute} />
-            </Card>
-          )}
-
-          <Card title={`${t("task.section")}${tasks && tasks.tasks.length > 0 ? ` (${tasks.done}/${tasks.open + tasks.done})` : ""}`}>
-            <CaseTasks incidentId={inc.id} data={tasks ?? { tasks: [], open: 0, done: 0, progress: null }} canManage={canUpdateIncident} />
-          </Card>
-
-          <Card title={`${t("att.section")}${attachments.length > 0 ? ` (${attachments.length})` : ""}`}>
-            <Attachments incidentId={inc.id} attachments={attachments} canManage={canUpdateIncident} />
-          </Card>
-
-          <Card title={t("inc.section.timeline")}>
-            <CommentThread incidentId={inc.id} comments={comments} macros={macros} />
-          </Card>
-
-          <Card title={t("inc.section.ledger")}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {ledger.map((l) => (
-                <div key={l.block_height} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", width: 34 }}>#{l.block_height}</span>
-                  <span style={{ color: "var(--text)", flex: 1 }}>{l.action}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-2)", fontSize: 10.5 }}>{l.current_hash.slice(0, 10)}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", fontSize: 10.5 }}>{new Date(l.timestamp).toLocaleString(locale)}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        {/* Aside */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {(majorIncident || inc.priority === "p1_critical" || canManageMi) && (
-            <Card title={t("mi.section.incident")}>
-              <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
-            </Card>
-          )}
-          <AssignResponsible incidentId={inc.id} members={members} assignees={assignees} editable={assignmentEditable(inc.status)} canAssign={canUpdateIncident} />
-          {(inc.status === "resolved" || inc.status === "closed") && inc.assigned_member_id && inc.assignee && canManageTalent && (
-            <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
-          )}
+          {/* Regla de transformacion / Evolucion: accion, no se colapsa (paneles con su propia tarjeta) */}
           {(canUpdateIncident || canTriage) && <EvaluatePanel incidentId={inc.id} />}
           {(canUpdateIncident || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
+
           <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")}>
             <Card title={t("inc.section.rca")}>
               <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
@@ -246,36 +310,15 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Card>
           </AiSuggestions>
 
-          <Card title="SLA">
-            <SlaBar label={t("inc.sla.response")} dueAt={inc.sla_response_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} />
-            <SlaBar label={t("inc.sla.resolution")} dueAt={inc.sla_resolution_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} last />
-          </Card>
-
-          <Card title={t("sla.section.escalations")}>
-            <IncidentEscalations escalations={escalations} />
-          </Card>
-
-          {effort && (
-            <Card title={t("wl2.title")}>
-              <WorkLog incidentId={inc.id} effort={effort} canLog={canLogWork} />
-            </Card>
-          )}
-
-          {(survey || inc.status === "resolved" || inc.status === "closed") && (
-            <Card title={t("csat.title")}>
-              <CsatPanel incidentId={inc.id} survey={survey} canSubmit={canSubmitCsat} />
-            </Card>
-          )}
-
-          <Card title={t("inc.section.classification")}>
+          <Collapsible title={t("inc.section.classification")} defaultOpen>
             <Row label={t("area.field")} value={inc.area?.name} />
             <Row label={t("inc.field.category")} value={inc.category?.name} />
             <Row label={t("inc.team")} value={inc.category?.default_team} />
             <Row label="RCA" value={inc.category?.requires_rca ? "Sí" : "No"} />
             <Row label="KB" value={inc.category?.requires_kb ? "Sí" : "No"} />
-          </Card>
+          </Collapsible>
 
-          <Card title={t("inc.section.fintech")}>
+          <Collapsible title={t("inc.section.fintech")} defaultOpen={hasFinancial}>
             <Row label={t("inc.f.casetype")} value={inc.case_type} />
             <Row label={t("inc.f.amount")} value={inc.amount != null ? new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: inc.currency || "CRC", maximumFractionDigits: 0 }).format(inc.amount) : null} mono />
             <Row label={t("inc.f.txn")} value={inc.transaction_reference} mono />
@@ -289,15 +332,31 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             <Row label={t("inc.f.sensitive")} value={inc.sensitive_flag ? "Sí" : "No"} />
             <Row label={t("inc.f.pii")} value={inc.pii_flag ? "Sí" : "No"} />
             <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
-          </Card>
+          </Collapsible>
 
-          <Card title={t("inc.section.impact")}>
+          <Collapsible title={t("inc.section.impact")} defaultOpen={hasFinancial}>
             <Row label={t("inc.field.financial")} value={formatCurrency(inc.financial_impact_estimate, locale)} mono />
             <Row label="Transacciones" value={String(inc.affected_transaction_count)} mono />
             <Row label="Partner" value={inc.partner_impact ? "Sí" : "No"} />
-          </Card>
+          </Collapsible>
         </div>
-      </div>
+      )}
+    </div>
+  );
+}
+
+// Modulo plegable: encabezado con contador (vacio -> cerrado) para no ocupar pantalla.
+function Collapsible({ title, count, defaultOpen = false, children }: { title: string; count?: number; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "15px 20px", background: "transparent", border: "none", cursor: "pointer" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", flex: 1, textAlign: "left" }}>{title}</span>
+        {count != null && <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, minWidth: 22, textAlign: "center", padding: "1px 8px", borderRadius: "var(--r-pill)", background: count > 0 ? "var(--accent-soft)" : "var(--paper)", color: count > 0 ? "var(--accent-2)" : "var(--muted)" }}>{count}</span>}
+        <Icon name={open ? "chevron-up" : "chevron-down"} size={16} color="var(--muted)" />
+      </button>
+      {open && <div style={{ padding: "0 20px 20px" }}>{children}</div>}
     </div>
   );
 }
