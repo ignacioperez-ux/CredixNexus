@@ -14,6 +14,8 @@ import { navForRoles, type NavigationItem, type NavCategory } from "@/lib/nav/na
 // visibilidad por permiso (candado), progressive disclosure (categorias colapsables) y
 // enfasis por rol (auto-expansion). Todas las rutas actuales se conservan; nada se elimina.
 
+const SIDEBAR_OPEN_KEY = "credix.sidebar.open";
+
 export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles = [] }: { userName: string; userRole: string; perms?: string[]; isAdmin?: boolean; roles?: string[] }) {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -34,12 +36,22 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   // especifico que contiene la ruta actual. Vale para MACRO_NAV y para el overlay de persona.
   const activeCat = activeCategoryId(cats, pathname);
 
-  // Todas las categorias arrancan COMPRIMIDAS; se expanden solo si el usuario hace clic. Al
-  // navegar (salir de la vista) se vuelven a comprimir. La categoria activa se resalta pero NO
-  // se auto-expande (el usuario decide).
+  // Expandir/comprimir categorias es MANUAL y PERSISTENTE: el estado que el usuario elige se
+  // conserva al navegar entre rutas y entre sesiones (localStorage). Ya NO se auto-comprime al
+  // cambiar de ruta. La categoria activa se resalta pero no se auto-expande (el usuario decide).
   const [open, setOpen] = useState<Set<string>>(() => new Set());
-  useEffect(() => { setOpen(new Set()); }, [pathname]); // re-comprimir al cambiar de ruta
-  const toggle = (id: string) => setOpen((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SIDEBAR_OPEN_KEY);
+      if (saved) setOpen(new Set(JSON.parse(saved) as string[]));
+    } catch { /* ignore */ }
+  }, []);
+  const toggle = (id: string) => setOpen((prev) => {
+    const n = new Set(prev);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    try { localStorage.setItem(SIDEBAR_OPEN_KEY, JSON.stringify([...n])); } catch { /* ignore */ }
+    return n;
+  });
   const isOpen = (id: string) => open.has(id);
 
   return (
