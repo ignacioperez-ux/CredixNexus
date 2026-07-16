@@ -5,21 +5,24 @@ import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode } from "@/lib/validation";
 import { validateAttachment, validateTaskTitle, safeFileName, TASK_STATUSES } from "@/lib/casework/validation";
 import { ATTACHMENT_BUCKET } from "@/lib/casework/queries";
+import { assertActOnIncident } from "@/lib/auth/incident-authz";
 
 export type CaseworkResult = { ok: boolean; error?: string; id?: string };
 
 const PERM = "incident.update";
 
-async function guard() {
+async function guard(incidentId?: string) {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ctx: null, err: ErrorCode.PERMISSION as string };
   if (!(await hasPermission(ctx.supabase, PERM))) return { ctx: null, err: ErrorCode.PERMISSION as string };
+  // Regla de oro: adjuntos y tareas solo en casos PROPIOS (o gestor). Backend-authoritative.
+  if (incidentId) { const own = await assertActOnIncident(ctx, incidentId); if (own) return { ctx: null, err: own }; }
   return { ctx, err: null as string | null };
 }
 
 // ---- Adjuntos ----
 export async function uploadAttachment(incidentId: string, formData: FormData): Promise<CaseworkResult> {
-  const { ctx, err } = await guard();
+  const { ctx, err } = await guard(incidentId);
   if (!ctx) return { ok: false, error: err! };
 
   const file = formData.get("file");
@@ -50,7 +53,7 @@ export async function uploadAttachment(incidentId: string, formData: FormData): 
 }
 
 export async function deleteAttachment(id: string, incidentId: string): Promise<CaseworkResult> {
-  const { ctx, err } = await guard();
+  const { ctx, err } = await guard(incidentId);
   if (!ctx) return { ok: false, error: err! };
   const { data: att } = await ctx.supabase.from("case_attachment").select("storage_path").eq("id", id).maybeSingle();
   if (!att) return { ok: false, error: ErrorCode.INVALID_REFERENCE };
@@ -63,7 +66,7 @@ export async function deleteAttachment(id: string, incidentId: string): Promise<
 
 // ---- Checklist de tareas ----
 export async function addTask(incidentId: string, title: string, dueDate?: string | null): Promise<CaseworkResult> {
-  const { ctx, err } = await guard();
+  const { ctx, err } = await guard(incidentId);
   if (!ctx) return { ok: false, error: err! };
   const v = validateTaskTitle(title);
   if (v) return { ok: false, error: v };
@@ -78,7 +81,7 @@ export async function addTask(incidentId: string, title: string, dueDate?: strin
 }
 
 export async function setTaskStatus(id: string, status: string, incidentId: string): Promise<CaseworkResult> {
-  const { ctx, err } = await guard();
+  const { ctx, err } = await guard(incidentId);
   if (!ctx) return { ok: false, error: err! };
   if (!(TASK_STATUSES as readonly string[]).includes(status)) return { ok: false, error: ErrorCode.FORMAT };
   const { error } = await ctx.supabase
@@ -91,7 +94,7 @@ export async function setTaskStatus(id: string, status: string, incidentId: stri
 }
 
 export async function deleteTask(id: string, incidentId: string): Promise<CaseworkResult> {
-  const { ctx, err } = await guard();
+  const { ctx, err } = await guard(incidentId);
   if (!ctx) return { ok: false, error: err! };
   const { error } = await ctx.supabase.from("case_task").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };

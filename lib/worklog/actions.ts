@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode } from "@/lib/validation";
+import { assertActOnIncident } from "@/lib/auth/incident-authz";
 
 export type WorkResult = { ok: boolean; error?: string };
 
@@ -11,6 +12,9 @@ export async function logWork(incidentId: string, minutes: number, note?: string
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
   if (!(await hasPermission(ctx.supabase, "worklog.manage"))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Regla de oro: registrar esfuerzo solo en casos PROPIOS (o gestor). Backend-authoritative.
+  const own = await assertActOnIncident(ctx, incidentId);
+  if (own) return { ok: false, error: own };
   if (!Number.isInteger(minutes) || minutes <= 0 || minutes > 100000) return { ok: false, error: ErrorCode.FORMAT };
 
   const { data: inc } = await ctx.supabase.from("incident").select("assigned_member_id").eq("id", incidentId).maybeSingle();

@@ -223,16 +223,41 @@ export const SQUAD_MEMBER_NAV: NavCategory[] = [
   ].filter(Boolean) },
 ];
 
-// Roles con navegacion completa (MACRO_NAV) aunque tambien tengan product_owner: no degradar
-// a un multi-rol operativo/admin. Solo el product_owner "puro" recibe el overlay de persona.
-const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin", "support_agent"]);
+// Persona "Operador" (support_agent). Service Desk que ejecuta SOLO sus casos asignados. Ve su dia,
+// sus casos, la cola del equipo en SOLO LECTURA (contexto), puede crear casos como solicitante,
+// leer/proponer KB, ver su desempeno y sus notificaciones. No admite, no asigna, no toma de la cola,
+// no declara MI, no gestiona a otros. La segregacion dura (dashboard/torre/gobierno SLA/clientes/
+// fraude/talento/analitica/admin) es de capa de aplicacion (ROLE_ROUTE_DENY + guard) + perms
+// recortados (sql/0112) + regla de oro backend (lib/auth/incident-authz).
+export const SUPPORT_AGENT_NAV: NavCategory[] = [
+  { id: "ag.dia", label: "nav.ag.dia", icon: "home", items: [
+    { id: "nav.miday", label: "nav.miday", path: "/mi-dia", perm: "incident.read" },
+  ] },
+  { id: "ag.casos", label: "nav.ag.casos", icon: "inbox", items: [
+    { id: "nav.miscasos", label: "nav.miscasos", path: "/mis-casos", perm: "incident.read" },
+    { id: "nav.colaequipo", label: "nav.colaequipo", path: "/cola-equipo", perm: "incident.read", readOnly: true },
+  ] },
+  { id: "ag.crear", label: "nav.ag.crear", icon: "plus", items: [
+    { ...ITEM_BY_ID["nav.selfservice"], label: "nav.ag.crearcaso" },
+    { ...ITEM_BY_ID["nav.servicecatalog"], label: "nav.ag.catalogo" },
+  ] },
+  { id: "ag.kb", label: "nav.ag.kb", icon: "sparkle", items: [ITEM_BY_ID["nav.knowledge"]] },
+  { id: "ag.yo", label: "nav.ag.yo", icon: "user", items: [
+    { id: "nav.midesempeno", label: "nav.midesempeno", path: "/mi-desempeno", perm: "incident.read" },
+    { id: "nav.notificaciones", label: "nav.notificaciones", path: "/notificaciones" },
+  ] },
+];
+
+// Roles con navegacion completa (MACRO_NAV): admin. El resto recibe su overlay de persona.
+const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin"]);
 
 /** Arbol de navegacion para un conjunto de roles: overlay de persona para el Gerente de Operaciones
- *  (support_lead), el Gerente de Evolucion puro (product_owner) y el Miembro de Squad puro
- *  (squad_member); MACRO_NAV para el resto y admin. */
+ *  (support_lead), el Operador (support_agent), el Gerente de Evolucion puro (product_owner) y el
+ *  Miembro de Squad puro (squad_member); MACRO_NAV para admin. */
 export function navForRoles(roles: string[], isAdmin: boolean): NavCategory[] {
   if (isAdmin) return MACRO_NAV;
   if (roles.includes("support_lead")) return OPERATIONS_NAV;
+  if (roles.includes("support_agent")) return SUPPORT_AGENT_NAV;
   if (roles.includes("product_owner") && !roles.some((r) => FULL_NAV_ROLES.has(r))) return EVOLUTION_NAV;
   if (roles.includes("squad_member") && !roles.some((r) => FULL_NAV_ROLES.has(r) || r === "product_owner")) return SQUAD_MEMBER_NAV;
   return MACRO_NAV;

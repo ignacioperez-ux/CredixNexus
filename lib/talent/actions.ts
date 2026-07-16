@@ -36,7 +36,8 @@ async function assignmentCtx(incidentId: string): Promise<{ ctx: AsgCtx; inc: { 
   const ctx = await getContext();
   if (!ctx?.tenantId) return { error: ErrorCode.PERMISSION };
   const access = await getAccessControl();
-  const allowed = access.isAdmin || ["incident.assign", "incident.update", "triage.manage", "talent.manage"].some((c) => access.perms.includes(c));
+  // Asignar/reasignar es potestad de la Gerencia (no del Operador, aunque tenga incident.update).
+  const allowed = access.isAdmin || ["incident.assign", "triage.manage", "talent.manage"].some((c) => access.perms.includes(c));
   if (!allowed) return { error: ErrorCode.PERMISSION };
   const { data: inc } = await ctx.supabase.from("incident").select("status, assigned_member_id").eq("id", incidentId).maybeSingle();
   if (!inc) return { error: "not_found" };

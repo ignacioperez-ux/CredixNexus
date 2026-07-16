@@ -107,6 +107,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       canManageTalent={canManageTalent}
       assignees={assignees}
       caseTypeName={caseTypeName}
+      canManageAssign={can("incident.assign") || can("triage.manage")}
     />
   );
 }

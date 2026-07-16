@@ -7,6 +7,7 @@ import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 import { requiresAssignee, assignmentGuard } from "@/lib/incidents/transitions";
+import { assertActOnIncident } from "@/lib/auth/incident-authz";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
 
@@ -24,7 +25,8 @@ const PRIORITIES = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
 export async function setPriority(incidentId: string, priority: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
-  if (!(await hasPermission(ctx.supabase, "incident.update"))) return { ok: false, error: ErrorCode.PERMISSION };
+  // La prioridad la decide la Gerencia (asignar/triar). El Operador no cambia prioridad.
+  if (!(await anyPerm(["incident.assign", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   if (!PRIORITIES.includes(priority)) return { ok: false, error: ErrorCode.FORMAT };
   const { error } = await ctx.supabase.from("incident").update({ priority }).eq("id", incidentId);
   if (error) return { ok: false, error: error.message };
@@ -137,7 +139,8 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
 export async function updateIncident(id: string, input: IncidentInput): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
-  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Editar clasificacion/impacto/prioridad de un caso es gestion (Gerencia), no del Operador.
+  if (!(await anyPerm(["incident.assign", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const err = validateInput(input);
   if (err) return { ok: false, error: err };
 
@@ -171,7 +174,8 @@ export async function updateIncident(id: string, input: IncidentInput): Promise<
 export async function softDeleteIncident(id: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
-  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Cancelar un caso es gestion (Gerencia), no del Operador.
+  if (!(await anyPerm(["incident.assign", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const { error } = await ctx.supabase.from("incident").update({ status: "cancelled" }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/incidents");
@@ -188,6 +192,9 @@ export async function addComment(
   // Comentario de agente (incluye visibilidad interna): solo staff que trabaja casos. El usuario
   // final comenta por la RPC owner-checked add_my_case_comment, no por aqui.
   if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage", "incident.assign"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Regla de oro: comentar solo en casos PROPIOS (o gestor). Backend-authoritative.
+  const own = await assertActOnIncident(ctx, incidentId);
+  if (own) return { ok: false, error: own };
   const err = required(body);
   if (err) return { ok: false, error: err };
   const { error } = await ctx.supabase.from("incident_comment").insert({
@@ -206,6 +213,9 @@ export async function changeStatus(incidentId: string, status: string): Promise<
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
   if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Regla de oro: cambiar estado solo en casos PROPIOS (o gestor). Backend-authoritative.
+  const own = await assertActOnIncident(ctx, incidentId);
+  if (own) return { ok: false, error: own };
   // A1 (validacion de negocio, tambien en backend): no se puede pasar a "Asignado" sin al menos un
   // responsable. assigned_member_id es el responsable principal (espejo). Regla pura compartida.
   if (requiresAssignee(status)) {
@@ -233,9 +243,9 @@ export async function changeStatus(incidentId: string, status: string): Promise<
 export async function sendToEvolution(incidentId: string): Promise<ActionResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
-  // Gobierno de la derivacion (PE-2): SOLO Operaciones deriva. Antes bastaba problem.manage/
-  // project.manage (que tiene Evolucion) -> permitia auto-derivacion. Ahora exige permisos de mesa.
-  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  // Gobierno de la derivacion: derivar a Evolucion es decision de la GERENCIA de Operaciones
+  // (asignar/triar), no del Operador (que solo puede "Sugerir a la Gerencia"). No Evolucion.
+  if (!(await anyPerm(["incident.assign", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
   const { data: inc, error } = await ctx.supabase
     .from("incident")
     .update({

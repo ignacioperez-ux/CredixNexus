@@ -99,7 +99,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [], caseTypeName = "" }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[]; caseTypeName?: string }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [], caseTypeName = "", canManageAssign = false }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[]; caseTypeName?: string; canManageAssign?: boolean }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -202,7 +202,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <AssignResponsible incidentId={inc.id} members={members} assignees={assignees} editable={assignmentEditable(inc.status)} canAssign={canUpdateIncident} />
+            <AssignResponsible incidentId={inc.id} members={members} assignees={assignees} editable={assignmentEditable(inc.status)} canAssign={canManageAssign} />
             {(inc.status === "resolved" || inc.status === "closed") && inc.assigned_member_id && inc.assignee && canManageTalent && (
               <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
             )}
@@ -305,7 +305,7 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
 
           {/* Regla de transformacion / Evolucion: accion, no se colapsa (paneles con su propia tarjeta) */}
           {(canUpdateIncident || canTriage) && <EvaluatePanel incidentId={inc.id} />}
-          {(canUpdateIncident || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
+          {(canManageAssign || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
 
           <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")} tip="inc.tip.ai">
             <Card title={t("inc.section.rca")}>

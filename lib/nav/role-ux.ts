@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { MACRO_NAV, EVOLUTION_NAV, OPERATIONS_NAV, SQUAD_MEMBER_NAV } from "./navigation";
+import { MACRO_NAV, EVOLUTION_NAV, OPERATIONS_NAV, SQUAD_MEMBER_NAV, SUPPORT_AGENT_NAV } from "./navigation";
 import { canSeeNav, requiredPermForPath, defaultHome } from "./access";
 
 // ---------------------------------------------------------------------------
@@ -50,8 +50,9 @@ export const ROLE_UX: Record<string, RoleUx> = {
   // auto-expande sus bloques de persona. Se conservan ids MACRO para el caso multi-rol que renderiza
   // MACRO_NAV (p.ej. support_lead + admin), donde el overlay no aplica.
   support_lead: { emphasis: ["op.torre", "op.casos", "op.clientes", "tickets", "operaciones", "analitica"], home: "/operaciones", primaryAction: "assignTicket" },
-  // Operador -> Work Queue
-  support_agent: { emphasis: ["inicio", "tickets", "conocimiento"], home: "/workspace", primaryAction: "takeNext" },
+  // Operador -> "Mi dia" (persona SUPPORT_AGENT_NAV). NO toma casos: los recibe asignados, por eso
+  // se elimina "Tomar siguiente" (primaryAction) y el CTA pasa a "Crear caso" (reportar como usuario).
+  support_agent: { emphasis: ["ag.dia", "ag.casos"], home: "/mi-dia", primaryAction: "reportCase" },
   // Gte. Evolucion/TI -> Transformation Hub (gestiona mejoras y proyectos)
   // Gerente de Evolucion: home en Proyectos (portafolio); ya no ve el dashboard operativo (segregacion 1.1).
   // Navegacion de persona (EVOLUTION_NAV, 1.2): auto-expande sus bloques "ev.evolucion"/"ev.gobierno".
@@ -112,7 +113,7 @@ export function resolvePrimaryAction(roles: string[], perms: string[], isAdmin: 
 }
 
 // Guard de coherencia: todos los ids de emphasis existen como categoria (macro o de persona).
-const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV, ...OPERATIONS_NAV, ...SQUAD_MEMBER_NAV].map((c) => c.id));
+const CATEGORY_IDS = new Set([...MACRO_NAV, ...EVOLUTION_NAV, ...OPERATIONS_NAV, ...SQUAD_MEMBER_NAV, ...SUPPORT_AGENT_NAV].map((c) => c.id));
 export function unknownEmphasisIds(): string[] {
   const bad: string[] = [];
   for (const ux of Object.values(ROLE_UX)) for (const id of ux.emphasis) if (!CATEGORY_IDS.has(id)) bad.push(id);

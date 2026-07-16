@@ -16,6 +16,10 @@ export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = 
   { prefix: "/mi-squad", perm: "squad.read" },
   { prefix: "/mis-iniciativas", perm: "project.read" },
   { prefix: "/mi-perfil", perm: "project.read" },
+  { prefix: "/mi-dia", perm: "incident.read" },
+  { prefix: "/mis-casos", perm: "incident.read" },
+  { prefix: "/cola-equipo", perm: "incident.read" },
+  { prefix: "/mi-desempeno", perm: "incident.read" },
   { prefix: "/incidents", perm: "incident.read" },
   { prefix: "/triage", perm: "triage.manage" },
   { prefix: "/sla-governance", perm: "sla.read" },
@@ -70,6 +74,16 @@ export const ROLE_ROUTE_DENY: Record<string, string[]> = {
   // portafolio global, la Torre/Mapa de Evolucion, el listado global de Squads, el Workload global,
   // los casos convertidos ni el motor de reglas/AI. Usa las rutas /mi-* acotadas.
   squad_member: ["/projects", "/squads", "/workload", "/evolucion", "/casos-convertidos", "/rules", "/ai-center"],
+  // Operador: solo su dia / sus casos / cola (RO) / crear caso / KB / desempeno / notificaciones.
+  // Toda ruta de GESTION responde 403 aunque tenga el perm de lectura (nav + guard). NO se deniega
+  // /incidents (necesita el detalle de su caso), /portal, /service-catalog (solicitante), /knowledge.
+  support_agent: [
+    "/dashboard", "/workspace", "/triage", "/operaciones", "/sla-governance", "/customers",
+    "/fraud-disputes", "/risk", "/major-incidents", "/problems", "/changes", "/observability",
+    "/dependencies", "/cmdb", "/vendors", "/rules", "/workflows", "/ai-center", "/projects",
+    "/squads", "/workload", "/talent", "/delivery-areas", "/evolucion", "/casos-convertidos",
+    "/analytics", "/admin", "/catalog", "/ledger", "/processes",
+  ],
 };
 
 /** true si alguna ruta esta vedada para los roles del usuario (denylist de persona). Admin nunca

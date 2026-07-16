@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode, minLength, firstError } from "@/lib/validation";
 import { validateArticleType } from "@/lib/knowledge/validation";
+import { assertActOnIncident } from "@/lib/auth/incident-authz";
 
 export type KbSaveResult = { ok: boolean; error?: string; articleNumber?: string };
 export type KbResult = { ok: boolean; error?: string };
@@ -20,6 +21,10 @@ export async function saveKbArticle(
 ): Promise<KbSaveResult> {
   const ctx = await getContext();
   if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  // Regla de oro: proponer un articulo KB solo desde un caso PROPIO (o gestor). Queda en borrador
+  // (pendiente de aprobacion de la Gerencia).
+  const own = await assertActOnIncident(ctx, incidentId);
+  if (own) return { ok: false, error: own };
 
   const err = firstError(minLength(title, 5), minLength(content, 10), validateArticleType(articleType));
   if (err) return { ok: false, error: err };
