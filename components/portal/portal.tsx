@@ -8,6 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { AiReport } from "@/components/ai/ai-report";
 import { portalAssist, type PortalAssistResult } from "@/lib/portal/assist";
 import { createIncident, checkMySimilarCases } from "@/lib/incidents/actions";
+import { uploadMyCaseEvidence } from "@/lib/portal/case-actions";
 import type { SimilarCaseHit } from "@/lib/incidents/similar";
 import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
@@ -97,6 +98,9 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
   const [mine, setMine] = useState<SimilarCaseHit[]>([]);
+  const [files, setFiles] = useState<File[]>([]);            // evidencia adjunta ANTES de registrar
+  const [caseQuery, setCaseQuery] = useState("");            // buscador de "Mis casos"
+  const [caseFilter, setCaseFilter] = useState<string | null>(null); // chip de estado activo
 
   // Dictado por voz (Web Speech API): opcional, degradado si el navegador no lo soporta.
   const [listening, setListening] = useState(false);
@@ -180,8 +184,10 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
       const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId, affectedCiId: appId || undefined, impact: INTAKE_IMPACT, urgency });
       if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
       if (res) await Promise.all(res.articles.map((a) => recordKbEvent(a.id, "escalation", "portal", subject)));
+      // Evidencia opcional adjuntada en el intake: se sube al caso recien creado (owner-checked).
+      for (const f of files) { const fd = new FormData(); fd.append("file", f); await uploadMyCaseEvidence(r.id, fd); }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      setCreated(r.number ?? ""); setSubject(""); setRes(null); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false);
+      setCreated(r.number ?? ""); setSubject(""); setRes(null); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]);
       router.refresh();
     });
   }
@@ -191,6 +197,13 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const cardBox: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)" };
   const sectionTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" };
   const apps = applications;
+
+  // "Mis casos": filtro por chip de estado + busqueda por asunto/codigo/tipo.
+  const filteredCases = sortedCases.filter((c) =>
+    (!caseFilter || c.status === caseFilter) &&
+    (!caseQuery.trim() || `${c.title} ${c.incident_number} ${caseTypes[c.case_type || ""]?.name ?? ""}`.toLowerCase().includes(caseQuery.trim().toLowerCase())),
+  );
+  const CASE_FILTERS: (string | null)[] = [null, "new", "assigned", "in_progress", "waiting", "resolved"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
@@ -287,6 +300,16 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
       {/* ================= AUTOSERVICIO ================= */}
       {tab === "autoservicio" && (
         <>
+          <div style={{ position: "relative", overflow: "hidden", background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-hero, var(--sh-card))", padding: "26px 30px" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".16em", color: "var(--accent-2)", marginBottom: 8 }}>{t("portal.auto.tag")}</div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--fs-page-title, 25px)", letterSpacing: "-0.01em", color: "var(--text)" }}>{t("portal.auto.title")}</div>
+            <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 6 }}>{t("portal.auto.sub")}</div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+              <Link href="/portal?tab=registrar" className="cx-btn-primary" style={{ textDecoration: "none" }}><Icon name="plus" size={15} color="var(--on-primary, #fff)" /> {t("portal.register")}</Link>
+              <Link href="/knowledge" className="cx-btn-outline" style={{ textDecoration: "none" }}>{t("portal.auto.searchkb")}</Link>
+            </div>
+          </div>
+
           {categories.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
@@ -333,41 +356,69 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
       {/* ================= MIS CASOS ================= */}
       {tab === "miscasos" && (
-        <div style={{ ...cardBox, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={sectionTitle}>{t("portal.mycases")}</span>
-            {myCases.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "1px 8px", borderRadius: "var(--r-pill)" }}>{myCases.length}</span>}
-          </div>
-          {myCases.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "8px 2px" }}>{t("portal.mycases.empty")}</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {sortedCases.map((c) => {
-                const sc = statusColors(c.status);
-                const es = evalState(c.status, c.survey_status);
-                const row = (
-                  <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
-                    <SlaRing openedAt={c.opened_at} dueAt={c.sla_resolution_due_at} resolvedAt={c.resolved_at} status={c.status} size={38} />
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
-                    <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
-                    {es && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: "var(--r-pill)",
-                        color: es === "evaluated" ? "var(--st-low-fg)" : "var(--st-high-fg)",
-                        background: es === "evaluated" ? "var(--st-low-bg)" : "var(--st-high-bg)" }}>
-                        {t(es === "evaluated" ? "case.eval.done" : "case.eval.pending")}
-                      </span>
-                    )}
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(c.status))}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
-                  </div>
+        <>
+          {/* Banner IA (deflection): "se parece a otro ya resuelto?" -> Conocimiento */}
+          <Link href="/knowledge" className="cx-lift" style={{ background: "var(--acc-teal-bg, var(--paper))", border: "1px solid var(--acc-teal-border, var(--line))", borderRadius: "var(--r-md)", padding: "13px 15px", textDecoration: "none", display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--acc-teal-ink, var(--teal))", color: "#fff" }}><Icon name="sparkle" size={16} color="#fff" /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{t("portal.mycases.ai")}</span>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("portal.mycases.ai.sub")}</span>
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--acc-teal-ink, var(--teal))" }}>{t("portal.mycases.ai.cta")} →</span>
+          </Link>
+
+          <div style={{ ...cardBox, padding: 18 }}>
+            {/* Barra: buscador + chips de estado */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
+                <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--muted)" }}><Icon name="search" size={14} /></span>
+                <input value={caseQuery} onChange={(e) => setCaseQuery(e.target.value)} placeholder={t("portal.mycases.search")} style={{ ...field, padding: "9px 11px 9px 32px" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
+              {CASE_FILTERS.map((s) => {
+                const active = caseFilter === s;
+                return (
+                  <button key={s ?? "all"} type="button" onClick={() => setCaseFilter(s)}
+                    style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                      background: active ? "var(--accent)" : "var(--card)", border: active ? "1px solid var(--accent)" : "1px solid var(--line)", color: active ? "var(--on-accent, #fff)" : "var(--muted)" }}>
+                    {s ? t(statusKey(s)) : t("portal.mycases.all")}
+                  </button>
                 );
-                return <Link key={c.id} href={caseHref(c.id)} style={{ textDecoration: "none" }}>{row}</Link>;
               })}
             </div>
-          )}
-        </div>
+
+            {filteredCases.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "8px 2px" }}>{myCases.length === 0 ? t("portal.mycases.empty") : t("portal.mycases.nofilter")}</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {filteredCases.map((c) => {
+                  const sc = statusColors(c.status);
+                  const es = evalState(c.status, c.survey_status);
+                  const row = (
+                    <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px 9px 13px", background: "var(--paper)", borderRadius: "var(--r-md)", borderLeft: `3px solid ${sc.fg}` }}>
+                      <SlaRing openedAt={c.opened_at} dueAt={c.sla_resolution_due_at} resolvedAt={c.resolved_at} status={c.status} size={38} />
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
+                      <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                      {es && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: "var(--r-pill)",
+                          color: es === "evaluated" ? "var(--st-low-fg)" : "var(--st-high-fg)",
+                          background: es === "evaluated" ? "var(--st-low-bg)" : "var(--st-high-bg)" }}>
+                          {t(es === "evaluated" ? "case.eval.done" : "case.eval.pending")}
+                        </span>
+                      )}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(c.status))}
+                      </span>
+                      <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
+                    </div>
+                  );
+                  return <Link key={c.id} href={caseHref(c.id)} style={{ textDecoration: "none" }}>{row}</Link>;
+                })}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* ================= REGISTRAR ================= */}
@@ -428,6 +479,28 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
                 </span>
               </div>
               <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 5 }}>{t("portal.priority.note")}</div>
+            </div>
+
+            {/* Evidencia (opcional): se adjunta al caso al registrarlo (owner-checked, <=10MB). */}
+            <div>
+              <label style={lbl}>{t("portal.evidence.title")}</label>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: 16, borderRadius: "var(--r-md)", border: "1.5px dashed var(--field-border, var(--line))", background: "var(--field-bg, var(--paper))", cursor: "pointer", textAlign: "center" }}>
+                <Icon name="paperclip" size={18} color="var(--muted)" />
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("portal.evidence.hint")}</span>
+                <input type="file" multiple onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; setFiles((p) => [...p, ...fs]); }} style={{ display: "none" }} />
+              </label>
+              {files.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 8 }}>
+                  {files.map((f, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text)" }}>
+                      <Icon name="paperclip" size={12} color="var(--muted)" />
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{Math.round(f.size / 1024)} KB</span>
+                      <button type="button" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "inline-flex" }}><Icon name="x" size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err.startsWith("ERR_") ? t(("err." + err) as MessageKey) : err}</div>}
