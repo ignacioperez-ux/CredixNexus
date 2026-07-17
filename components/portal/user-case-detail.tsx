@@ -8,6 +8,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { Icon } from "@/components/ui/icon";
 import { statusColors, statusKey } from "@/lib/incidents/labels";
 import { SlaRing } from "@/components/portal/hub-viz";
+import { SlaStatusRow } from "@/components/sla/sla-status";
 import { addMyCaseComment, uploadMyCaseEvidence, deleteMyCaseEvidence, escalateMyCase } from "@/lib/portal/case-actions";
 import type { MyCaseDetail, CaseThreadItem, MyCaseSurvey, PortalAttachment } from "@/lib/portal/case-queries";
 import { CaseCsat } from "./case-csat";
@@ -72,12 +73,15 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
     });
   }
 
+  const affected = detail.app || detail.service || detail.product || detail.channel || detail.business_unit || detail.reporter;
+  const panel: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 };
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-prose)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
       <BackButton fallback="/portal" label="case.back" />
 
-      {/* Cabecera: anillo SLA + numero + estado + titulo */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      {/* Cabecera: anillo SLA + numero + estado + titulo (full-width) */}
+      <div style={{ ...panel, padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <SlaRing openedAt={detail.opened_at} dueAt={detail.sla_resolution_due_at} resolvedAt={detail.resolved_at} status={detail.status} size={54} />
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -90,110 +94,115 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
         </div>
       </div>
 
-      {/* Progreso del caso (o banner de evolucion: el hilo sobrevive, §0) */}
-      {inEvolution ? (
-        <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", borderRadius: "var(--r-md)", padding: "12px 14px", display: "flex", gap: 10, alignItems: "center" }}>
-          <Icon name="zap" size={16} color="var(--accent-2)" />
-          <span style={{ fontSize: 12.5, color: "var(--text)" }}>{t("case.evolution.note")}</span>
-        </div>
-      ) : (
-        <CaseStepper idx={stepIndex(detail.status)} />
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 16, alignItems: "start" }}>
+        {/* ===== IZQUIERDA: seguimiento / evaluacion / detalle / comunicacion ===== */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)" }}>
+          {inEvolution ? (
+            <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", borderRadius: "var(--r-md)", padding: "12px 14px", display: "flex", gap: 10, alignItems: "center" }}>
+              <Icon name="zap" size={16} color="var(--accent-2)" />
+              <span style={{ fontSize: 12.5, color: "var(--text)" }}>{t("case.evolution.note")}</span>
+            </div>
+          ) : (
+            <div style={panel}><div style={{ ...cardTitle, marginBottom: 12 }}>{t("case.progress.title")}</div><CaseStepper idx={stepIndex(detail.status)} /></div>
+          )}
 
-      {/* Lo que reportaste */}
-      {detail.description && (
-        <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "12px 14px", fontSize: 13, color: "var(--text)" }}>{detail.description}</div>
-      )}
+          {detail.description && (
+            <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "12px 14px", fontSize: 13, color: "var(--text)" }}>{detail.description}</div>
+          )}
 
-      {/* Detalle del caso (solo lectura): elementos afectados + reportado por. */}
-      {(detail.app || detail.service || detail.product || detail.channel || detail.business_unit || detail.reporter) && (
-        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-4)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)", marginBottom: 8 }}>{t("case.detail.title")}</div>
-          <DRow label={t("inc.field.app")} value={detail.app} />
-          <DRow label={t("inc.field.service")} value={detail.service} />
-          <DRow label={t("inc.field.product")} value={detail.product} />
-          <DRow label={t("inc.field.channel")} value={detail.channel} />
-          <DRow label={t("inc.field.bu")} value={detail.business_unit} />
-          <DRow label={t("inc.reported")} value={detail.reporter} />
-        </div>
-      )}
+          {showCsat && <CaseCsat incidentId={detail.id} existing={survey} />}
 
-      {/* Quien atiende + escalar a Gerencia */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 }}>
-        <div style={cardTitle}>{t("case.attends.title")}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--accent-soft)", color: "var(--accent-2)", display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontSize: 12, flexShrink: 0 }}>{(detail.assignee?.trim()[0] ?? "?").toUpperCase()}</span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{detail.assignee ?? t("case.attends.unassigned")}</div>
-            <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("case.attends.mgmt")}</div>
-          </div>
-        </div>
-        {canReply && (
-          <button type="button" onClick={escalate} disabled={busy || escalated} className="cx-btn-outline" style={{ marginTop: 12 }}>
-            {escalated ? t("case.escalate.done") : t("case.escalate.cta")}
-          </button>
-        )}
-      </div>
+          {affected && (
+            <div style={panel}>
+              <div style={{ ...cardTitle, marginBottom: 8 }}>{t("case.detail.title")}</div>
+              <DRow label={t("inc.field.app")} value={detail.app} />
+              <DRow label={t("inc.field.service")} value={detail.service} />
+              <DRow label={t("inc.field.product")} value={detail.product} />
+              <DRow label={t("inc.field.channel")} value={detail.channel} />
+              <DRow label={t("inc.field.bu")} value={detail.business_unit} />
+              <DRow label={t("inc.reported")} value={detail.reporter} />
+            </div>
+          )}
 
-      {/* Adjuntos / evidencia: ver + subir (owner-checked) */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-          <span style={cardTitle}>{t("case.evidence.title")}</span>
-          <label style={{ ...uploadBtn, opacity: busy ? 0.6 : 1 }}>
-            <Icon name="plus" size={13} /> {t("case.evidence.add")}
-            <input type="file" onChange={onUpload} disabled={busy} style={{ display: "none" }} />
-          </label>
-        </div>
-        {attachments.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("case.evidence.empty")}</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {attachments.map((a) => (
-              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
-                <Icon name="paperclip" size={14} color="var(--muted)" />
-                <a href={a.url ?? "#"} target="_blank" rel="noopener noreferrer" style={{ flex: 1, fontSize: 12.5, color: "var(--accent-2)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.file_name}</a>
-                <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{Math.round(a.size_bytes / 1024)} KB</span>
-                {a.mine && <button type="button" onClick={() => removeEvidence(a.id)} disabled={busy} title={t("case.evidence.remove")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "inline-flex" }}><Icon name="x" size={13} /></button>}
+          <div style={panel}>
+            <div style={{ ...cardTitle, marginBottom: 12 }}>{t("case.thread.title")}</div>
+            {thread.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("case.thread.empty")}</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {thread.map((m) => (
+                  <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: m.is_mine ? "flex-end" : "flex-start" }}>
+                    <div style={{ maxWidth: "82%", background: m.is_mine ? "var(--accent-soft)" : "var(--paper)", border: `1px solid ${m.is_mine ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-lg)", padding: "10px 13px", fontSize: 13, color: "var(--text)" }}>{m.body}</div>
+                    <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
+                      {m.is_mine ? t("case.you") : m.is_system_generated ? t("case.system") : t("case.team")} · {new Date(m.created_at).toLocaleString(locale)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-        {fileErr && <div style={{ fontSize: 11.5, color: "var(--st-critical-fg)", marginTop: 6 }}>{fileErr}</div>}
-      </div>
-
-      {/* CSAT al resolverse (o evaluacion ya enviada) */}
-      {showCsat && <CaseCsat incidentId={detail.id} existing={survey} />}
-
-      {/* Hilo de comunicacion con la mesa */}
-      <div>
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", color: "var(--text)", marginBottom: 10 }}>{t("case.thread.title")}</div>
-        {thread.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("case.thread.empty")}</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {thread.map((m) => (
-              <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: m.is_mine ? "flex-end" : "flex-start" }}>
-                <div style={{ maxWidth: "82%", background: m.is_mine ? "var(--accent-soft)" : "var(--card)", border: `1px solid ${m.is_mine ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-lg)", padding: "10px 13px", fontSize: 13, color: "var(--text)" }}>{m.body}</div>
-                <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
-                  {m.is_mine ? t("case.you") : m.is_system_generated ? t("case.system") : t("case.team")} · {new Date(m.created_at).toLocaleString(locale)}
-                </span>
+            )}
+            {canReply && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("case.reply.placeholder")}
+                  style={{ fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%", resize: "vertical" }} />
+                {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err}</div>}
+                <button onClick={send} disabled={pending || reply.trim().length === 0} className="cx-btn-primary" style={{ alignSelf: "flex-start" }}>
+                  {pending ? t("case.reply.sending") : t("case.reply.send")}
+                </button>
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Responder */}
-      {canReply && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("case.reply.placeholder")}
-            style={{ fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%", resize: "vertical" }} />
-          {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err}</div>}
-          <button onClick={send} disabled={pending || reply.trim().length === 0} className="cx-btn-primary" style={{ alignSelf: "flex-start" }}>
-            {pending ? t("case.reply.sending") : t("case.reply.send")}
-          </button>
         </div>
-      )}
+
+        {/* ===== DERECHA: SLA / quien atiende / adjuntos ===== */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)" }}>
+          <div style={panel}>
+            <div style={{ ...cardTitle, marginBottom: 6 }}>{t("case.sla.title")}</div>
+            <SlaStatusRow label={t("inc.sla.response")} dueAt={detail.sla_response_due_at} openedAt={detail.opened_at} resolvedAt={detail.first_response_at} status={detail.status} locale={locale} />
+            <SlaStatusRow label={t("inc.sla.resolution")} dueAt={detail.sla_resolution_due_at} openedAt={detail.opened_at} resolvedAt={detail.resolved_at} status={detail.status} locale={locale} last />
+          </div>
+
+          <div style={panel}>
+            <div style={cardTitle}>{t("case.attends.title")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+              <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--acc-blue-bg, var(--accent-soft))", color: "var(--acc-blue-ink, var(--accent-2))", display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontSize: 12, flexShrink: 0 }}>{(detail.assignee?.trim()[0] ?? "?").toUpperCase()}</span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{detail.assignee ?? t("case.attends.unassigned")}</div>
+                <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("case.attends.mgmt")}</div>
+              </div>
+            </div>
+            {canReply && (
+              <button type="button" onClick={escalate} disabled={busy || escalated} className="cx-btn-outline" style={{ marginTop: 12 }}>
+                {escalated ? t("case.escalate.done") : t("case.escalate.cta")}
+              </button>
+            )}
+          </div>
+
+          <div style={panel}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+              <span style={cardTitle}>{t("case.evidence.title")}</span>
+              <label style={{ ...uploadBtn, opacity: busy ? 0.6 : 1 }}>
+                <Icon name="plus" size={13} /> {t("case.evidence.add")}
+                <input type="file" onChange={onUpload} disabled={busy} style={{ display: "none" }} />
+              </label>
+            </div>
+            {attachments.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("case.evidence.empty")}</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {attachments.map((a) => (
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
+                    <Icon name="paperclip" size={14} color="var(--muted)" />
+                    <a href={a.url ?? "#"} target="_blank" rel="noopener noreferrer" style={{ flex: 1, fontSize: 12.5, color: "var(--accent-2)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.file_name}</a>
+                    <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{Math.round(a.size_bytes / 1024)} KB</span>
+                    {a.mine && <button type="button" onClick={() => removeEvidence(a.id)} disabled={busy} title={t("case.evidence.remove")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "inline-flex" }}><Icon name="x" size={13} /></button>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {fileErr && <div style={{ fontSize: 11.5, color: "var(--st-critical-fg)", marginTop: 6 }}>{fileErr}</div>}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
