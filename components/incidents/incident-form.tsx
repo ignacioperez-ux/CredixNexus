@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
 import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import type { FormOptions } from "@/lib/incidents/queries";
-import { createIncident, updateIncident, checkSimilarCases, searchResolvedSimilar, type IncidentInput } from "@/lib/incidents/actions";
+import { createIncident, updateIncident, checkSimilarCases, searchResolvedSimilar, findSimilarSemantic, type IncidentInput } from "@/lib/incidents/actions";
 import { refineSimilarAtIntake, type RefinedSimilar } from "@/lib/ai/analysis";
 import type { SimilarCaseHit } from "@/lib/incidents/similar";
+import type { SemanticHit } from "@/lib/ai/embeddings";
 import type { SearchResult } from "@/lib/portal/queries";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 import { statusKey, statusColors } from "@/lib/incidents/labels";
@@ -57,6 +58,17 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
   const [similar, setSimilar] = useState<SimilarCaseHit[]>([]);
   const [resolved, setResolved] = useState<SearchResult | null>(null);
   const [searchingKb, setSearchingKb] = useState(false);
+  const [semantic, setSemantic] = useState<SemanticHit[] | null>(null);
+  const [semBusy, setSemBusy] = useState(false);
+
+  // Busqueda por significado (semantica, gte-small). A demanda; tercera senal ademas del lexico.
+  async function searchSemantic() {
+    if (f.title.trim().length < 5) return;
+    setSemBusy(true);
+    const r = await findSimilarSemantic({ title: f.title.trim(), description: f.description });
+    setSemBusy(false);
+    if (r.ok && r.items) setSemantic(r.items);
+  }
   const [aiVerdicts, setAiVerdicts] = useState<Record<string, RefinedSimilar>>({});
   const [aiBusy, setAiBusy] = useState(false);
   const [aiOff, setAiOff] = useState(false);
@@ -212,8 +224,31 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
             <button type="button" onClick={searchKb} disabled={searchingKb || f.title.trim().length < 5} style={{ ...secondaryBtn, opacity: searchingKb || f.title.trim().length < 5 ? 0.6 : 1 }}>
               {searchingKb ? t("portal.search.searching") : t("similar.resolved.btn")}
             </button>
+            <button type="button" onClick={searchSemantic} disabled={semBusy || f.title.trim().length < 5} style={{ ...secondaryBtn, opacity: semBusy || f.title.trim().length < 5 ? 0.6 : 1 }}>
+              {semBusy ? t("portal.search.searching") : t("similar.sem.btn")}
+            </button>
             <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("similar.resolved.caption")}</span>
           </div>
+
+          {semantic && (
+            <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={panelHeader}>{t("similar.sem.title")}</div>
+              {semantic.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("similar.sem.none")}</div>}
+              {semantic.map((s) => {
+                const sc = statusColors(s.status);
+                return (
+                  <Link key={s.incident_id} href={`/incidents/${s.incident_id}`} className="cx-lift" style={rowLink}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{s.incident_number}</span>
+                    <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--muted)" }}>{Math.round(s.similarity * 100)}%</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 8px", borderRadius: "var(--r-pill)" }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.fg }} />{t(statusKey(s.status))}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
           {resolved && (
             <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
               {resolved.articles.length === 0 && resolved.cases.length === 0 && (

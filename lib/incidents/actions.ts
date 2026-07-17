@@ -10,6 +10,7 @@ import { requiresAssignee, assignmentGuard } from "@/lib/incidents/transitions";
 import { assertActOnIncident } from "@/lib/auth/incident-authz";
 import { findSimilarOpenCases, type SimilarDraft, type SimilarCaseHit } from "@/lib/incidents/similar";
 import { searchKnowledge, type SearchResult } from "@/lib/portal/queries";
+import { embedQuery, triggerIncidentEmbedding, type SemanticHit } from "@/lib/ai/embeddings";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
 
@@ -134,6 +135,8 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
     .single();
 
   if (error) return { ok: false, error: error.message };
+  // Embedding semantico (fire-and-forget): no bloquea el registro.
+  void triggerIncidentEmbedding(ctx.supabase, data.id as string);
   revalidatePath("/incidents");
   return { ok: true, id: data.id as string, number: data.incident_number as string };
 }
@@ -173,6 +176,28 @@ export async function searchResolvedSimilar(query: string): Promise<{ ok: boolea
   }
   const result = await searchKnowledge(ctx.supabase, query);
   return { ok: true, result };
+}
+
+export type SemanticResult = { ok: boolean; error?: string; items?: SemanticHit[] };
+
+/** Similitud SEMANTICA (Fase 3-B): embebe el borrador (Edge Function gte-small) y busca por
+ *  distancia coseno sobre casos abiertos con embedding. Tercera senal, complementa lexico + IA.
+ *  Si no hay embeddings aun (backfill pendiente) o la funcion falla, devuelve lista vacia. */
+export async function findSimilarSemantic(draft: { title: string; description?: string }, excludeId?: string): Promise<SemanticResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.create", "incident.update", "incident.resolve", "triage.manage"]))) {
+    return { ok: false, error: ErrorCode.PERMISSION };
+  }
+  const vec = await embedQuery(ctx.supabase, `${draft.title} ${draft.description ?? ""}`);
+  if (!vec) return { ok: true, items: [] };
+  const { data, error } = await ctx.supabase.rpc("search_incidents_semantic", {
+    p_embedding: JSON.stringify(vec),
+    p_exclude: excludeId ?? null,
+    p_k: 5,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, items: (data ?? []) as SemanticHit[] };
 }
 
 /** Marca un caso como DUPLICADO de otro (canonico). Fase 3: decision humana de Gerencia
@@ -266,6 +291,8 @@ export async function updateIncident(id: string, input: IncidentInput): Promise<
     .eq("id", id);
 
   if (error) return { ok: false, error: error.message };
+  // Regenera el embedding si cambio el texto (idempotente por content_hash en la Edge Function).
+  void triggerIncidentEmbedding(ctx.supabase, id);
   revalidatePath(`/incidents/${id}`);
   revalidatePath("/incidents");
   return { ok: true, id };
