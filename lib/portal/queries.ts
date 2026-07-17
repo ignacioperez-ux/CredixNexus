@@ -44,7 +44,7 @@ export async function searchKnowledge(supabase: SupabaseClient, query: string): 
   const { data: incs } = await supabase
     .from("incident")
     .select("id, incident_number, title, category, resolution_summary")
-    .eq("status", "resolved")
+    .in("status", ["resolved", "closed"])
     .order("resolved_at", { ascending: false })
     .limit(80);
   const cases: CaseHit[] = (incs ?? []).map((c) => {

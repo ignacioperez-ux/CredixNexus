@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
-import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 import { requiresAssignee, assignmentGuard } from "@/lib/incidents/transitions";
@@ -353,13 +352,14 @@ export async function changeStatus(incidentId: string, status: string): Promise<
   }
   const patch: Record<string, unknown> = { status };
   if (status === "resolved") patch.resolved_at = new Date().toISOString();
-  const { data: inc, error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId).select("title, category, description").single();
+  const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId).select("id").single();
   if (error) return { ok: false, error: error.message };
-  // Knowledge al cierre: registra el caso como articulo (draft) para reuso ante casos similares.
+  // Knowledge al RESOLVER/CERRAR: captura el caso como articulo draft (sintoma + SOLUCION: causa raiz
+  // + resumen de resolucion) para reuso ante casos similares. Funcion SQL unica, idempotente y
+  // SECURITY DEFINER, compartida con el cierre por evaluacion (submit_case_csat) para que NINGUN
+  // camino de cierre quede sin capturar (§2.2).
   if (status === "resolved" || status === "closed") {
-    await captureClosureKnowledge(ctx.supabase, ctx.tenantId, ctx.accountId, {
-      kind: "incident", id: incidentId, title: inc?.title as string, category: inc?.category as string | undefined, symptom: inc?.description as string | undefined,
-    });
+    await ctx.supabase.rpc("capture_incident_closure_kb", { p_id: incidentId });
   }
   revalidatePath(`/incidents/${incidentId}`);
   revalidatePath("/incidents");
