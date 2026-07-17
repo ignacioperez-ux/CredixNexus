@@ -8,6 +8,8 @@ import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 import { requiresAssignee, assignmentGuard } from "@/lib/incidents/transitions";
 import { assertActOnIncident } from "@/lib/auth/incident-authz";
+import { findSimilarOpenCases, type SimilarDraft, type SimilarCaseHit } from "@/lib/incidents/similar";
+import { searchKnowledge, type SearchResult } from "@/lib/portal/queries";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
 
@@ -134,6 +136,105 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
   if (error) return { ok: false, error: error.message };
   revalidatePath("/incidents");
   return { ok: true, id: data.id as string, number: data.incident_number as string };
+}
+
+export type SimilarResult = { ok: boolean; error?: string; items?: SimilarCaseHit[] };
+
+/** Deteccion de duplicados en el registro (mesa de ayuda): casos ABIERTOS del tenant
+ *  similares al borrador. Solo LECTURA -> sin evento de ledger (no hay mutacion de negocio).
+ *  Mismo guard que createIncident. Sugiere sin bloquear (§11). */
+export async function checkSimilarCases(draft: SimilarDraft): Promise<SimilarResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.create", "incident.update", "incident.resolve", "triage.manage"]))) {
+    return { ok: false, error: ErrorCode.PERMISSION };
+  }
+  const items = await findSimilarOpenCases(ctx.supabase, draft);
+  return { ok: true, items };
+}
+
+/** Deteccion de duplicados para el usuario final del portal: acotada a SUS PROPIOS casos
+ *  abiertos (no expone casos de otros usuarios del tenant). Solo lectura. */
+export async function checkMySimilarCases(draft: SimilarDraft): Promise<SimilarResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId || !ctx.accountId) return { ok: false, error: ErrorCode.PERMISSION };
+  const items = await findSimilarOpenCases(ctx.supabase, draft, { ownerId: ctx.accountId });
+  return { ok: true, items };
+}
+
+/** Busqueda a demanda de conocimiento reutilizable en el registro (mesa de ayuda): casos
+ *  RESUELTOS + articulos KB similares al borrador (mismo motor lexico del portal). Solo lectura.
+ *  Complementa el panel de duplicados ABIERTOS: aqui el foco es reusar una solucion documentada. */
+export async function searchResolvedSimilar(query: string): Promise<{ ok: boolean; error?: string; result?: SearchResult }> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.create", "incident.update", "incident.resolve", "triage.manage"]))) {
+    return { ok: false, error: ErrorCode.PERMISSION };
+  }
+  const result = await searchKnowledge(ctx.supabase, query);
+  return { ok: true, result };
+}
+
+/** Marca un caso como DUPLICADO de otro (canonico). Fase 3: decision humana de Gerencia
+ *  (triage.manage/incident.assign). No destructivo: NO cierra el caso (client-centric). Audit-grade:
+ *  el trigger del ledger registra el enlace (actor = auth.uid()); si el ledger falla, se revierte. */
+export async function markDuplicate(
+  duplicateId: string,
+  primaryId: string,
+  opts?: { source?: "manual" | "ai" | "lexical"; confidence?: number | null; reason?: string | null },
+): Promise<ActionResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  // Marcar duplicado es gestion (como derivar a Evolucion), no del Operador.
+  if (!(await anyPerm(["incident.assign", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!duplicateId || !primaryId || duplicateId === primaryId) return { ok: false, error: ErrorCode.FORMAT };
+
+  // Ambos casos deben existir en el tenant (RLS ya acota; validamos para mensaje claro).
+  const { data: incs } = await ctx.supabase.from("incident").select("id").in("id", [duplicateId, primaryId]);
+  if (!incs || incs.length < 2) return { ok: false, error: ErrorCode.INVALID_REFERENCE };
+
+  const { data, error } = await ctx.supabase
+    .from("incident_duplicate_link")
+    .insert({
+      tenant_id: ctx.tenantId,
+      duplicate_incident_id: duplicateId,
+      primary_incident_id: primaryId,
+      source: opts?.source ?? "manual",
+      confidence: opts?.confidence ?? null,
+      reason: orNull(opts?.reason ?? undefined),
+      created_by: ctx.accountId,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    // Violacion del indice unico parcial: el caso ya tiene un primario activo.
+    if (error.code === "23505") return { ok: false, error: ErrorCode.DUPLICATE };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/incidents/${duplicateId}`);
+  revalidatePath(`/incidents/${primaryId}`);
+  return { ok: true, id: data.id as string };
+}
+
+/** Revoca un enlace de duplicado (soft: status=revoked). Gestion. Auditado por trigger. */
+export async function revokeDuplicate(linkId: string): Promise<ActionResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.assign", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  const { data, error } = await ctx.supabase
+    .from("incident_duplicate_link")
+    .update({ status: "revoked", revoked_by: ctx.accountId, revoked_at: new Date().toISOString() })
+    .eq("id", linkId)
+    .eq("status", "active")
+    .select("duplicate_incident_id, primary_incident_id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: ErrorCode.STATE };
+  revalidatePath(`/incidents/${data.duplicate_incident_id as string}`);
+  revalidatePath(`/incidents/${data.primary_incident_id as string}`);
+  return { ok: true };
 }
 
 export async function updateIncident(id: string, input: IncidentInput): Promise<ActionResult> {

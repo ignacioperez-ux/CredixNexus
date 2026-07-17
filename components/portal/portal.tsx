@@ -7,7 +7,8 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { AiReport } from "@/components/ai/ai-report";
 import { portalAssist, type PortalAssistResult } from "@/lib/portal/assist";
-import { createIncident } from "@/lib/incidents/actions";
+import { createIncident, checkMySimilarCases } from "@/lib/incidents/actions";
+import type { SimilarCaseHit } from "@/lib/incidents/similar";
 import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
 import { evalState, type PortalCategory, type PortalApp, type MyCase } from "@/lib/portal/queries";
@@ -79,6 +80,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [registering, startReg] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
+  const [mine, setMine] = useState<SimilarCaseHit[]>([]);
 
   const tooShort = subject.trim().length < MIN_CHARS;
   const estPriority = derivePriority(INTAKE_IMPACT, urgency); // prioridad estimada, explicable (UX-011)
@@ -93,6 +95,18 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
     if (el) { el.focus(); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
   }, [reportSignal]);
 
+  // Deteccion de duplicados del propio usuario: casos abiertos parecidos a lo que esta por
+  // reportar. Debounce; sugiere sin bloquear (§11). Acotado a SUS casos (checkMySimilarCases).
+  useEffect(() => {
+    const text = subject.trim();
+    if (text.length < MIN_CHARS) { setMine([]); return; }
+    const handle = setTimeout(async () => {
+      const r = await checkMySimilarCases({ title: text, description: text, categoryId: categoryId || undefined, affectedCiId: appId || undefined });
+      if (r.ok && r.items) setMine(r.items);
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [subject, categoryId, appId]);
+
   function pickCategory(id: string) {
     setCategoryId(id);
     setAutoCat(false);
@@ -104,9 +118,13 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   function consult() {
     setErr(null);
     startSearch(async () => {
-      const r = await portalAssist(subject);
+      // Un solo boton resuelve la pregunta "¿ya existe un caso asi?": resueltos + KB (portalAssist)
+      // Y casos propios ya reportados/abiertos (checkMySimilarCases). Sugiere sin bloquear (§11).
+      const draft = { title: subject.trim(), description: subject.trim(), categoryId: categoryId || undefined, affectedCiId: appId || undefined };
+      const [r, m] = await Promise.all([portalAssist(subject), checkMySimilarCases(draft)]);
       if (!r.ok) { setErr(r.error ?? "ERR_INVALID_FORMAT"); return; }
       setRes(r);
+      if (m.ok && m.items) setMine(m.items);
       // Pre-selecciona la categoria sugerida por IA si el usuario no eligio una.
       if (r.suggestedCategoryId && !categoryId) { setCategoryId(r.suggestedCategoryId); setAutoCat(true); }
     });
@@ -269,7 +287,28 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
             <div style={{ fontSize: 11, color: "var(--muted)" }}>{t("portal.suggest.caption")}</div>
           </div>
 
-          {!res && <div style={{ background: "var(--paper)", border: "1px dashed var(--line)", borderRadius: "var(--r-xl)", padding: 26, textAlign: "center", fontSize: 12.5, color: "var(--muted)" }}>{t("portal.suggest.empty")}</div>}
+          {mine.length > 0 && (
+            <div role="status" style={{ background: "var(--st-medium-bg)", border: "1px solid var(--st-medium)", borderRadius: "var(--r-md)", padding: 13 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--st-medium-fg)", marginBottom: 3 }}>{t("similar.mine.title")}</div>
+              <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 9 }}>{t("similar.mine.hint")}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {mine.map((s) => {
+                  const sc = statusColors(s.status);
+                  return (
+                    <Link key={s.id} href={`/portal/cases/${s.id}`} className="cx-lift" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{s.incident_number}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 8px", borderRadius: "var(--r-pill)" }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.fg }} />{t(statusKey(s.status))}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!res && mine.length === 0 && <div style={{ background: "var(--paper)", border: "1px dashed var(--line)", borderRadius: "var(--r-xl)", padding: 26, textAlign: "center", fontSize: 12.5, color: "var(--muted)" }}>{t("portal.suggest.empty")}</div>}
 
           {res && (
             <>
@@ -287,6 +326,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
               {res.articles.map((a) => <KbCard key={a.id} id={a.id} number={a.article_number} title={a.title} summary={a.summary} content={a.content} canFeedback={canFeedback} />)}
 
+              {res.cases.length > 0 && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 2 }}>{t("portal.cases.title")}</div>}
               {res.cases.map((c) => (
                 <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} className={canViewIncidents ? "cx-lift" : undefined} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
                   <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: "11px 13px" }}>

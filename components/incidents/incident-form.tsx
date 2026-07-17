@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
 import { useNavHistory } from "@/components/app-shell/nav-history-provider";
 import type { FormOptions } from "@/lib/incidents/queries";
-import { createIncident, updateIncident, type IncidentInput } from "@/lib/incidents/actions";
+import { createIncident, updateIncident, checkSimilarCases, searchResolvedSimilar, type IncidentInput } from "@/lib/incidents/actions";
+import { refineSimilarAtIntake, type RefinedSimilar } from "@/lib/ai/analysis";
+import type { SimilarCaseHit } from "@/lib/incidents/similar";
+import type { SearchResult } from "@/lib/portal/queries";
 import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
+import { statusKey, statusColors } from "@/lib/incidents/labels";
 import { minLength, required } from "@/lib/validation";
 import { PriorityTag } from "./badges";
 
@@ -49,8 +54,52 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [formErr, setFormErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [similar, setSimilar] = useState<SimilarCaseHit[]>([]);
+  const [resolved, setResolved] = useState<SearchResult | null>(null);
+  const [searchingKb, setSearchingKb] = useState(false);
+  const [aiVerdicts, setAiVerdicts] = useState<Record<string, RefinedSimilar>>({});
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiOff, setAiOff] = useState(false);
+
+  // Refuerzo IA sobre los candidatos lexicos ambiguos (a demanda; la IA sugiere, el humano decide).
+  async function analyzeAi() {
+    if (similar.length === 0) return;
+    setAiBusy(true);
+    setAiOff(false);
+    const r = await refineSimilarAtIntake({ title: f.title.trim(), description: f.description }, similar.map((s) => s.id));
+    setAiBusy(false);
+    if (r.ok && r.items) {
+      setAiVerdicts(Object.fromEntries(r.items.map((i) => [i.id, i])));
+    } else if (r.error === "ai_not_configured") {
+      setAiOff(true);
+    }
+  }
 
   const set = (k: keyof IncidentInput, v: string | number | boolean | null) => setF((s) => ({ ...s, [k]: v }));
+
+  // Busqueda a demanda de conocimiento reutilizable (resueltos + KB). A diferencia del panel de
+  // duplicados (automatico), esta la dispara el agente con un boton. Sugiere sin bloquear (§11).
+  async function searchKb() {
+    const q = `${f.title} ${f.description}`.trim();
+    if (f.title.trim().length < 5) return;
+    setSearchingKb(true);
+    const r = await searchResolvedSimilar(q);
+    setSearchingKb(false);
+    if (r.ok && r.result) setResolved(r.result);
+  }
+
+  // Deteccion de duplicados en vivo (solo alta): consulta casos abiertos similares con debounce.
+  // Sugiere sin bloquear el registro (§11). No corre en edicion.
+  useEffect(() => {
+    if (mode !== "create") return;
+    const title = f.title.trim();
+    if (title.length < 5) { setSimilar([]); return; }
+    const handle = setTimeout(async () => {
+      const r = await checkSimilarCases({ title, description: f.description, categoryId: f.categoryId || undefined, affectedCiId: f.affectedCiId || undefined });
+      if (r.ok && r.items) { setSimilar(r.items); setAiVerdicts({}); setAiOff(false); }
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [mode, f.title, f.description, f.categoryId, f.affectedCiId]);
 
   function validate(): boolean {
     const e: Record<string, string | null> = {
@@ -117,6 +166,78 @@ export function IncidentForm({ options, mode, incidentId, initial }: Props) {
           </div>
         </div>
       </Card>
+
+      {mode === "create" && similar.length > 0 && (
+        <div role="status" style={{ background: "var(--st-medium-bg)", border: "1px solid var(--st-medium)", borderRadius: "var(--r-xl)", padding: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--st-medium-fg)" }}>{t("similar.title")}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--st-medium-fg)", background: "var(--card)", padding: "1px 8px", borderRadius: "var(--r-pill)" }}>{similar.length}</span>
+            <button type="button" onClick={analyzeAi} disabled={aiBusy} style={{ ...aiBtn, opacity: aiBusy ? 0.6 : 1, marginLeft: "auto" }}>
+              {aiBusy ? t("similar.ai.analyzing") : t("similar.ai.btn")}
+            </button>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>{t("similar.hint")}</div>
+          {aiOff && <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 10 }}>{t("similar.ai.off")}</div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {similar.map((s) => {
+              const sc = statusColors(s.status);
+              const v = aiVerdicts[s.id];
+              return (
+                <Link key={s.id} href={`/incidents/${s.id}`} className="cx-lift" title={v?.reason ?? undefined} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{s.incident_number}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                  {v && (
+                    <span title={v.reason} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: "var(--r-pill)", cursor: "help",
+                      color: v.isDuplicate ? "var(--st-critical-fg)" : "var(--st-low-fg)",
+                      background: v.isDuplicate ? "var(--st-critical-bg)" : "var(--st-low-bg)" }}>
+                      {v.isDuplicate ? t("similar.ai.dup") : t("similar.ai.nodup")} · {v.confidence}%
+                    </span>
+                  )}
+                  {!v && s.sameCategory && <span style={badgeStyle}>{t("similar.samecat")}</span>}
+                  {!v && s.sameCi && <span style={badgeStyle}>{t("similar.sameapp")}</span>}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(s.status))}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--accent-2)" }}>{t("similar.view")}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {mode === "create" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={searchKb} disabled={searchingKb || f.title.trim().length < 5} style={{ ...secondaryBtn, opacity: searchingKb || f.title.trim().length < 5 ? 0.6 : 1 }}>
+              {searchingKb ? t("portal.search.searching") : t("similar.resolved.btn")}
+            </button>
+            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("similar.resolved.caption")}</span>
+          </div>
+          {resolved && (
+            <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+              {resolved.articles.length === 0 && resolved.cases.length === 0 && (
+                <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("similar.resolved.none")}</div>
+              )}
+              {resolved.articles.length > 0 && <div style={panelHeader}>{t("portal.kb.title")}</div>}
+              {resolved.articles.map((a) => (
+                <Link key={a.id} href={`/knowledge/${a.id}`} className="cx-lift" style={rowLink}>
+                  <span style={badgeStyle}>{t("portal.kb.badge")}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{a.article_number}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                </Link>
+              ))}
+              {resolved.cases.length > 0 && <div style={panelHeader}>{t("portal.cases.title")}</div>}
+              {resolved.cases.map((c) => (
+                <Link key={c.id} href={`/incidents/${c.id}`} className="cx-lift" style={rowLink}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <Card title={t("inc.section.affected")}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -233,5 +354,9 @@ function inputStyle(err: boolean): React.CSSProperties {
   };
 }
 
+const badgeStyle: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" };
+const aiBtn: React.CSSProperties = { padding: "5px 12px", borderRadius: "var(--r-md)", background: "var(--card)", color: "var(--accent-2)", border: "1px solid var(--accent-2)", fontWeight: 700, fontSize: 11.5, cursor: "pointer" };
+const panelHeader: React.CSSProperties = { fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 2 };
+const rowLink: React.CSSProperties = { textDecoration: "none", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" };
 const primaryBtn: React.CSSProperties = { minHeight: 40, padding: "0 18px", borderRadius: "var(--r-md)", background: "var(--accent)", color: "var(--on-accent)", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" };
 const secondaryBtn: React.CSSProperties = { minHeight: 40, padding: "0 16px", borderRadius: "var(--r-md)", background: "var(--card)", color: "var(--text)", border: "1px solid var(--line)", fontWeight: 600, fontSize: 13, cursor: "pointer" };

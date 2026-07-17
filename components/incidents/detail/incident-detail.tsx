@@ -40,7 +40,9 @@ import type { IncidentProject } from "@/lib/projects/queries";
 import type { Macro } from "@/lib/macros/queries";
 import { Attachments } from "./attachments";
 import { CaseTasks } from "./case-tasks";
+import { DuplicatesPanel } from "./duplicates-panel";
 import type { Attachment, ChecklistData } from "@/lib/casework/queries";
+import type { DuplicateLinks } from "@/lib/incidents/duplicates";
 
 type Named = { name: string } | null;
 
@@ -99,7 +101,7 @@ type ChangeLinked = { id: string; change_number: string; title: string; status: 
 type MiLinked = { id: string; mi_number: string; severity: string; status: string } | null;
 type VendorChip = { id: string; name: string; criticality: string } | null;
 
-export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [], caseTypeName = "", canManageAssign = false }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[]; caseTypeName?: string; canManageAssign?: boolean }) {
+export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [], caseTypeName = "", canManageAssign = false, duplicateLinks = { duplicateOf: null, primaryOf: [] } }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[]; caseTypeName?: string; canManageAssign?: boolean; duplicateLinks?: DuplicateLinks }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -150,6 +152,17 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
         </div>
         {(canUpdateIncident || canTriage) && <StatusActions incidentId={inc.id} status={inc.status} hasAssignee={!!inc.assigned_member_id} />}
       </div>
+
+      {/* Banner: si el caso es duplicado de otro, visible de inmediato (nunca perder el hilo) */}
+      {duplicateLinks.duplicateOf && (
+        <Link href={`/incidents/${duplicateLinks.duplicateOf.incident_id}`} className="cx-lift"
+          style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, background: "var(--st-medium-bg)", border: "1px solid var(--st-medium)", borderRadius: "var(--r-md)", padding: "10px 14px" }}>
+          <Icon name="inbox" size={14} color="var(--st-medium-fg)" />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--st-medium-fg)" }}>{t("dup.is_duplicate_of")}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)" }}>{duplicateLinks.duplicateOf.incident_number}</span>
+          <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{duplicateLinks.duplicateOf.title}</span>
+        </Link>
+      )}
 
       {/* Pestañas: Gestion (operacion diaria) / Analisis y vinculos (avanzado) */}
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
@@ -205,6 +218,12 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             <AssignResponsible incidentId={inc.id} members={members} assignees={assignees} editable={assignmentEditable(inc.status)} canAssign={canManageAssign} />
             {(inc.status === "resolved" || inc.status === "closed") && inc.assigned_member_id && inc.assignee && canManageTalent && (
               <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
+            )}
+
+            {(canManageAssign || duplicateLinks.duplicateOf || duplicateLinks.primaryOf.length > 0) && (
+              <Card title={t("dup.section")} tip="inc.tip.duplicates">
+                <DuplicatesPanel incidentId={inc.id} incidentTitle={inc.title} links={duplicateLinks} canManage={canManageAssign} />
+              </Card>
             )}
 
             <Card title="SLA">

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
+import { getAccessControl } from "@/lib/auth/session";
 import { callClaude } from "@/lib/ai/anthropic";
 import { extractJson, clampPct, normalizeEnum } from "@/lib/ai/parse";
 
@@ -22,6 +23,29 @@ async function logAgentAction(
     requested_by_user_id: ctx.accountId,
     related_entity_type: "incident",
     related_entity_id: incidentId,
+    action_type: action,
+    input_json: input,
+    output_json: output,
+    human_review_required: true,
+    status: "completed",
+  });
+}
+
+/** Variante de logAgentAction para acciones sobre un BORRADOR (el caso aun no existe: sin
+ *  incidentId). related_entity_id queda null; el tipo marca que es intake, no un caso persistido. */
+async function logAgentDraftAction(
+  ctx: NonNullable<Awaited<ReturnType<typeof getContext>>>,
+  agent: string, action: string, model: string,
+  input: Record<string, unknown>, output: Record<string, unknown>,
+) {
+  await ctx.supabase.from("agent_action").insert({
+    tenant_id: ctx.tenantId,
+    agent_name: agent,
+    model_provider: "anthropic",
+    model_name: model,
+    requested_by_user_id: ctx.accountId,
+    related_entity_type: "incident_draft",
+    related_entity_id: null,
     action_type: action,
     input_json: input,
     output_json: output,
@@ -158,5 +182,67 @@ export async function findSimilarIncidents(incidentId: string): Promise<SimilarR
     { title: inc.title, candidate_count: candidates.length }, { matches: items.map((i) => i.incident_number), usage: result.usage });
 
   return { ok: true, items };
+}
+
+// ---- 4. Refuerzo de duplicados en el REGISTRO (sobre candidatos lexicos) ----
+// Fase 2: la deteccion lexica (findSimilarOpenCases) marca candidatos ambiguos; aqui la IA
+// juzga cuales son DUPLICADOS reales (mismo problema de fondo) del caso que se esta por
+// registrar. Opera sobre el BORRADOR (sin incidentId). La IA SUGIERE, el humano decide (§11);
+// se registra en agent_action. Cero mock: sin clave -> ai_not_configured.
+export type RefinedSimilar = { id: string; incident_number: string; title: string; isDuplicate: boolean; confidence: number; reason: string };
+export type RefineResult = { ok: boolean; error?: string; items?: RefinedSimilar[]; aiConfigured?: boolean };
+
+/** Guard: solo quien trabaja casos (mismo set que createIncident). Evita gasto de IA no autorizado. */
+async function canWorkCases(): Promise<boolean> {
+  const access = await getAccessControl();
+  return access.isAdmin || ["incident.create", "incident.update", "incident.resolve", "triage.manage"].some((c) => access.perms.includes(c));
+}
+
+export async function refineSimilarAtIntake(
+  draft: { title: string; description?: string },
+  candidateIds: string[],
+): Promise<RefineResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: "ERR_PERMISSION_DENIED" };
+  if (!(await canWorkCases())) return { ok: false, error: "ERR_PERMISSION_DENIED" };
+
+  const ids = [...new Set(candidateIds)].slice(0, 10);
+  if (ids.length === 0) return { ok: true, items: [], aiConfigured: true };
+
+  // Candidatos reales (RLS acota por tenant); solo los pasados por la deteccion lexica.
+  const { data } = await ctx.supabase
+    .from("incident")
+    .select("id, incident_number, title, description, resolution_summary, status")
+    .in("id", ids);
+  const candidates = (data ?? []) as { id: string; incident_number: string; title: string; description: string | null; resolution_summary: string | null; status: string }[];
+  if (candidates.length === 0) return { ok: true, items: [], aiConfigured: true };
+
+  const list = candidates
+    .map((c) => `- ${c.incident_number}: ${c.title}${c.description ? ` — ${c.description.slice(0, 200)}` : ""}`)
+    .join("\n");
+  const system =
+    "Sos un asistente de mesa de ayuda ITIL. Del listado de casos candidatos, indica cuales son " +
+    "DUPLICADOS reales del caso que se esta por registrar (mismo problema de fondo), no solo parecidos " +
+    "por palabras. Usa SOLO los casos del listado por su numero exacto. Responde UNICAMENTE en JSON: " +
+    "[{\"number\":\"INC-...\",\"is_duplicate\":true|false,\"confidence\":<0-100>,\"reason\":\"<breve>\"}].";
+  const user = `Caso a registrar:\nTitulo: ${draft.title}\nDescripcion: ${draft.description ?? ""}\n\nCandidatos:\n${list}`;
+
+  const result = await callClaude({ system, user, maxTokens: 600 });
+  if (!result.ok) return { ok: false, error: result.error, aiConfigured: result.error !== "ai_not_configured" };
+
+  const parsed = extractJson<{ number: string; is_duplicate: boolean; confidence: number; reason: string }[]>(result.text) ?? [];
+  const items: RefinedSimilar[] = parsed
+    .map((p) => {
+      const c = candidates.find((x) => x.incident_number === p.number);
+      return c ? { id: c.id, incident_number: c.incident_number, title: c.title, isDuplicate: !!p.is_duplicate, confidence: clampPct(p.confidence), reason: p.reason } : null;
+    })
+    .filter((x): x is RefinedSimilar => x !== null);
+
+  // Auditoria de gobierno (§11): sin PII (solo titulo + conteo), espeja el precedente de find_similar.
+  await logAgentDraftAction(ctx, "similar_agent", "refine_similar_intake", result.model,
+    { title: draft.title, candidate_count: candidates.length },
+    { verdicts: items.map((i) => ({ n: i.incident_number, dup: i.isDuplicate, conf: i.confidence })), usage: result.usage });
+
+  return { ok: true, items, aiConfigured: true };
 }
 
