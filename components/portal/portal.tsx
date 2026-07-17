@@ -50,8 +50,8 @@ function sortKey(c: MyCase): number {
   return settled + due;
 }
 
-export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], userName = "" }: {
-  categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; userName?: string;
+export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], caseTypes = {}, userName = "" }: {
+  categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; caseTypes?: Record<string, { name: string }>; userName?: string;
 }) {
   const { t, locale } = useI18n();
   const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
@@ -62,10 +62,18 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const attentionCount = myCases.filter((c) => ATTENTION.includes(c.status)).length;
   const toEvalCount = myCases.filter((c) => evalState(c.status, c.survey_status) === "pending_eval").length;
   const sortedCases = [...myCases].sort((a, b) => sortKey(a) - sortKey(b));
+  const toEvalCases = sortedCases.filter((c) => evalState(c.status, c.survey_status) === "pending_eval");
+  const caseHref = (id: string) => (canViewIncidents ? `/incidents/${id}` : `/portal/cases/${id}`);
 
   // Conteos por estado para el donut (solo estados presentes, en orden canonico).
   const counts = myCases.reduce<Record<string, number>>((m, c) => { m[c.status] = (m[c.status] ?? 0) + 1; return m; }, {});
   const slices: StatusSlice[] = STATUS_ORDER.filter((s) => counts[s]).map((s) => ({ status: s, count: counts[s] }));
+
+  // Conteo por TIPO de caso (barras verde-agua). Nombre desde el catalogo (cero hardcode §11).
+  const byType = myCases.reduce<Record<string, number>>((m, c) => { const k = c.case_type || "Incident"; m[k] = (m[k] ?? 0) + 1; return m; }, {});
+  const typeRows = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+  const maxType = Math.max(1, ...typeRows.map(([, n]) => n));
+  const typeName = (code: string) => caseTypes[code]?.name ?? code;
 
   const router = useRouter();
   const subjectRef = useRef<HTMLTextAreaElement>(null);
@@ -174,6 +182,25 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
         </div>
       )}
 
+      {/* Banner "por evaluar": caso(s) resuelto(s) esperando la evaluacion del usuario. */}
+      {toEvalCases.length > 0 && (
+        <div style={{ background: "var(--acc-amber-bg, var(--st-high-bg))", border: "1px solid var(--acc-amber-border, var(--st-high))", borderRadius: "var(--r-md)", padding: "13px 15px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Icon name="star" size={15} color="var(--acc-amber-ink, var(--st-high-fg))" />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--acc-amber-ink, var(--st-high-fg))" }}>{t("portal.eval.banner").replace("{n}", String(toEvalCases.length))}</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {toEvalCases.map((c) => (
+              <Link key={c.id} href={caseHref(c.id)} className="cx-lift" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{c.incident_number}</span>
+                <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-2)" }}>{t("portal.eval.cta")} →</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tu resumen: el estado del hilo en < 3s (donut + stat tiles). Sustituye contadores planos. */}
       {myCases.length > 0 && (
         <div style={{ ...cardBox, padding: "var(--sp-5)", display: "flex", gap: "var(--sp-6)", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
@@ -186,6 +213,24 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
             <StatTile label={t("portal.summary.resolved")} value={resolvedCount} fam="emerald" />
             <StatTile label={t("portal.summary.attention")} value={attentionCount} fam="slate" icon={attentionCount > 0 ? "alert" : undefined} />
             <StatTile label={t("portal.summary.toeval")} value={toEvalCount} fam="amber" icon={toEvalCount > 0 ? "star" : undefined} />
+          </div>
+        </div>
+      )}
+
+      {/* Mis casos por tipo (barras verde-agua) */}
+      {myCases.length > 0 && typeRows.length > 0 && (
+        <div style={{ ...cardBox, padding: "var(--sp-5)" }}>
+          <span style={sectionTitle}>{t("portal.bytype.title")}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: "var(--sp-3)" }}>
+            {typeRows.map(([code, n]) => (
+              <div key={code} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 130, flexShrink: 0, fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{typeName(code)}</span>
+                <div style={{ flex: 1, height: 10, background: "var(--track)", borderRadius: "var(--r-pill)", overflow: "hidden" }}>
+                  <div style={{ width: `${Math.round((n / maxType) * 100)}%`, height: "100%", background: "var(--teal)", borderRadius: "var(--r-pill)" }} />
+                </div>
+                <span style={{ width: 22, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>{n}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
