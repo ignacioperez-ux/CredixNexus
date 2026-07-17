@@ -37,3 +37,9 @@ next-env.d.ts
 # editor
 .vscode/
 .idea/
+
+# Datos confidenciales de depuracion (extraccion + service_role key) — NO commitear
+data_export/
+
+# Dumps/backups de datos (CSV export de tablas) — fuera del repo (peso + posible PII)
+backup/
