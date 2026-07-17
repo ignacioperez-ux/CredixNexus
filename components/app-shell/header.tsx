@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import { useTheme, type Theme } from "@/components/theme-provider";
 import { Icon } from "@/components/ui/icon";
 import { resolvePrimaryAction } from "@/lib/nav/role-ux";
+import { isPortalNav } from "@/lib/nav/navigation";
 import { signOutAction } from "@/lib/auth/actions";
 import { NotificationBell } from "./notification-bell";
 import { ConceptTip } from "@/components/help/concept-tip";
@@ -64,6 +65,8 @@ export function Header({ roles = [], perms = [], isAdmin = false, notifications 
 
   // Accion primaria por rol (FASE 2): CTA de acento resuelta por ROLE_UX, filtrada por permiso.
   const primary = resolvePrimaryAction(roles, perms, isAdmin);
+  // Variante PORTAL (partner_user): titulo mas grande, buscador -> Conocimiento, sin toggle de tema.
+  const portal = isPortalNav(roles, isAdmin);
 
   return (
     <header
@@ -82,7 +85,7 @@ export function Header({ roles = [], perms = [], isAdmin = false, notifications 
     >
       <div style={{ flex: 1, minWidth: 240 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: portal ? 800 : 700, fontSize: portal ? "var(--fs-page-title, 22px)" : 18, letterSpacing: "-0.01em", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {t(meta.title)}
           </div>
           {concept && <ConceptTip concept={concept} />}
@@ -101,26 +104,28 @@ export function Header({ roles = [], perms = [], isAdmin = false, notifications 
         </button>
       )}
 
-      {/* Buscador global / Command Menu (Cmd/Ctrl+K) */}
+      {/* Buscador: en el portal navega a Conocimiento; en el resto abre el Command Menu (Ctrl+K). */}
       <button
-        onClick={() => window.dispatchEvent(new CustomEvent("cx:open-command"))}
-        title={t("cmd.open")}
+        onClick={() => (portal ? router.push("/knowledge") : window.dispatchEvent(new CustomEvent("cx:open-command")))}
+        title={portal ? t("nav.user.searchsolution") : t("cmd.open")}
         style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 12px", borderRadius: "var(--r-md)", background: "var(--paper)", border: "1px solid var(--line)", color: "var(--muted)", cursor: "pointer", fontSize: 12.5, fontWeight: 600 }}
       >
         <Icon name="search" size={15} />
-        <span>{t("cmd.open")}</span>
+        <span>{portal ? t("nav.user.searchsolution") : t("cmd.open")}</span>
         <span style={{ fontSize: 10.5, fontWeight: 700, border: "1px solid var(--line)", borderRadius: 5, padding: "1px 6px" }}>Ctrl K</span>
       </button>
 
-      {/* Toggle de tema Nexus / Claro */}
-      <Segmented
-        options={[
-          { value: "nexus", label: t("theme.nexus") },
-          { value: "claro", label: t("theme.claro") },
-        ]}
-        value={theme}
-        onChange={(v) => setTheme(v as Theme)}
-      />
+      {/* Toggle de tema Nexus / Claro (oculto en el portal: su tema por defecto es Claro) */}
+      {!portal && (
+        <Segmented
+          options={[
+            { value: "nexus", label: t("theme.nexus") },
+            { value: "claro", label: t("theme.claro") },
+          ]}
+          value={theme}
+          onChange={(v) => setTheme(v as Theme)}
+        />
+      )}
 
       {/* Toggle de idioma */}
       <Segmented
