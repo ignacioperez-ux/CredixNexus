@@ -34,7 +34,7 @@ export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRe
         <div style={{ position: "relative", maxWidth: 420 }}>
           <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--muted)" }}><Icon name="search" size={15} /></span>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("cat.search.placeholder")}
-            style={{ width: "100%", fontSize: 13, padding: "10px 12px 10px 34px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
+            style={{ width: "100%", fontSize: 13, padding: "10px 12px 10px 34px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
         </div>
       )}
 
@@ -48,9 +48,9 @@ export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRe
             {list.map((item) => {
               const open = openId === item.id;
               return (
-                <div key={item.id} className={open ? undefined : "cx-lift"} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div key={item.id} className={open ? undefined : "cx-lift"} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, color: "var(--text)" }}>{item.name}</span>
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: 14.5, letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" }}>{item.name}</span>
                     <span title={`${t("cat.sla")} ${item.sla_hours}h`} style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: "var(--accent-2)", background: "var(--accent-soft)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{t("cat.sla")} {item.sla_hours}h</span>
                   </div>
                   {item.description && <div style={{ fontSize: 12, color: "var(--muted)" }}>{item.description}</div>}

@@ -51,13 +51,13 @@ export function UserKnowledge({ data }: { data: KbData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
       {/* Hero + buscador */}
-      <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-card)", padding: "24px 26px" }}>
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-6)", color: "var(--text)" }}>{t("ukb.title")}</div>
+      <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-card)", padding: "24px 26px" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-6)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" }}>{t("ukb.title")}</div>
         <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4, marginBottom: 16 }}>{t("ukb.subtitle")}</div>
         <div style={{ position: "relative", maxWidth: 520 }}>
           <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--muted)" }}><Icon name="search" size={16} /></span>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("ukb.search")}
-            style={{ width: "100%", fontSize: 13.5, padding: "12px 14px 12px 38px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
+            style={{ width: "100%", fontSize: 13.5, padding: "12px 14px 12px 38px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
         </div>
       </div>
 
@@ -146,7 +146,7 @@ function ArticleRowCard({ a }: { a: ArticleRow }) {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", color: "var(--text)", marginBottom: 12 }}>{children}</div>;
+  return <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)", marginBottom: 12 }}>{children}</div>;
 }
 
 function Chip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
