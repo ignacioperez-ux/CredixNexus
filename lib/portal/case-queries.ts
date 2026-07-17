@@ -8,6 +8,8 @@ export type MyCaseDetail = {
   status: string; priority: string | null; category: string | null;
   opened_at: string; first_response_at: string | null; resolved_at: string | null;
   sla_response_due_at: string | null; sla_resolution_due_at: string | null;
+  app: string | null; service: string | null; product: string | null;
+  channel: string | null; business_unit: string | null; reporter: string | null;
 };
 
 export type CaseThreadItem = { id: string; body: string; created_at: string; is_system_generated: boolean; is_mine: boolean };

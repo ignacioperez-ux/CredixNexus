@@ -79,6 +79,19 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
         <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "12px 14px", fontSize: 13, color: "var(--text)" }}>{detail.description}</div>
       )}
 
+      {/* Detalle del caso (solo lectura): elementos afectados + reportado por. */}
+      {(detail.app || detail.service || detail.product || detail.channel || detail.business_unit || detail.reporter) && (
+        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-4)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)", marginBottom: 8 }}>{t("case.detail.title")}</div>
+          <DRow label={t("inc.field.app")} value={detail.app} />
+          <DRow label={t("inc.field.service")} value={detail.service} />
+          <DRow label={t("inc.field.product")} value={detail.product} />
+          <DRow label={t("inc.field.channel")} value={detail.channel} />
+          <DRow label={t("inc.field.bu")} value={detail.business_unit} />
+          <DRow label={t("inc.reported")} value={detail.reporter} />
+        </div>
+      )}
+
       {/* CSAT al resolverse (o evaluacion ya enviada) */}
       {showCsat && <CaseCsat incidentId={detail.id} existing={survey} />}
 
@@ -112,6 +125,16 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function DRow({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--line-soft)" }}>
+      <span style={{ fontSize: 12, color: "var(--muted)" }}>{label}</span>
+      <span style={{ fontSize: 12.5, color: "var(--text)", textAlign: "right" }}>{value}</span>
     </div>
   );
 }
