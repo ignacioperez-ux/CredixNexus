@@ -129,6 +129,16 @@
   --st-verified: #35D07E; --st-verified-bg: rgba(53, 208, 126, .16);
   --st-info: #4FA3FF;     --st-info-bg: rgba(79, 163, 255, .16);
   --st-eval: #B892FF;     --st-eval-bg: rgba(184, 146, 255, .16);
+
+  /* Tokens semanticos por ESTADO (mapeo en lib/incidents/labels.ts): Nuevo=azul, Asignado=indigo,
+     En progreso=ambar, En espera=neutro, Resuelto=verde-agua, Reabierto=rojo, Triado=indigo. */
+  --st-new: var(--st-info);             --st-new-bg: var(--st-info-bg);
+  --st-triaged: var(--st-eval);         --st-triaged-bg: var(--st-eval-bg);
+  --st-assigned: var(--st-eval);        --st-assigned-bg: var(--st-eval-bg);
+  --st-progress: var(--st-high-fg);     --st-progress-bg: var(--st-high-bg);
+  --st-waiting: #B0B5BD;                --st-waiting-bg: rgba(176, 181, 189, .15);
+  --st-resolved: var(--st-low-fg);      --st-resolved-bg: var(--st-low-bg);
+  --st-reopened: var(--st-critical-fg); --st-reopened-bg: var(--st-critical-bg);
 }
 
 /* ============================================================================
@@ -213,8 +223,18 @@
   --st-medium: #8A5E12;   --st-medium-fg: #8A5E12;   --st-medium-bg: #F6EEDD;     /* ambar */
   --st-low: #26705F;      --st-low-fg: #26705F;      --st-low-bg: #E7F3F0;        /* verde-agua (resuelto) */
   --st-verified: #26705F; --st-verified-bg: #E7F3F0;
-  --st-info: #3D5C86;     --st-info-bg: #EBF1F7;                                  /* azul-suave (nuevo/asignado) */
-  --st-eval: #4F46E5;     --st-eval-bg: #EEF0FF;                                  /* indigo */
+  --st-info: #3D5C86;     --st-info-bg: #EBF1F7;                                  /* azul-suave (nuevo) */
+  --st-eval: #4F46E5;     --st-eval-bg: #EEF0FF;                                  /* indigo (asignado/triado) */
+
+  /* Tokens semanticos por ESTADO (mapeo en lib/incidents/labels.ts). Mismo esquema que Nexus,
+     resuelto con la paleta clara. En espera = neutro calido (graphite). */
+  --st-new: var(--st-info);             --st-new-bg: var(--st-info-bg);
+  --st-triaged: var(--st-eval);         --st-triaged-bg: var(--st-eval-bg);
+  --st-assigned: var(--st-eval);        --st-assigned-bg: var(--st-eval-bg);
+  --st-progress: var(--st-high-fg);     --st-progress-bg: var(--st-high-bg);
+  --st-waiting: #56545C;                --st-waiting-bg: #ECEAE4;
+  --st-resolved: var(--st-low-fg);      --st-resolved-bg: var(--st-low-bg);
+  --st-reopened: var(--st-critical-fg); --st-reopened-bg: var(--st-critical-bg);
 
   /* Familias de acento (tinte de categorias/KPIs) — azul/indigo/verde-agua/ambar/rojo/plum/arena */
   --acc-blue-bg: #EBF1F7;    --acc-blue-ink: #3D5C86;    --acc-blue-border: #CFDDEE;   /* azul-suave */

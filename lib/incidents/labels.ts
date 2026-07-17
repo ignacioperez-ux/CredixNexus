@@ -15,17 +15,21 @@ export function priorityColor(p: string): string {
   return map[p] ?? "var(--muted)";
 }
 
-/** Color + tinte por estado (pill). */
+/** Color + tinte por estado (pill). Usa tokens SEMANTICOS por estado (--st-new/assigned/progress/
+ *  waiting/resolved/reopened/triaged), definidos POR TEMA en app/globals.css con el MISMO esquema en
+ *  ambos temas: Nuevo=azul, Asignado=indigo, En progreso=ambar, En espera=neutro, Resuelto=verde-agua,
+ *  Reabierto=rojo, Triado=indigo. closed/cancelled=neutro e in_evolution=marca. Cada tema lo resuelve
+ *  con su paleta (los valores difieren; el mapeo es identico). */
 export function statusColors(s: string): { fg: string; bg: string } {
   const map: Record<string, { fg: string; bg: string }> = {
-    new: { fg: "var(--st-info)", bg: "var(--st-info-bg)" },
-    triaged: { fg: "var(--st-eval)", bg: "var(--st-eval-bg)" },
-    assigned: { fg: "var(--st-info)", bg: "var(--st-info-bg)" },
-    in_progress: { fg: "var(--st-high-fg)", bg: "var(--st-high-bg)" },
-    waiting: { fg: "var(--st-medium-fg)", bg: "var(--st-medium-bg)" },
-    resolved: { fg: "var(--st-low-fg)", bg: "var(--st-low-bg)" },
+    new: { fg: "var(--st-new)", bg: "var(--st-new-bg)" },
+    triaged: { fg: "var(--st-triaged)", bg: "var(--st-triaged-bg)" },
+    assigned: { fg: "var(--st-assigned)", bg: "var(--st-assigned-bg)" },
+    in_progress: { fg: "var(--st-progress)", bg: "var(--st-progress-bg)" },
+    waiting: { fg: "var(--st-waiting)", bg: "var(--st-waiting-bg)" },
+    resolved: { fg: "var(--st-resolved)", bg: "var(--st-resolved-bg)" },
     closed: { fg: "var(--muted)", bg: "var(--paper)" },
-    reopened: { fg: "var(--st-critical-fg)", bg: "var(--st-critical-bg)" },
+    reopened: { fg: "var(--st-reopened)", bg: "var(--st-reopened-bg)" },
     cancelled: { fg: "var(--muted)", bg: "var(--paper)" },
     in_evolution: { fg: "var(--accent-2)", bg: "var(--accent-soft)" },
   };
