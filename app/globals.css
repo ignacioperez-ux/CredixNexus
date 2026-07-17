@@ -161,7 +161,8 @@
   --line: #EAE8E2;          /* bordes 1px */
   --line-soft: #EEECE6;     /* separadores internos */
   --text: #1B1A1F;          /* ink-900 (titulos/cuerpo) */
-  --muted: #6C6A72;         /* ink-600 (secundario) */
+  --muted: #6A6474;         /* ink-600 (secundario) */
+  --ink-500: #928C9E; --ink-400: #B0AABB;   /* muy sutil (micro/placeholder), no para body */
   --paper: #FBFAF7;         /* surface-alt / inputs / headers de tabla / filas alternas */
   --track: #E6E3DB;         /* pista de donut/anillos */
   --head-bg: #FBFAF7;       /* cabeceras de tabla */
@@ -172,9 +173,10 @@
   --accent: #E4002B;
   --accent-2: #C10025;      /* rojo hover / IDs-enlaces */
   --accent-bright: #E4002B;
-  --accent-soft: #FBE9EC;   /* rojo suave (fondos rojos) */
+  --accent-soft: #FDECEF;   /* rojo suave (fondos rojos) */
   --on-accent: #FFFFFF;
-  --red-soft: #FBE9EC; --red-border: #F6C9D3;
+  --red-soft: #FDECEF; --red-border: #F6C9D3; --red-2: #C40025;
+  --icon-chip: #F3F1EA; --icon-stroke: #57545E;   /* chips de icono neutros (sidebar/tiles) */
 
   /* Alias forward-compat */
   --surface: #FFFFFF; --surface-alt: #FBFAF7;
@@ -202,11 +204,12 @@
 
   /* Sombras — cajas que flotan (ink calido rgba(27,26,31)) */
   --sh-sm: 0 1px 2px rgba(27, 26, 31, .05);
-  --sh-card: 0 2px 4px rgba(27, 26, 31, .04), 0 12px 28px -18px rgba(27, 26, 31, .22);
-  --sh-e1: 0 2px 4px rgba(27, 26, 31, .04), 0 12px 28px -18px rgba(27, 26, 31, .22);
-  --sh-float: 0 2px 6px rgba(27, 26, 31, .05), 0 24px 48px -28px rgba(27, 26, 31, .30);
-  --sh-red: 0 10px 20px -10px rgba(228, 0, 43, .55);
-  --sh-black: 0 2px 4px rgba(27, 26, 31, .04), 0 12px 28px -18px rgba(27, 26, 31, .22);
+  --sh-card: 0 1px 2px rgba(27, 26, 31, .04), 0 14px 30px -24px rgba(27, 26, 31, .28);
+  --sh-e1: 0 1px 2px rgba(27, 26, 31, .04), 0 14px 30px -24px rgba(27, 26, 31, .28);
+  --sh-hero: 0 1px 2px rgba(27, 26, 31, .04), 0 18px 40px -30px rgba(27, 26, 31, .2);
+  --sh-float: 0 1px 2px rgba(27, 26, 31, .04), 0 18px 40px -30px rgba(27, 26, 31, .2);
+  --sh-red: 0 8px 18px -8px rgba(228, 0, 43, .55);
+  --sh-black: 0 1px 2px rgba(27, 26, 31, .04), 0 14px 30px -24px rgba(27, 26, 31, .28);
 
   /* Alias con los nombres del brief (fidelidad) — apuntan a los tokens ya definidos arriba. */
   --shadow-sm: var(--sh-sm); --shadow-md: var(--sh-card); --shadow-lg: var(--sh-float); --shadow-red: var(--sh-red);
@@ -218,49 +221,50 @@
      para texto sobre --sand-soft. */
   --sand: #B08D57; --sand-ink: #6E5A34; --sand-soft: #F3ECE0; --sand-border: #E7DBC6;
 
-  /* Radios (premium, generosos) */
-  --r-sm: 10px; --r-md: 12px; --r-lg: 16px; --r-xl: 16px; --r-2xl: 22px; --r-pill: 999px;
+  /* Radios (v2: boton ~11, tarjeta 16-20, hero 20, pill) */
+  --r-sm: 11px; --r-md: 12px; --r-lg: 16px; --r-xl: 18px; --r-2xl: 20px; --r-pill: 999px;
 
   /* Tokens de COMPONENTE Claro-only: no existen en Nexus, asi que en los estilos inline el fallback
      var(--token, valor-actual) deja Nexus byte-identico y solo Claro toma el valor premium. */
-  --r-card: 22px; --fw-title: 800; --tracking-title: -0.02em;
+  --r-card: 20px; --fw-title: 800; --tracking-title: -0.01em;
+  --fs-greeting: 36px; --fs-page-title: 25px;   /* saludo / titulo de pantalla (v2) */
   --step-glow: 0 0 0 5px rgba(228, 0, 43, .14);   /* halo rojo sutil del paso actual (stepper) */
 
-  /* Gradiente del hero (calido) */
-  --hero-grad: linear-gradient(115deg, #FCFBF8 0%, #FBE9EC 55%, #F3ECE0 100%);
+  /* Gradiente del hero (greige -> rosa/violeta muy sutil, v2) */
+  --hero-grad: linear-gradient(120deg, #F6F3EC 0%, #FDECEF 52%, #EEF0FF 100%);
 
   /* Estado (pills/dots/donut) — hues sobrios; TEXTO/DOT en variante AA sobre el bg tintado.
      Nota: el mapeo estado->token vive en lib/incidents/labels.ts (logica, no se toca); aqui solo
      se re-tinta el valor. Por eso 'Asignado' comparte token con 'Nuevo' (azul) y 'En espera' con
      prioridad media (ambar): el color exacto por estado del brief requiere tocar ese mapeo. */
-  --st-critical: #C10025; --st-critical-fg: #C10025; --st-critical-bg: #FBE9EC;  /* rojo */
-  --st-high: #8A5E12;     --st-high-fg: #8A5E12;     --st-high-bg: #F6EEDD;       /* ambar (en progreso) */
-  --st-medium: #8A5E12;   --st-medium-fg: #8A5E12;   --st-medium-bg: #F6EEDD;     /* ambar */
-  --st-low: #26705F;      --st-low-fg: #26705F;      --st-low-bg: #E7F3F0;        /* verde-agua (resuelto) */
-  --st-verified: #26705F; --st-verified-bg: #E7F3F0;
-  --st-info: #3D5C86;     --st-info-bg: #EBF1F7;                                  /* azul-suave (nuevo) */
-  --st-eval: #4F46E5;     --st-eval-bg: #EEF0FF;                                  /* indigo (asignado/triado) */
+  --st-critical: #C10025; --st-critical-fg: #C10025; --st-critical-bg: #FDECEF;  /* rojo */
+  --st-high: #8A5A08;     --st-high-fg: #8A5A08;     --st-high-bg: #FCF1DD;       /* ambar (en progreso) */
+  --st-medium: #8A5A08;   --st-medium-fg: #8A5A08;   --st-medium-bg: #FCF1DD;     /* ambar */
+  --st-low: #0B7A4A;      --st-low-fg: #0B7A4A;      --st-low-bg: #E6F6EE;        /* verde (resuelto) */
+  --st-verified: #0B7A4A; --st-verified-bg: #E6F6EE;
+  --st-info: #1D69D6;     --st-info-bg: #E9F2FE;                                  /* azul (nuevo) */
+  --st-eval: #4F46E5;     --st-eval-bg: #EEF0FF;                                  /* indigo (asignado) */
 
   /* Tokens semanticos por ESTADO (mapeo en lib/incidents/labels.ts). Mismo esquema que Nexus,
      resuelto con la paleta clara. En espera = neutro calido (graphite). */
-  --st-new: var(--st-info);             --st-new-bg: var(--st-info-bg);
-  --st-triaged: var(--st-eval);         --st-triaged-bg: var(--st-eval-bg);
-  --st-assigned: var(--st-eval);        --st-assigned-bg: var(--st-eval-bg);
-  --st-progress: var(--st-high-fg);     --st-progress-bg: var(--st-high-bg);
-  --st-waiting: #56545C;                --st-waiting-bg: #ECEAE4;
-  --st-resolved: var(--st-low-fg);      --st-resolved-bg: var(--st-low-bg);
-  --st-reopened: var(--st-critical-fg); --st-reopened-bg: var(--st-critical-bg);
+  --st-new: var(--st-info);             --st-new-bg: var(--st-info-bg);          /* azul */
+  --st-triaged: var(--teal);            --st-triaged-bg: var(--teal-soft);       /* Admitido = verde-agua */
+  --st-assigned: var(--st-eval);        --st-assigned-bg: var(--st-eval-bg);     /* indigo */
+  --st-progress: var(--st-high-fg);     --st-progress-bg: var(--st-high-bg);     /* ambar */
+  --st-waiting: #4A5568;                --st-waiting-bg: #EEF0F4;                /* slate */
+  --st-resolved: var(--st-low-fg);      --st-resolved-bg: var(--st-low-bg);      /* verde */
+  --st-reopened: var(--st-critical-fg); --st-reopened-bg: var(--st-critical-bg); /* rojo */
 
   /* Familias de acento (tinte de categorias/KPIs) — azul/indigo/verde-agua/ambar/rojo/plum/arena */
-  --acc-blue-bg: #EBF1F7;    --acc-blue-ink: #3D5C86;    --acc-blue-border: #CFDDEE;   /* azul-suave */
+  --acc-blue-bg: #E9F2FE;    --acc-blue-ink: #1D69D6;    --acc-blue-border: #CBDFF9;   /* azul */
   --acc-indigo-bg: #EEF0FF;  --acc-indigo-ink: #4F46E5;  --acc-indigo-border: #D8D7F0; /* indigo */
-  --acc-emerald-bg: #E7F3F0; --acc-emerald-ink: #26705F; --acc-emerald-border: #C4E4DE;/* verde-agua */
-  --acc-amber-bg: #F6EEDD;   --acc-amber-ink: #8A5E12;   --acc-amber-border: #EBDCB8;  /* ambar */
-  --acc-rose-bg: #FBE9EC;    --acc-rose-ink: #C10025;    --acc-rose-border: #F6C9D3;   /* rojo */
-  --acc-violet-bg: #EEF0FF;  --acc-violet-ink: #565A8A;  --acc-violet-border: #D8D7E6; /* plum */
-  --acc-teal-bg: #E7F3F0;    --acc-teal-ink: #26705F;    --acc-teal-border: #C4E4DE;   /* verde-agua */
-  --acc-cyan-bg: #E7F3F0;    --acc-cyan-ink: #26705F;    --acc-cyan-border: #C4E4DE;   /* verde-agua */
-  --acc-slate-bg: #EFEDE7;   --acc-slate-ink: #4A4852;   --acc-slate-border: #E2DFD7;  /* graphite calido */
+  --acc-emerald-bg: #E6F6EE; --acc-emerald-ink: #0B7A4A; --acc-emerald-border: #C6E7D4;/* verde */
+  --acc-amber-bg: #FCF1DD;   --acc-amber-ink: #8A5A08;   --acc-amber-border: #F0DFB6;  /* ambar */
+  --acc-rose-bg: #FDEBF0;    --acc-rose-ink: #C63066;    --acc-rose-border: #F6CBDA;   /* rosa */
+  --acc-violet-bg: #EEF0FF;  --acc-violet-ink: #4F46E5;  --acc-violet-border: #D8D7F0; /* indigo */
+  --acc-teal-bg: #E7F3F0;    --acc-teal-ink: #2A7568;    --acc-teal-border: #C4E4DE;   /* verde-agua */
+  --acc-cyan-bg: #E7F3F0;    --acc-cyan-ink: #2A7568;    --acc-cyan-border: #C4E4DE;   /* verde-agua */
+  --acc-slate-bg: #EEF0F4;   --acc-slate-ink: #4A5568;   --acc-slate-border: #DCDFE6;  /* slate */
 }
 
 /* ============================================================================
