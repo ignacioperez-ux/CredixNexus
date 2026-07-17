@@ -208,6 +208,16 @@
   --sh-red: 0 10px 20px -10px rgba(228, 0, 43, .55);
   --sh-black: 0 2px 4px rgba(27, 26, 31, .04), 0 12px 28px -18px rgba(27, 26, 31, .22);
 
+  /* Alias con los nombres del brief (fidelidad) — apuntan a los tokens ya definidos arriba. */
+  --shadow-sm: var(--sh-sm); --shadow-md: var(--sh-card); --shadow-lg: var(--sh-float); --shadow-red: var(--sh-red);
+
+  /* Campos de formulario (brief): bg calido + borde propio + foco verde-agua (regla mas abajo). */
+  --field-bg: #FBFAF7; --field-border: #E1DED6;
+
+  /* Arena (calido - destacar). --sand = hue de marca (dots/bordes, no-texto); --sand-ink = variante AA
+     para texto sobre --sand-soft. */
+  --sand: #B08D57; --sand-ink: #6E5A34; --sand-soft: #F3ECE0; --sand-border: #E7DBC6;
+
   /* Radios (premium, generosos) */
   --r-sm: 10px; --r-md: 12px; --r-lg: 16px; --r-xl: 16px; --r-2xl: 22px; --r-pill: 999px;
 
@@ -301,6 +311,10 @@ body {
   border-color: #3F9D8E !important;
   box-shadow: 0 0 0 4px rgba(63, 157, 142, .14);
 }
+
+/* Utilidades de tipografia (brief) — solo Claro. Titulos con tracking negativo; cifras tabulares. */
+[data-theme="claro"] .cx-title { letter-spacing: -0.02em; }
+[data-theme="claro"] .cx-tnum { font-variant-numeric: tabular-nums; }
 
 /* Empty state ilustrado y util (reemplaza el "Sin X" pelado). */
 .cx-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 9px;
