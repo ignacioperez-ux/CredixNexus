@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import { Wordmark } from "./wordmark";
 import { Icon } from "@/components/ui/icon";
 import { canSeeNav } from "@/lib/nav/access";
-import { navForRoles, type NavigationItem, type NavCategory } from "@/lib/nav/navigation";
+import { navForRoles, isPortalNav, type NavigationItem, type NavCategory } from "@/lib/nav/navigation";
 
 // Sidebar de primer nivel = 8 categorias macro (Estructura Macro Aprobada - FASE 1).
 // El arbol vive en lib/nav/navigation.ts (config centralizada). Aqui solo se renderiza:
@@ -26,6 +26,8 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
 
   // Arbol segun rol: overlay de persona para el Gerente de Evolucion, MACRO_NAV para el resto.
   const tree = navForRoles(roles, isAdmin);
+  // El usuario final (partner_user) recibe un portal PLANO + CTA de registro (no categorias).
+  const portal = isPortalNav(roles, isAdmin);
 
   // Solo categorias con al menos un item permitido.
   const cats = tree
@@ -60,12 +62,23 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
       <div style={{ padding: 22, borderBottom: "1px solid var(--sb-border)" }}>
         <Wordmark />
         <div style={{ marginTop: 8, fontSize: 9.5, letterSpacing: "2px", textTransform: "uppercase", color: "var(--sb-muted)" }}>
-          {t("app.tagline")}
+          {t(portal ? "nav.user.tagline" : "app.tagline")}
         </div>
       </div>
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
-        {cats.map(({ cat, items }) => {
+        {portal ? (
+          <>
+            {/* CTA de registro arriba del menu (spec portal usuario). Lleva al intake del hub. */}
+            <Link href="/portal?report=1" className="cx-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--cta-grad, var(--cta-bg))", color: "var(--cta-fg)", boxShadow: "var(--sh-red, none)", textDecoration: "none", fontSize: 13, fontWeight: 700 }}>
+              <Icon name="plus" size={15} color="var(--cta-fg)" /> {t("nav.user.register")}
+            </Link>
+            {cats.flatMap((g) => g.items).map((item) => {
+              const active = pathname === item.path || pathname.startsWith(item.path + "/");
+              return <NavLink key={item.id} href={item.path} active={active} label={t(item.label)} flush />;
+            })}
+          </>
+        ) : cats.map(({ cat, items }) => {
           const expanded = isOpen(cat.id);
           const activeHere = cat.id === activeCat;
           return (
@@ -108,10 +121,10 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
   );
 }
 
-function NavLink({ href, active, label, readOnly, readOnlyLabel }: { href: string; active: boolean; label: string; readOnly?: boolean; readOnlyLabel?: string }) {
+function NavLink({ href, active, label, readOnly, readOnlyLabel, flush }: { href: string; active: boolean; label: string; readOnly?: boolean; readOnlyLabel?: string; flush?: boolean }) {
   return (
-    <Link href={href} className={active ? "sb-link sb-active" : "sb-link"} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-active, var(--sb-hover))" : "transparent", boxShadow: active ? "var(--sh-black, none)" : "none" }}>
-      {active && <span style={{ position: "absolute", left: 14, top: 7, bottom: 7, width: 3.5, borderRadius: 3, background: "var(--accent)" }} />}
+    <Link href={href} className={active ? "sb-link sb-active" : "sb-link"} style={{ display: "flex", alignItems: "center", gap: 6, padding: flush ? "10px 12px 10px 16px" : "8px 12px 8px 38px", borderRadius: 9, fontSize: 13, fontWeight: active ? 700 : flush ? 600 : 500, marginBottom: flush ? 3 : 1, position: "relative", textDecoration: "none", color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-active, var(--sb-hover))" : "transparent", boxShadow: active ? "var(--sh-black, none)" : "none" }}>
+      {active && <span style={{ position: "absolute", left: flush ? 6 : 14, top: 7, bottom: 7, width: 3.5, borderRadius: 3, background: "var(--accent)" }} />}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
       {readOnly && (
         <span title={readOnlyLabel} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase", color: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 5, padding: "1px 5px" }}>

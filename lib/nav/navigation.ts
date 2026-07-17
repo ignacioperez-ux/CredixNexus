@@ -248,6 +248,18 @@ export const SUPPORT_AGENT_NAV: NavCategory[] = [
   ] },
 ];
 
+// Persona "Usuario final" (partner_user). Portal enfocado: registrar/consultar; sus casos viven
+// en el hub /portal. Menu PLANO (sin categorias colapsables) + CTA de registro, renderizado por
+// sidebar.tsx. Mismos items canonicos (paths/perms intactos); canSeeNav sigue filtrando por permiso
+// (si no tiene knowledge.read/service_catalog.read, esos items no se muestran). No toca RBAC.
+export const USER_NAV: NavCategory[] = [
+  { id: "user.space", label: "nav.user.space", icon: "home", items: [
+    { ...ITEM_BY_ID["nav.selfservice"], label: "nav.user.selfservice" },
+    { ...ITEM_BY_ID["nav.knowledge"], label: "nav.user.knowledge" },
+    { ...ITEM_BY_ID["nav.servicecatalog"], label: "nav.user.catalog" },
+  ] },
+];
+
 // Roles con navegacion completa (MACRO_NAV): admin. El resto recibe su overlay de persona.
 const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin"]);
 
@@ -260,7 +272,14 @@ export function navForRoles(roles: string[], isAdmin: boolean): NavCategory[] {
   if (roles.includes("support_agent")) return SUPPORT_AGENT_NAV;
   if (roles.includes("product_owner") && !roles.some((r) => FULL_NAV_ROLES.has(r))) return EVOLUTION_NAV;
   if (roles.includes("squad_member") && !roles.some((r) => FULL_NAV_ROLES.has(r) || r === "product_owner")) return SQUAD_MEMBER_NAV;
+  if (roles.includes("partner_user")) return USER_NAV;
   return MACRO_NAV;
+}
+
+/** true si el arbol del usuario es el portal enfocado (partner_user): el sidebar lo renderiza
+ *  PLANO + CTA de registro, en vez de categorias colapsables. Admin siempre recibe MACRO_NAV. */
+export function isPortalNav(roles: string[], isAdmin: boolean): boolean {
+  return navForRoles(roles, isAdmin) === USER_NAV;
 }
 
 /** Categoria que contiene una ruta (por prefijo mas especifico). */
