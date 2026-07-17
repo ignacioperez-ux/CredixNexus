@@ -51,7 +51,7 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
       <BackButton fallback="/portal" label="case.back" />
 
       {/* Cabecera: anillo SLA + numero + estado + titulo */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 20, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <SlaRing openedAt={detail.opened_at} dueAt={detail.sla_resolution_due_at} resolvedAt={detail.resolved_at} status={detail.status} size={54} />
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -60,7 +60,7 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(detail.status))}
             </span>
           </div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-5)", color: "var(--text)", marginTop: 4 }}>{detail.title}</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-5)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)", marginTop: 4 }}>{detail.title}</div>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
       {canReply && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("case.reply.placeholder")}
-            style={{ fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%", resize: "vertical" }} />
+            style={{ fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%", resize: "vertical" }} />
           {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err}</div>}
           <button onClick={send} disabled={pending || reply.trim().length === 0} className="cx-btn-primary" style={{ alignSelf: "flex-start" }}>
             {pending ? t("case.reply.sending") : t("case.reply.send")}
@@ -123,11 +123,12 @@ function CaseStepper({ idx }: { idx: number }) {
     <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
       {steps.map((key, i) => {
         const done = i <= idx;
+        const current = i === idx;
         const color = done ? "var(--accent)" : "var(--muted)";
         return (
           <div key={key} style={{ display: "flex", alignItems: "center" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-              <span style={{ width: 16, height: 16, borderRadius: "50%", background: done ? color : "transparent", border: `2px solid ${color}`, flexShrink: 0 }} />
+              <span style={{ width: 16, height: 16, borderRadius: "50%", background: done ? color : "transparent", border: `2px solid ${color}`, flexShrink: 0, boxShadow: current ? "var(--step-glow, none)" : "none" }} />
               <span style={{ fontSize: 11.5, fontWeight: 600, color: done ? "var(--text)" : "var(--muted)" }}>{t(key)}</span>
             </span>
             {i < steps.length - 1 && <span style={{ width: 22, height: 2, background: "var(--line)", margin: "0 8px" }} />}

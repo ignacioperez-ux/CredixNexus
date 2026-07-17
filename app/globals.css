@@ -224,6 +224,7 @@
   /* Tokens de COMPONENTE Claro-only: no existen en Nexus, asi que en los estilos inline el fallback
      var(--token, valor-actual) deja Nexus byte-identico y solo Claro toma el valor premium. */
   --r-card: 22px; --fw-title: 800; --tracking-title: -0.02em;
+  --step-glow: 0 0 0 5px rgba(228, 0, 43, .14);   /* halo rojo sutil del paso actual (stepper) */
 
   /* Gradiente del hero (calido) */
   --hero-grad: linear-gradient(115deg, #FCFBF8 0%, #FBE9EC 55%, #F3ECE0 100%);
