@@ -1,0 +1,3 @@
+id,code,name,country_code,timezone,status,config_json,created_at,created_by,updated_at,updated_by,version_no,operating_mode
+c5d2f057-6262-4275-8ba9-16d9617ce128,CORE,Credix Core,CR,America/Costa_Rica,active,{},2026-07-09T21:26:13.522573+00:00,,2026-07-09T21:30:25.251242+00:00,,3,internal
+0477116e-90ee-44e8-a489-93cea6dd5210,SAC,"SAC (archivado - se remodela como sistema/CI, no tenant)",CR,America/Costa_Rica,archived,{},2026-07-09T21:26:13.522573+00:00,,2026-07-09T21:32:43.535067+00:00,,3,enterprise

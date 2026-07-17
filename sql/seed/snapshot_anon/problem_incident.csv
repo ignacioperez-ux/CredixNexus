@@ -1,0 +1,4 @@
+id,tenant_id,problem_id,incident_id,note,linked_by,linked_at
+90373f3f-b0cd-447c-87f0-2ef4f3b3be74,c5d2f057-6262-4275-8ba9-16d9617ce128,fab148e7-6c56-4bc5-9cfe-81a0f8f0b6d1,28337d4c-e511-44fa-8d25-fdf8b072e993,Sintoma del defecto de idempotencia en pasarela de pagos,77280a54-1930-4ac9-b67a-5cf4bb6fe002,2026-07-10T16:22:40.976846+00:00
+c4657c82-b0d3-455a-b461-b7df760f753a,c5d2f057-6262-4275-8ba9-16d9617ce128,fab148e7-6c56-4bc5-9cfe-81a0f8f0b6d1,0cc09789-4d56-4905-9887-0a24da79ab3f,Sintoma del defecto de idempotencia en pasarela de pagos,77280a54-1930-4ac9-b67a-5cf4bb6fe002,2026-07-10T16:22:40.976846+00:00
+b9a645b1-8d7c-458b-87dd-d295257b8ba9,c5d2f057-6262-4275-8ba9-16d9617ce128,fab148e7-6c56-4bc5-9cfe-81a0f8f0b6d1,4c42aca7-bd2a-4cac-946c-0cfb9ae9e532,Sintoma del defecto de idempotencia en pasarela de pagos,77280a54-1930-4ac9-b67a-5cf4bb6fe002,2026-07-10T16:22:40.976846+00:00

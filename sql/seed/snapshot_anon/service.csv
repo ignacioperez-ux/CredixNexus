@@ -1,0 +1,16 @@
+id,tenant_id,code,name,service_type,business_domain,owner_user_id,criticality,status,metadata,created_at,created_by,updated_at,updated_by,version_no
+83d7a316-68a9-4cf5-afb4-83ece5b967b4,c5d2f057-6262-4275-8ba9-16d9617ce128,ORIGINACION,Originacion de credito,business,credito,,critical,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+7f807e7f-fa5e-4793-b046-f98fcc43e73d,c5d2f057-6262-4275-8ba9-16d9617ce128,SCORING,Scoring y decisioning,business,riesgo,,critical,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+cd874f99-ea7d-41f2-b98e-aafd6e01f5c3,c5d2f057-6262-4275-8ba9-16d9617ce128,CUENTA_CORRIENTE,Cuenta corriente,business,core_financiero,,critical,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+62234b34-a478-48f7-bd32-5c357ed15897,c5d2f057-6262-4275-8ba9-16d9617ce128,PAGOS,Pagos,business,pagos,,critical,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+218846be-7a74-4172-acfd-969eed81da13,c5d2f057-6262-4275-8ba9-16d9617ce128,CONCILIACION,Conciliacion,business,conciliacion,,high,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+6653f2a9-b723-4cc6-b853-0e0aa0edab51,c5d2f057-6262-4275-8ba9-16d9617ce128,COBRANZA,Cobranza,business,cobranza,,high,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+260d33d3-d3ff-488d-bcd5-6108899f6e65,c5d2f057-6262-4275-8ba9-16d9617ce128,MARKETPLACE,Marketplace,business,marketplace,,high,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+62d951db-d22e-49b6-aac4-f550007ee4be,c5d2f057-6262-4275-8ba9-16d9617ce128,ONBOARDING,Onboarding de partners,business,onboarding,,high,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+a5ad1fd1-e6ad-459a-a9f5-d97beae34acb,c5d2f057-6262-4275-8ba9-16d9617ce128,ANALITICA,Analitica y datos,technical,datos,,medium,active,{},2026-07-09T21:56:06.91076+00:00,,2026-07-09T21:56:06.91076+00:00,,1
+8607f6e6-c37a-481e-a701-1fbe1b25151b,c5d2f057-6262-4275-8ba9-16d9617ce128,SVC_PAYMENT_NOT_APPLIED,Reportar pago no aplicado,business,pagos,,high,active,{},2026-07-10T13:57:47.861943+00:00,,2026-07-10T13:57:47.861943+00:00,,1
+386fdbb1-15e0-4b73-a6ae-e101a3ceee3c,c5d2f057-6262-4275-8ba9-16d9617ce128,SVC_UNRECOGNIZED_CHARGE,Reportar cargo no reconocido,business,tarjetas,,high,active,{},2026-07-10T13:57:47.861943+00:00,,2026-07-10T13:57:47.861943+00:00,,1
+073aa5bd-5686-42ca-88ce-1a9b62e74911,c5d2f057-6262-4275-8ba9-16d9617ce128,SVC_DUPLICATE_CHARGE,Reportar duplicidad de cobro,business,pagos,,high,active,{},2026-07-10T13:57:47.861943+00:00,,2026-07-10T13:57:47.861943+00:00,,1
+3cd53429-9d2b-4aac-9a69-1b5eca955f0f,c5d2f057-6262-4275-8ba9-16d9617ce128,SVC_FRAUD,Reportar sospecha de fraude,business,fraude,,critical,active,{},2026-07-10T13:57:47.861943+00:00,,2026-07-10T13:57:47.861943+00:00,,1
+b882dccf-698b-4bda-9a28-224137a90d81,c5d2f057-6262-4275-8ba9-16d9617ce128,SVC_API_DOWN,Reportar caida de API de pagos,business,tecnologia,,critical,active,{},2026-07-10T13:57:47.861943+00:00,,2026-07-10T13:57:47.861943+00:00,,1
+aa70cbf1-97a1-4603-a752-db9fb0ff99f9,c5d2f057-6262-4275-8ba9-16d9617ce128,SVC_OP_RISK,Registrar evento de riesgo operativo,business,riesgo,,high,active,{},2026-07-10T13:57:47.861943+00:00,,2026-07-10T13:57:47.861943+00:00,,1

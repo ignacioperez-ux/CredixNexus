@@ -1,0 +1,21 @@
+id,tenant_id,channel,journey_name,step_name,user_type,device_type,app_version,status,response_time_ms,error_code,error_message,customer_id,session_id,occurred_at,created_at
+980d295b-3981-46fa-9542-1efad89ce4d0,c5d2f057-6262-4275-8ba9-16d9617ce128,mobile,Login,Autenticacion,cliente,Android,4.2,success,420,,,,,2026-07-11T19:35:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+fd3f4376-28c7-467e-82c8-f33c3a9cb696,c5d2f057-6262-4275-8ba9-16d9617ce128,mobile,Login,Autenticacion,cliente,Android,4.2,error,0,AUTH_TIMEOUT,,,,2026-07-11T19:32:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+45635d52-1b86-4c11-9526-d33b56c53d01,c5d2f057-6262-4275-8ba9-16d9617ce128,web,Pago,Autorizacion,cliente,Desktop,web,slow,3100,,,,,2026-07-11T19:28:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+5444cca9-bb49-4329-957a-3abf6d9f0dd3,c5d2f057-6262-4275-8ba9-16d9617ce128,web,Pago,Confirmacion,cliente,Desktop,web,success,780,,,,,2026-07-11T19:25:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+41816c1a-61cc-40fa-b6a3-e0563be37690,c5d2f057-6262-4275-8ba9-16d9617ce128,mobile,Consulta de saldo,Carga,cliente,iOS,4.1,success,310,,,,,2026-07-11T19:20:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+7ec27060-9d6d-4096-b000-2034d71337e7,c5d2f057-6262-4275-8ba9-16d9617ce128,mobile,Pago,Autorizacion,cliente,Android,4.2,error,0,PROCESSOR_TIMEOUT,,,,2026-07-11T19:22:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+43c8460a-5bc5-4368-b3f7-9e9ff4954e5c,c5d2f057-6262-4275-8ba9-16d9617ce128,web,Onboarding,Carga de documentos,originador,Desktop,web,slow,4200,,,,,2026-07-11T19:05:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+669fbf0a-5c9c-4089-8f90-66c1e6b341ee,c5d2f057-6262-4275-8ba9-16d9617ce128,mobile,Consulta de saldo,Carga,cliente,Android,4.2,success,290,,,,,2026-07-11T19:00:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+885c1e25-ba26-4809-9149-012b354b3075,c5d2f057-6262-4275-8ba9-16d9617ce128,api,Pago,Autorizacion,sistema,server,api,success,180,,,,,2026-07-11T19:38:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+b3c153f6-a568-4c5e-8b4e-9c0809971023,c5d2f057-6262-4275-8ba9-16d9617ce128,api,Pago,Autorizacion,sistema,server,api,error,0,HTTP_500,,,,2026-07-11T19:34:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+84c669db-5f0d-447b-b36e-150837d073c9,0477116e-90ee-44e8-a489-93cea6dd5210,mobile,Login,Autenticacion,cliente,Android,4.2,success,420,,,,,2026-07-11T19:35:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+9c787c9a-1a26-421e-9d1d-7801ad540f3b,0477116e-90ee-44e8-a489-93cea6dd5210,mobile,Login,Autenticacion,cliente,Android,4.2,error,0,AUTH_TIMEOUT,,,,2026-07-11T19:32:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+956b769c-6fdc-433d-b427-ce12d3bff616,0477116e-90ee-44e8-a489-93cea6dd5210,web,Pago,Autorizacion,cliente,Desktop,web,slow,3100,,,,,2026-07-11T19:28:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+6a82c3cd-cacc-41f1-8ab8-75ccc79204a8,0477116e-90ee-44e8-a489-93cea6dd5210,web,Pago,Confirmacion,cliente,Desktop,web,success,780,,,,,2026-07-11T19:25:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+86cfcdaf-d13c-4fc2-9e82-f820e1d474af,0477116e-90ee-44e8-a489-93cea6dd5210,mobile,Consulta de saldo,Carga,cliente,iOS,4.1,success,310,,,,,2026-07-11T19:20:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+63a99a4d-1e9e-4cff-9a48-f895362d5b07,0477116e-90ee-44e8-a489-93cea6dd5210,mobile,Pago,Autorizacion,cliente,Android,4.2,error,0,PROCESSOR_TIMEOUT,,,,2026-07-11T19:22:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+d824211a-e4d0-4e91-9775-8b34d71ee01c,0477116e-90ee-44e8-a489-93cea6dd5210,web,Onboarding,Carga de documentos,originador,Desktop,web,slow,4200,,,,,2026-07-11T19:05:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+66c2f51a-c022-4a4d-bcf6-166333239e37,0477116e-90ee-44e8-a489-93cea6dd5210,mobile,Consulta de saldo,Carga,cliente,Android,4.2,success,290,,,,,2026-07-11T19:00:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+3576cb90-9bdb-4422-9f34-46c1a3127762,0477116e-90ee-44e8-a489-93cea6dd5210,api,Pago,Autorizacion,sistema,server,api,success,180,,,,,2026-07-11T19:38:59.081056+00:00,2026-07-11T19:40:59.081056+00:00
+693a71a8-8579-499d-8296-a5cff9645f12,0477116e-90ee-44e8-a489-93cea6dd5210,api,Pago,Autorizacion,sistema,server,api,error,0,HTTP_500,,,,2026-07-11T19:34:59.081056+00:00,2026-07-11T19:40:59.081056+00:00

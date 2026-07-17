@@ -1,0 +1,63 @@
+id,tenant_id,article_id,version_number,content_markdown,summary,tags,approved_by,approved_at,created_at,created_by
+ad2e943c-f2a4-41b0-b118-99d410c0e7ed,c5d2f057-6262-4275-8ba9-16d9617ce128,5ff05b9d-c371-4735-86a8-ae7e52b96a09,1,"# Restablecimiento de contrasena
+
+1. Verificar identidad del colaborador.
+2. Resetear en Active Directory.
+3. Forzar cambio en el primer ingreso.
+4. Registrar en el ticket.",Pasos para resetear contrasena de usuario interno.,"[""acceso"",""contrasena"",""active-directory""]",,,2026-07-09T22:20:56.616678+00:00,
+640401d8-798e-41b5-80aa-912a9726294c,c5d2f057-6262-4275-8ba9-16d9617ce128,17567770-54c1-4a6e-88cb-a1fee7768b92,1,"# Acceso a VPN
+
+1. Instala el cliente VPN corporativo.
+2. Ingresa con tu usuario de red y el segundo factor (OTP).
+3. Si el OTP no llega, verifica cobertura y reintenta en 60s.
+4. Si persiste, abre un caso indicando el sistema al que no puedes entrar.",Como conectarte a la VPN y resolver fallas comunes de acceso.,"[""acceso"",""vpn"",""otp"",""ingreso""]",,,2026-07-11T20:30:24.736191+00:00,
+244980be-17cf-46bd-8e8f-c8c4273d6eac,c5d2f057-6262-4275-8ba9-16d9617ce128,bc636d86-c8b0-4626-b0a7-51d3f71cb4b5,1,"# Pago rechazado
+
+1. Confirma el mensaje de error y el codigo devuelto.
+2. Revisa saldo/limite y datos del medio de pago.
+3. Si el codigo es de procesador externo, reintenta en unos minutos.
+4. Si el rechazo se repite, abre un caso con la referencia de la transaccion.",Pasos ante un pago o transaccion rechazada y cuando escalar.,"[""pago"",""transaccion"",""rechazo"",""procesador""]",,,2026-07-11T20:30:24.736191+00:00,
+e55605e4-6194-421b-95af-45fba8dbfc4a,c5d2f057-6262-4275-8ba9-16d9617ce128,62946acf-4643-4800-b78d-59d02b5726cf,1,"# Conciliacion
+
+1. Descarga el reporte del dia y el corte del procesador.
+2. Compara totales por lote y por medio de pago.
+3. Marca las diferencias y su posible causa (timeout, reverso, duplicado).
+4. Abre un caso adjuntando el detalle si la diferencia no cuadra.",Como revisar diferencias de conciliacion antes de escalar.,"[""conciliacion"",""cuadre"",""reporte"",""diferencia""]",,,2026-07-11T20:30:24.736191+00:00,
+d8170204-c573-4972-a1f2-a192a59e3b97,c5d2f057-6262-4275-8ba9-16d9617ce128,053c6d5b-900e-47a4-a19f-16b97dfb7788,1,"# App movil
+
+1. Verifica que tengas la ultima version instalada.
+2. Cierra sesion y vuelve a ingresar.
+3. Limpia cache de la app si el error persiste.
+4. Si el error continua, abre un caso indicando version y modelo del dispositivo.",Solucion de errores frecuentes de la app movil y como reportarlos.,"[""app"",""movil"",""android"",""ios"",""version""]",,,2026-07-11T20:30:24.736191+00:00,
+bd7ed745-f2f6-4f64-96a1-9b0e9ce6c37e,0477116e-90ee-44e8-a489-93cea6dd5210,cf8c7b67-ddff-450d-bb43-d46aec73a091,1,"# Acceso a VPN
+
+1. Instala el cliente VPN corporativo.
+2. Ingresa con tu usuario de red y el segundo factor (OTP).
+3. Si el OTP no llega, verifica cobertura y reintenta en 60s.
+4. Si persiste, abre un caso indicando el sistema al que no puedes entrar.",Como conectarte a la VPN y resolver fallas comunes de acceso.,"[""acceso"",""vpn"",""otp"",""ingreso""]",,,2026-07-11T20:30:24.736191+00:00,
+c4ad68f1-fb59-450a-9fe7-49843319cb20,0477116e-90ee-44e8-a489-93cea6dd5210,96463270-c68a-493c-9402-8a1ce1779d47,1,"# Pago rechazado
+
+1. Confirma el mensaje de error y el codigo devuelto.
+2. Revisa saldo/limite y datos del medio de pago.
+3. Si el codigo es de procesador externo, reintenta en unos minutos.
+4. Si el rechazo se repite, abre un caso con la referencia de la transaccion.",Pasos ante un pago o transaccion rechazada y cuando escalar.,"[""pago"",""transaccion"",""rechazo"",""procesador""]",,,2026-07-11T20:30:24.736191+00:00,
+bb7fbfb4-3572-405f-820e-49c096e852d9,0477116e-90ee-44e8-a489-93cea6dd5210,84caacdc-dd1b-4b6d-8bfd-e24e03e157e2,1,"# Conciliacion
+
+1. Descarga el reporte del dia y el corte del procesador.
+2. Compara totales por lote y por medio de pago.
+3. Marca las diferencias y su posible causa (timeout, reverso, duplicado).
+4. Abre un caso adjuntando el detalle si la diferencia no cuadra.",Como revisar diferencias de conciliacion antes de escalar.,"[""conciliacion"",""cuadre"",""reporte"",""diferencia""]",,,2026-07-11T20:30:24.736191+00:00,
+6ca39e53-3581-4fa2-8479-364b622c0340,0477116e-90ee-44e8-a489-93cea6dd5210,2bd84cd2-95db-4ade-9192-e901a6085ebc,1,"# App movil
+
+1. Verifica que tengas la ultima version instalada.
+2. Cierra sesion y vuelve a ingresar.
+3. Limpia cache de la app si el error persiste.
+4. Si el error continua, abre un caso indicando version y modelo del dispositivo.",Solucion de errores frecuentes de la app movil y como reportarlos.,"[""app"",""movil"",""android"",""ios"",""version""]",,,2026-07-11T20:30:24.736191+00:00,
+ccda5b0a-dbea-4080-a4f0-224b2a86d1cc,c5d2f057-6262-4275-8ba9-16d9617ce128,8182e4e8-86a9-4c60-bb54-b74f4bab9d60,1,"## Caso
+Caida total de la API de pagos
+
+## Sintoma
+Sin procesamiento de pagos en todos los canales; comercios afectados a nivel nacional.
+
+## Solucion
+_(Completar por el equipo antes de publicar.)_",,[],,,2026-07-15T13:34:26.127548+00:00,bca6e351-fd9c-4d07-ae51-d70bcb39c8ca

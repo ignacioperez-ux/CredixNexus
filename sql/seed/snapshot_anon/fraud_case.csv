@@ -1,0 +1,2 @@
+id,tenant_id,incident_id,fraud_number,fraud_type,status,detection_source,risk_score,amount_exposed,amount_recovered,currency,assigned_to_user_id,resolution_notes,reported_at,confirmed_at,recovered_at,closed_at,created_at,created_by,updated_at,updated_by
+270b61c3-7735-44af-84db-294cdb887b76,c5d2f057-6262-4275-8ba9-16d9617ce128,4da1ed1c-a14c-4005-98fd-0562b76bcee1,FR-2026-000001,other,investigating,customer_report,72,,0.00,CRC,,,2026-07-11T21:24:52.298789+00:00,,,,2026-07-11T21:24:52.298789+00:00,,2026-07-11T21:24:52.298789+00:00,

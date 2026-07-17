@@ -1,0 +1,66 @@
+id,code,resource,action,description
+b9a4ffec-5d28-46ef-b43d-32d1d43e1a39,incident.read,incident,read,Ver incidentes
+98c76e02-baf4-4b84-95cf-d2001540a8be,incident.create,incident,create,Crear incidentes
+5a669bf1-f264-4474-b3f7-455cddda35a9,incident.update,incident,update,Actualizar incidentes
+dd5963e2-3895-4b73-bf6d-9a41ec258738,incident.assign,incident,assign,Asignar incidentes
+af9a26a5-b52b-49fc-a28e-2530bf674477,incident.resolve,incident,resolve,Resolver/cerrar incidentes
+9f68f1ef-05a9-4372-ade8-322e31b4fc4b,problem.manage,problem,manage,Gestionar problemas
+d1ec709c-c3f0-42fc-9ae8-fefab742f28d,change.manage,change,manage,Gestionar cambios
+552dd31f-3574-4862-8ca6-2e95aa6871c4,change.approve,change,approve,Aprobar cambios
+d0689740-2cdc-4bca-b104-cd3b132e8f9a,project.read,project,read,Ver proyectos
+4670f768-e99b-4af9-8abd-cdd41fef25b5,project.manage,project,manage,Gestionar proyectos
+3b211356-c3e1-41fa-a11a-2d11ac81732d,rule.read,rule,read,Ver reglas
+e9805b3d-1c44-4780-976c-359dfcb502d0,rule.manage,rule,manage,Editar reglas
+33ebbd15-33bd-47b1-b3b2-99d87f125424,rule.approve,rule,approve,Aprobar/publicar reglas
+c5a915f1-8d21-45d9-8233-a0e9df3ec563,audit.read,audit,read,Consultar ledger
+d3da58cb-7361-4798-9233-c0a047b30372,audit.export,audit,export,Exportar evidencia
+dcb54e67-2b6e-4529-9dff-2864fa4a1233,cmdb.read,cmdb,read,Ver CMDB
+54995029-5375-4d62-9a39-7cc645bf2c65,cmdb.manage,cmdb,manage,Gestionar CMDB
+74f22a6a-30b8-49a0-9e83-21f9100eaa3f,knowledge.read,knowledge,read,Ver conocimiento
+cad2add1-801e-4e57-a3c0-41ce0476e92a,knowledge.manage,knowledge,manage,Gestionar conocimiento
+e3d4061c-6ad1-4175-bf95-63a421a80c8c,tenant.manage,tenant,manage,Administrar tenants
+126e80d7-70e6-49ce-ab60-9188777650e9,user.manage,user,manage,Administrar usuarios
+cff21fbb-0d7a-4219-bb3b-b4cd2c44f337,grc.manage,grc,manage,Gestionar GRC
+e2251d43-0981-4b6c-8f61-659878a18273,agent.execute,agent,execute,Ejecutar acciones de agente IA
+ed52596c-9943-4d8e-8d6d-08c20429fcdd,recommendation.read,recommendation,read,Ver recomendaciones
+02d3c442-8699-427a-98f3-3188f3e89a01,recommendation.decide,recommendation,decide,Aprobar/rechazar/priorizar recomendaciones
+182af864-c94f-4588-bdf5-5e39f078c076,rule.simulate,rule,simulate,Simular reglas
+e74c8d8d-f9b8-46e6-811c-f4568ec5087f,talent.read,talent,read,Ver perfil de talento y desempeno
+b62e232e-88e4-477a-820c-ff9c82b625bd,talent.manage,talent,manage,Gestionar talento y evaluaciones
+d1da39e4-576b-45d1-a904-a542695b9a48,masterdata.manage,masterdata,manage,Gestionar catalogos de datos maestros
+31dcc26f-aa8e-407a-a931-bb0a8f78719d,risk.read,risk,read,Ver eventos de riesgo operativo
+5ed167fd-255d-4bfd-b1d1-9f5bb4687e42,risk.manage,risk,manage,Gestionar eventos de riesgo operativo
+ddb497c2-567e-4cfc-a5c2-e6006479d00c,problem.read,problem,read,Ver problemas y errores conocidos
+9d447c85-7529-43cd-8055-2392ea31fe0f,sla.read,sla,read,Ver gobierno de SLA/OLA y escalaciones
+013cb0cd-368a-4ce2-ba82-f79e0a26c5b0,sla.manage,sla,manage,"Configurar OLA, reglas de escalacion y ejecutar evaluacion"
+6eb32fc2-3f46-4c77-868a-74fee89912d9,workflow.read,workflow,read,Ver definiciones e instancias de workflow
+ae837c34-e507-44a5-804f-11a3fd05b4db,workflow.run,workflow,run,Iniciar y avanzar instancias de workflow
+0aa64b6c-9640-4024-87aa-90835085d47e,workflow.manage,workflow,manage,Disenar y publicar definiciones de workflow
+ba9915c5-7779-41d3-a351-2c3c46a6b4a0,change.read,change,read,Ver solicitudes de cambio
+841b341c-1c69-4054-a219-11371bad2734,major_incident.read,major_incident,read,Ver incidentes mayores y su war-room
+c29d13c4-e0cc-493c-a9a5-84c016304acb,major_incident.manage,major_incident,manage,Declarar y comandar incidentes mayores
+0db5ed06-6c9f-464c-94e6-ac5d9211cccc,vendor.read,vendor,read,Ver proveedores y su desempeno
+79eb9988-0e41-4d89-8c47-9d9f681e4e51,vendor.manage,vendor,manage,Gestionar proveedores y contratos
+eb6cd700-b191-4bf7-a088-41811c9e37eb,squad.read,squad,read,Ver squads y su composicion
+11be2f6b-3173-472c-87bf-14c44a22e6aa,squad.manage,squad,manage,Gestionar la membresia y funciones del squad
+555c02a3-8ab9-47d4-a412-ac97598c2f84,area.read,delivery_area,read,Ver areas de entrega y sus lideres
+64192cc8-3fc4-4c70-85ac-9557a2b89ac0,area.manage,delivery_area,manage,Gestionar areas de entrega y lideres
+0fb79a16-2145-4f29-a28c-0c1bbbaf0293,triage.manage,triage,manage,"Admitir, descartar y clasificar casos (triage)"
+b0706e5d-d592-4859-a945-8fe455acac59,project.validate,project,validate,Registrar pruebas y estado de calidad del proyecto
+cf28c7ad-df4a-4503-8c85-2ac357d241d3,project.deploy,project,deploy,Autorizar el pase a produccion (control de Evolucion)
+26aaffb1-4246-437d-a28d-eae396cebce9,worklog.manage,worklog,manage,Registrar esfuerzo (tiempo) en casos
+7bf165ea-62d4-458b-8a15-987da9756275,survey.submit,survey,submit,Registrar la satisfaccion (CSAT) de un caso
+7ebc759f-85e6-4afd-8dd0-a62d9a19c915,observability.read,observability,read,Ver alertas y experiencia digital
+040ccc95-4f8a-4788-b83b-7de6f8ef5073,observability.manage,observability,manage,"Reconocer, correlacionar y crear casos desde alertas"
+2966102d-a4e6-420c-bbfa-f28df9dc3617,fraud.read,fraud,read,Ver casos de fraude
+32baf628-1d07-48fd-bda7-9ead5be03d49,fraud.manage,fraud,manage,Gestionar casos de fraude
+670b9f68-6124-4dbc-a371-25f949291774,dispute.read,dispute,read,Ver disputas
+30d55628-6f0d-4562-adbf-f6ac99e85468,dispute.manage,dispute,manage,Gestionar disputas
+cdcd9493-3bc2-4477-ac3f-c3fd8cfe0e01,knowledge.feedback,knowledge,feedback,Calificar articulos de conocimiento
+f2adea1a-67d9-4123-ad7b-c93d1f51c107,service_catalog.read,service_catalog,read,Ver el catalogo de servicios y solicitudes
+773a69f4-1a13-42ff-ad44-e2fa0748e61a,service_catalog.request,service_catalog,request,Solicitar un servicio del catalogo
+22e1b48f-92a0-4872-801a-00faa268c7b1,service_catalog.manage,service_catalog,manage,Administrar items del catalogo
+60874038-34b4-47a6-9514-d21b4c0897d8,process.read,process,read,Ver fichas de proceso y matrices de gobierno
+f2bec4a4-0cb3-4613-8a70-69108a5f0f87,process.manage,process,manage,Administrar matrices proceso-sistema y producto-canal
+92b1e1b1-da0a-4b76-bb67-90481583da4f,ai.read,ai,read,Ver el AI Center (gobierno de agentes IA)
+7d7c272a-1d33-43ba-bb2e-1186fd01d40d,analytics.read,analytics,read,Ver analitica ejecutiva y reportes

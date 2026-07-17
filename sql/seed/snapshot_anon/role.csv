@@ -1,0 +1,16 @@
+id,tenant_id,code,name,description,is_system,status
+bf5b7e3d-8dd5-473c-8569-6b696f3e6856,,system_admin,Administrador del sistema,Admin tecnico global,true,active
+ea3265dd-b263-43bd-aca2-261b80bcbf40,,tenant_admin,Administrador de tenant,Admin por tenant,true,active
+83f8d3a5-1336-4b69-a10b-f054f57cf01e,,support_agent,Agente de soporte,Gestion de incidentes,true,active
+7f1ad77e-61cb-4535-9901-6ba0ec89ee9e,,support_lead,Lider de soporte,"Escalamiento, cierre, RCA",true,active
+5095b5b3-e564-41ec-adbc-d034a64faac7,,product_owner,Product Owner,Priorizacion y proyectos,true,active
+150a6377-fcce-4fa0-b17f-7c266e713734,,business_owner,Business Owner,Decisiones de negocio,true,active
+213ec2cb-78ea-4d08-bb57-0e22d7464796,,change_manager,Change Manager,Cambios y releases,true,active
+7884ddc9-7d8e-4864-a4f9-349588e81800,,grc_officer,GRC Officer,"Riesgo, cumplimiento, controles",true,active
+62644227-5735-4217-ba90-ae50a5642356,,auditor,Auditor,Solo lectura + exportaciones,true,active
+47de6acd-08e0-4afe-8304-054f09931315,,partner_user,Usuario partner,Portal externo restringido,true,active
+1b838377-4dff-404c-aea9-732836e6d497,,partner_admin,Admin partner,Usuarios del partner,true,active
+3d1cd019-cb83-4cac-9832-d10f558b1387,,ai_agent,Agente IA,Identidad tecnica de agente,true,active
+6a93cc4c-56c2-48f8-bdf3-03f6a5913b09,,responsable_comercial,Responsable Comercial (RC),Decide y prioriza las mejoras que van a Evolucion (area de negocio),true,active
+dbf6fe05-3996-4dd2-bb14-e21f4c476854,,people_lead,Lider de Personas / RRHH,"Gestiona talento, desempeno y capacidades",true,active
+1ba6a14f-75ff-41b8-a62e-c4626963e51d,,squad_member,Miembro de Squad,Miembro de squad: backlog y proyectos asignados,false,active

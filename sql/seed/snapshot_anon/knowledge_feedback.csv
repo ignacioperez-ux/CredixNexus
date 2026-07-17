@@ -1,0 +1,2 @@
+id,tenant_id,article_id,user_account_id,helpful,comment,source,created_at,updated_at
+03cd4d57-aed6-497e-84aa-92a11da23e6d,c5d2f057-6262-4275-8ba9-16d9617ce128,053c6d5b-900e-47a4-a19f-16b97dfb7788,271ae13b-56ee-434d-a237-a6792dfbaaa8,true,,kb,2026-07-14T02:52:28.320636+00:00,2026-07-14T02:52:28.320636+00:00

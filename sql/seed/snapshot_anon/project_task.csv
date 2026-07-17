@@ -1,0 +1,5 @@
+id,tenant_id,project_id,title,description,owner_user_id,status,priority,due_date,completed_at,metadata,created_at,effort_points,assigned_member_id
+a1a51662-f6c9-498b-990a-33e6e196ce03,c5d2f057-6262-4275-8ba9-16d9617ce128,abc3be75-d08c-4e33-beee-8bb89eab1d5a,Levantar reglas de conciliacion automatica,,,doing,p2_high,,,{},2026-07-10T00:18:22.003558+00:00,3,09012e5b-0915-46d9-824c-650b038a89ac
+d052e946-c879-4667-8154-4e201c08bc4f,c5d2f057-6262-4275-8ba9-16d9617ce128,abc3be75-d08c-4e33-beee-8bb89eab1d5a,Integrar Prisma-SAC via API,,,todo,p2_high,,,{},2026-07-10T00:18:22.003558+00:00,5,3ce4cf8c-214d-46c9-aced-ba5bc2a5e099
+bc813866-7ed6-4346-8373-46c6e7ed6e5d,c5d2f057-6262-4275-8ba9-16d9617ce128,abc3be75-d08c-4e33-beee-8bb89eab1d5a,Panel de control de diferencias,,,todo,p3_medium,,,{},2026-07-10T00:18:22.003558+00:00,2,e182e6ed-645a-4adf-ad3c-09e2e4812eac
+2e923403-eb56-431d-9aff-b9a14d97ef3f,c5d2f057-6262-4275-8ba9-16d9617ce128,a3ad66e1-7fa8-4ffe-a6ba-3e0288908e31,Revisar el cálculo del scoring de riesgo,,,todo,p3_medium,,,{},2026-07-15T11:17:32.937168+00:00,1,

@@ -1,0 +1,2 @@
+id,tenant_id,code,name,rule_type,status,description,owner_user_id,created_at,created_by,updated_at,updated_by,version_no
+889b6920-20e7-40a0-a0bf-9c1345191eba,c5d2f057-6262-4275-8ba9-16d9617ce128,TRANSFORM_CREDIX_001,Scoring de Transformacion Credix,transformation,active,Evalua si un incidente debe elevarse a proyecto de Evolucion.,,2026-07-09T22:38:41.311172+00:00,,2026-07-09T22:38:41.311172+00:00,,1
