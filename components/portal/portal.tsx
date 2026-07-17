@@ -17,6 +17,14 @@ import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incid
 import { Icon } from "@/components/ui/icon";
 import { SlaRing, StatusDonut, type StatusSlice } from "@/components/portal/hub-viz";
 
+// Tipos minimos de Web Speech API (no estan en la lib estandar de TS).
+type SpeechRec = {
+  lang: string; continuous: boolean; interimResults: boolean;
+  onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
+  onend: () => void; onerror: () => void; start: () => void; stop: () => void;
+};
+type VoiceWindow = { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
+
 const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 // Impacto estimado del autoservicio: el usuario reporta su propio caso (impacto acotado). Se hace
 // EXPLICITO y explicable (no silencioso); la mesa puede ajustarlo. Espeja el enum de la BD.
@@ -89,6 +97,35 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
   const [mine, setMine] = useState<SimilarCaseHit[]>([]);
+
+  // Dictado por voz (Web Speech API): opcional, degradado si el navegador no lo soporta.
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recogRef = useRef<SpeechRec | null>(null);
+  useEffect(() => {
+    const w = window as unknown as VoiceWindow;
+    setVoiceSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+  function toggleVoice() {
+    if (listening) { recogRef.current?.stop(); return; }
+    const w = window as unknown as VoiceWindow;
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    const rec = new Ctor();
+    rec.lang = locale === "en" ? "en-US" : "es-ES";
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const last = e.results[e.results.length - 1];
+      const text = last?.[0]?.transcript?.trim();
+      if (text) setSubject((s) => (s ? `${s} ${text}` : text));
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recogRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
 
   const tooShort = subject.trim().length < MIN_CHARS;
   const estPriority = derivePriority(INTAKE_IMPACT, urgency); // prioridad estimada, explicable (UX-011)
@@ -270,7 +307,16 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: -8 }}>{t("portal.intro")}</div>
 
           <div>
-            <label style={lbl}>{t("portal.field.subject")}</label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <label style={lbl}>{t("portal.field.subject")}</label>
+              {voiceSupported && (
+                <button type="button" onClick={toggleVoice} title={t("portal.voice")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, padding: "4px 9px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                    border: `1px solid ${listening ? "var(--accent)" : "var(--line)"}`, background: listening ? "var(--accent-soft)" : "var(--card)", color: listening ? "var(--accent-2)" : "var(--muted)" }}>
+                  <Icon name={listening ? "power" : "play"} size={12} /> {listening ? t("portal.voice.stop") : t("portal.voice")}
+                </button>
+              )}
+            </div>
             <textarea ref={subjectRef} value={subject} onChange={(e) => setSubject(e.target.value)} onBlur={() => setTouched(true)} rows={3}
               placeholder={t("portal.search.placeholder")}
               style={{ ...field, resize: "vertical", borderColor: touched && tooShort ? "var(--st-critical-fg)" : "var(--line)" }} />
