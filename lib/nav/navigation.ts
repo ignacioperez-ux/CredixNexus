@@ -282,6 +282,18 @@ export function isPortalNav(roles: string[], isAdmin: boolean): boolean {
   return navForRoles(roles, isAdmin) === USER_NAV;
 }
 
+/** Menu del portal (presentacion, no dato de negocio): 5 destinos. Inicio/Autoservicio/Mis casos
+ *  son PESTANAS del hub /portal (?tab=); Conocimiento/Catalogo son rutas reales. El icono es del set
+ *  lineal; 'mycases' pinta el badge azul con el nro de casos activos. Las rutas NO cambian. */
+export type PortalMenuItem = { id: string; label: MessageKey; href: string; icon: string; tab?: string; badge?: "mycases" };
+export const USER_PORTAL_MENU: PortalMenuItem[] = [
+  { id: "inicio",        label: "nav.user.home",        href: "/portal",                 icon: "home",    tab: "inicio" },
+  { id: "autoservicio",  label: "nav.user.selfservice", href: "/portal?tab=autoservicio", icon: "sliders", tab: "autoservicio" },
+  { id: "miscasos",      label: "nav.user.mycases",     href: "/portal?tab=miscasos",     icon: "inbox",   tab: "miscasos", badge: "mycases" },
+  { id: "conocimiento",  label: "nav.user.knowledge",   href: "/knowledge",              icon: "sparkle" },
+  { id: "catalogo",      label: "nav.user.catalog",     href: "/service-catalog",        icon: "folder" },
+];
+
 /** Categoria que contiene una ruta (por prefijo mas especifico). */
 export function categoryOfPath(pathname: string): string | null {
   let best: { id: string; len: number } | null = null;

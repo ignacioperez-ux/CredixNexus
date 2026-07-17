@@ -127,6 +127,16 @@ export async function getMyActivity(supabase: SupabaseClient, limit = 12): Promi
   return (data as MyActivityItem[] | null) ?? [];
 }
 
+/** Nro de casos ACTIVOS (no liquidados) reportados por el usuario, para el badge del sidebar. */
+export async function getMyActiveCaseCount(supabase: SupabaseClient, accountId: string | null): Promise<number> {
+  if (!accountId) return 0;
+  const { count } = await supabase
+    .from("incident").select("id", { count: "exact", head: true })
+    .eq("reported_by_user_id", accountId)
+    .not("status", "in", "(resolved,closed,cancelled)");
+  return count ?? 0;
+}
+
 /** Catalogo de categorias para el formulario de creacion de caso (cero hardcode). */
 export async function listPortalCategories(supabase: SupabaseClient): Promise<PortalCategory[]> {
   const { data, error } = await supabase

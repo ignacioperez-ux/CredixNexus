@@ -7,9 +7,11 @@ import { HelpFab } from "@/components/app-shell/help-fab";
 import { NavHistoryProvider } from "@/components/app-shell/nav-history-provider";
 import { PageBack } from "@/components/app-shell/page-back";
 import { canSeeNav, requiredPermForPath, isRouteDeniedForRoles } from "@/lib/nav/access";
+import { isPortalNav } from "@/lib/nav/navigation";
 import { getSessionUser, getSessionAccount, getAccessControl, tenantNameOf } from "@/lib/auth/session";
 import { getContext } from "@/lib/auth/context";
 import { listNotifications } from "@/lib/notifications/queries";
+import { getMyActiveCaseCount } from "@/lib/portal/queries";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
@@ -23,6 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const userName = account?.full_name ?? user.email ?? "Usuario";
   const tenantName = tenantNameOf(account);
   const { perms: permList, roles: roleList, isAdmin } = access;
+  // Badge "Mis casos" del sidebar del portal: nro de casos activos del usuario (solo partner_user).
+  const portalActiveCount = ctx && isPortalNav(roleList, isAdmin) ? await getMyActiveCaseCount(ctx.supabase, ctx.accountId) : 0;
 
   // Guard de ruta por permiso: si la ruta requiere un permiso que el usuario no tiene, /unauthorized.
   const pathname = (await headers()).get("x-pathname") ?? "";
@@ -39,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <NavHistoryProvider>
       <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
-        <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} roles={roleList} />
+        <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} roles={roleList} portalActiveCount={portalActiveCount} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
           <Header roles={roleList} perms={permList} isAdmin={isAdmin} notifications={notifications} />
           <main style={{ flex: 1, minHeight: 0, overflowY: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import { Wordmark } from "./wordmark";
 import { Icon } from "@/components/ui/icon";
 import { canSeeNav } from "@/lib/nav/access";
-import { navForRoles, isPortalNav, type NavigationItem, type NavCategory } from "@/lib/nav/navigation";
+import { navForRoles, isPortalNav, USER_PORTAL_MENU, type NavigationItem, type NavCategory, type PortalMenuItem } from "@/lib/nav/navigation";
 
 // Sidebar de primer nivel = 8 categorias macro (Estructura Macro Aprobada - FASE 1).
 // El arbol vive en lib/nav/navigation.ts (config centralizada). Aqui solo se renderiza:
@@ -16,8 +16,10 @@ import { navForRoles, isPortalNav, type NavigationItem, type NavCategory } from 
 
 const SIDEBAR_OPEN_KEY = "credix.sidebar.open";
 
-export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles = [] }: { userName: string; userRole: string; perms?: string[]; isAdmin?: boolean; roles?: string[] }) {
+export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles = [], portalActiveCount = 0 }: { userName: string; userRole: string; perms?: string[]; isAdmin?: boolean; roles?: string[]; portalActiveCount?: number }) {
   const pathname = usePathname();
+  const sp = useSearchParams();
+  const currentTab = sp.get("tab") ?? "inicio";
   const { t } = useI18n();
 
   // Quien ve el hub /catalog no necesita los maestros absorbidos (evita duplicar).
@@ -69,13 +71,15 @@ export function Sidebar({ userName, userRole, perms = [], isAdmin = false, roles
       <nav style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
         {portal ? (
           <>
-            {/* CTA de registro arriba del menu (spec portal usuario). Lleva al intake del hub. */}
-            <Link href="/portal?report=1" className="cx-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--cta-grad, var(--cta-bg))", color: "var(--cta-fg)", boxShadow: "var(--sh-red, none)", textDecoration: "none", fontSize: 13, fontWeight: 700 }}>
+            {/* CTA de registro arriba del menu (spec portal usuario) -> pestana Registrar del hub. */}
+            <Link href="/portal?tab=registrar" className="cx-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--cta-grad, var(--cta-bg))", color: "var(--cta-fg)", boxShadow: "var(--sh-red, none)", textDecoration: "none", fontSize: 13, fontWeight: 700 }}>
               <Icon name="plus" size={15} color="var(--cta-fg)" /> {t("nav.user.register")}
             </Link>
-            {cats.flatMap((g) => g.items).map((item) => {
-              const active = pathname === item.path || pathname.startsWith(item.path + "/");
-              return <NavLink key={item.id} href={item.path} active={active} label={t(item.label)} flush />;
+            {USER_PORTAL_MENU.map((it) => {
+              const active = it.tab
+                ? (pathname === "/portal" && currentTab === it.tab) || (it.id === "miscasos" && pathname.startsWith("/portal/cases"))
+                : pathname === it.href || pathname.startsWith(it.href + "/");
+              return <PortalItem key={it.id} item={it} active={active} label={t(it.label)} badge={it.badge === "mycases" ? portalActiveCount : 0} />;
             })}
           </>
         ) : cats.map(({ cat, items }) => {
@@ -132,6 +136,20 @@ function NavLink({ href, active, label, readOnly, readOnlyLabel, flush }: { href
           {readOnlyLabel}
         </span>
       )}
+    </Link>
+  );
+}
+
+function PortalItem({ item, active, label, badge }: { item: PortalMenuItem; active: boolean; label: string; badge: number }) {
+  return (
+    <Link href={item.href} className={active ? "sb-link sb-active" : "sb-link"}
+      style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 11, marginBottom: 3, position: "relative", textDecoration: "none", fontSize: 14, fontWeight: active ? 700 : 600, color: active ? "var(--sb-fg-active)" : "var(--sb-fg)", background: active ? "var(--sb-active, var(--sb-hover))" : "transparent", boxShadow: active ? "var(--sh-black, none)" : "none" }}>
+      {active && <span style={{ position: "absolute", left: 4, top: 8, bottom: 8, width: 3, borderRadius: 3, background: "var(--accent)" }} />}
+      <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--icon-chip, var(--sb-hover))", color: "var(--icon-stroke, var(--sb-muted))" }}>
+        <Icon name={item.icon} size={16} color="var(--icon-stroke, var(--sb-muted))" />
+      </span>
+      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {badge > 0 && <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: "var(--font-mono)", minWidth: 18, textAlign: "center", padding: "1px 6px", borderRadius: "var(--r-pill)", background: "var(--acc-blue-bg, var(--sb-hover))", color: "var(--acc-blue-ink, var(--accent-2))" }}>{badge}</span>}
     </Link>
   );
 }
