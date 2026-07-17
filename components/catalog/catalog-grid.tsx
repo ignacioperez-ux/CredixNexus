@@ -44,14 +44,14 @@ export function CatalogGrid({ items, canRequest }: { items: CatalogItem[]; canRe
       {byCategory.map(([category, list]) => (
         <div key={category} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--muted)" }}>{category}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
             {list.map((item) => {
               const open = openId === item.id;
               return (
                 <div key={item.id} className={open ? undefined : "cx-lift"} style={{ background: "var(--card)", border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: 14.5, letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" }}>{item.name}</span>
-                    <span title={`${t("cat.sla")} ${item.sla_hours}h`} style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: "var(--accent-2)", background: "var(--accent-soft)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{t("cat.sla")} {item.sla_hours}h</span>
+                    <span title={`${t("cat.sla")} ${item.sla_hours}h`} style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, color: "var(--acc-amber-ink, var(--st-high-fg))", background: "var(--acc-amber-bg, var(--st-high-bg))", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{t("cat.sla")} {item.sla_hours}h</span>
                   </div>
                   {item.description && <div style={{ fontSize: 12, color: "var(--muted)" }}>{item.description}</div>}
                   {!open ? (

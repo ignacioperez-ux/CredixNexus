@@ -51,13 +51,16 @@ export function UserKnowledge({ data }: { data: KbData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
       {/* Hero + buscador */}
-      <div style={{ background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-card)", padding: "24px 26px" }}>
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-6)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" }}>{t("ukb.title")}</div>
-        <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4, marginBottom: 16 }}>{t("ukb.subtitle")}</div>
-        <div style={{ position: "relative", maxWidth: 520 }}>
-          <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--muted)" }}><Icon name="search" size={16} /></span>
+      <div style={{ background: "var(--acc-teal-bg, var(--paper))", border: "1px solid var(--acc-teal-border, var(--line))", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-hero, var(--sh-card))", padding: "26px 30px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <span style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--acc-teal-ink, var(--teal))", color: "#fff" }}><Icon name="sparkle" size={17} color="#fff" /></span>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--fs-page-title, 25px)", letterSpacing: "-0.01em", color: "var(--text)" }}>{t("ukb.title")}</div>
+        </div>
+        <div style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 2, marginBottom: 16 }}>{t("ukb.subtitle")}</div>
+        <div style={{ position: "relative", maxWidth: 560 }}>
+          <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--acc-teal-ink, var(--teal))" }}><Icon name="sparkle" size={16} color="var(--acc-teal-ink, var(--teal))" /></span>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("ukb.search")}
-            style={{ width: "100%", fontSize: 13.5, padding: "12px 14px 12px 38px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
+            style={{ width: "100%", fontSize: 13.5, padding: "13px 14px 13px 38px", borderRadius: "var(--r-md)", border: "1px solid var(--acc-teal-border, var(--line))", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
         </div>
       </div>
 
@@ -97,7 +100,7 @@ export function UserKnowledge({ data }: { data: KbData }) {
           {popular.length > 0 && (
             <section>
               <SectionTitle>{t("ukb.popular")}</SectionTitle>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
                 {popular.map((a) => <ArticleRowCard key={a.id} a={a} />)}
               </div>
             </section>
