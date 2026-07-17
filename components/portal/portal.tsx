@@ -11,7 +11,7 @@ import { createIncident, checkMySimilarCases } from "@/lib/incidents/actions";
 import type { SimilarCaseHit } from "@/lib/incidents/similar";
 import { recordKbEvent } from "@/lib/knowledge/actions";
 import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
-import { evalState, type PortalCategory, type PortalApp, type MyCase } from "@/lib/portal/queries";
+import { evalState, type PortalCategory, type PortalApp, type MyCase, type MyActivityItem } from "@/lib/portal/queries";
 import { derivePriority, type Urgency, type Impact } from "@/lib/incidents/priority";
 import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
@@ -58,8 +58,8 @@ function sortKey(c: MyCase): number {
   return settled + due;
 }
 
-export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], caseTypes = {}, userName = "" }: {
-  categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; caseTypes?: Record<string, { name: string }>; userName?: string;
+export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], caseTypes = {}, activity = [], userName = "" }: {
+  categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; caseTypes?: Record<string, { name: string }>; activity?: MyActivityItem[]; userName?: string;
 }) {
   const { t, locale } = useI18n();
   const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
@@ -437,6 +437,31 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
           )}
         </div>
       </div>
+
+      {/* Actividad reciente: ultimas actualizaciones no internas en los casos del usuario */}
+      {activity.length > 0 && (
+        <div style={{ ...cardBox, padding: 18 }}>
+          <div style={{ ...sectionTitle, marginBottom: 12 }}>{t("portal.activity.title")}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {activity.map((a, i) => {
+              const who = a.is_mine ? t("case.you") : a.is_system ? t("case.system") : t("case.team");
+              return (
+                <Link key={`${a.incident_id}-${i}`} href={caseHref(a.incident_id)} className="cx-lift" style={{ textDecoration: "none", display: "flex", gap: 10, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
+                  <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)" }}><Icon name={a.is_system ? "zap" : a.is_mine ? "user" : "inbox"} size={14} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{a.incident_number}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{who}</span>
+                      <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(a.created_at).toLocaleDateString(locale)}</span>
+                    </span>
+                    <span style={{ display: "block", fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{a.body}</span>
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Mis casos: tracking permanente del usuario, con anillo SLA vivo */}
       <div style={{ ...cardBox, padding: 18 }}>

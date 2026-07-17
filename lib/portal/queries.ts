@@ -115,6 +115,18 @@ export function evalState(status: string, surveyStatus: string | null): EvalStat
   return null;
 }
 
+/** Actividad reciente del usuario: ultimas actualizaciones NO internas en sus propios casos
+ *  (owner-checked en la RPC get_my_activity). Alimenta la seccion "Actividad reciente" del hub. */
+export type MyActivityItem = {
+  incident_id: string; incident_number: string; title: string; body: string;
+  is_mine: boolean; is_system: boolean; created_at: string;
+};
+export async function getMyActivity(supabase: SupabaseClient, limit = 12): Promise<MyActivityItem[]> {
+  const { data, error } = await supabase.rpc("get_my_activity", { p_limit: limit });
+  if (error) throw new Error(error.message);
+  return (data as MyActivityItem[] | null) ?? [];
+}
+
 /** Catalogo de categorias para el formulario de creacion de caso (cero hardcode). */
 export async function listPortalCategories(supabase: SupabaseClient): Promise<PortalCategory[]> {
   const { data, error } = await supabase
