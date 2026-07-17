@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, JetBrains_Mono, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n/provider";
@@ -22,6 +22,13 @@ const jetbrains = JetBrains_Mono({
   weight: ["400", "500"],
   display: "swap",
 });
+// IBM Plex Mono: cifras/codigos/SLA en el tema Claro (via --font-plex-mono; ver globals.css).
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-plex-mono",
+  weight: ["500", "600"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CredixNexus",
@@ -36,7 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html
       lang="es"
       data-theme="nexus"
-      className={`${jakarta.variable} ${inter.variable} ${jetbrains.variable}`}
+      className={`${jakarta.variable} ${inter.variable} ${jetbrains.variable} ${plexMono.variable}`}
       suppressHydrationWarning
     >
       <head>
