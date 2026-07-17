@@ -8,8 +8,8 @@ import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { Icon } from "@/components/ui/icon";
 import { statusColors, statusKey } from "@/lib/incidents/labels";
 import { SlaRing } from "@/components/portal/hub-viz";
-import { addMyCaseComment } from "@/lib/portal/case-actions";
-import type { MyCaseDetail, CaseThreadItem, MyCaseSurvey } from "@/lib/portal/case-queries";
+import { addMyCaseComment, uploadMyCaseEvidence, deleteMyCaseEvidence, escalateMyCase } from "@/lib/portal/case-actions";
+import type { MyCaseDetail, CaseThreadItem, MyCaseSurvey, PortalAttachment } from "@/lib/portal/case-queries";
 import { CaseCsat } from "./case-csat";
 
 // Detalle de caso PROPIO del usuario (P2): centro de tracking client-centric. No reutiliza la
@@ -22,12 +22,35 @@ function stepIndex(status: string): number {
   return 0; // new / triaged / assigned
 }
 
-export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetail; thread: CaseThreadItem[]; survey: MyCaseSurvey | null }) {
+export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { detail: MyCaseDetail; thread: CaseThreadItem[]; survey: MyCaseSurvey | null; attachments?: PortalAttachment[] }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [reply, setReply] = useState("");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [busy, startBusy] = useTransition();
+  const [fileErr, setFileErr] = useState<string | null>(null);
+  const [escalated, setEscalated] = useState(false);
+
+  function onUpload(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = "";
+    if (!file) return;
+    setFileErr(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    startBusy(async () => {
+      const r = await uploadMyCaseEvidence(detail.id, fd);
+      if (!r.ok) { setFileErr(r.error?.startsWith("ERR_") ? t(("err." + r.error) as MessageKey) : (r.error ?? "")); return; }
+      router.refresh();
+    });
+  }
+  function removeEvidence(id: string) {
+    startBusy(async () => { const r = await deleteMyCaseEvidence(id, detail.id); if (r.ok) router.refresh(); });
+  }
+  function escalate() {
+    startBusy(async () => { const r = await escalateMyCase(detail.id); if (r.ok) { setEscalated(true); router.refresh(); } });
+  }
 
   const sc = statusColors(detail.status);
   const inEvolution = detail.status === "in_evolution";
@@ -35,6 +58,9 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
   // si ya se envio, se muestra en solo-lectura. El estado pasa a "evaluado" al enviar.
   const showCsat = detail.status === "resolved" || detail.status === "closed" || survey?.status === "submitted";
   const canReply = detail.status !== "closed" && detail.status !== "cancelled";
+
+  const cardTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-4)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" };
+  const uploadBtn: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--accent-2)", background: "var(--card)", border: "1px solid var(--accent-2)", borderRadius: "var(--r-md)", padding: "6px 12px", cursor: "pointer" };
 
   function send() {
     setErr(null);
@@ -91,6 +117,49 @@ export function UserCaseDetail({ detail, thread, survey }: { detail: MyCaseDetai
           <DRow label={t("inc.reported")} value={detail.reporter} />
         </div>
       )}
+
+      {/* Quien atiende + escalar a Gerencia */}
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 }}>
+        <div style={cardTitle}>{t("case.attends.title")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+          <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--accent-soft)", color: "var(--accent-2)", display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontSize: 12, flexShrink: 0 }}>{(detail.assignee?.trim()[0] ?? "?").toUpperCase()}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{detail.assignee ?? t("case.attends.unassigned")}</div>
+            <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("case.attends.mgmt")}</div>
+          </div>
+        </div>
+        {canReply && (
+          <button type="button" onClick={escalate} disabled={busy || escalated} className="cx-btn-outline" style={{ marginTop: 12 }}>
+            {escalated ? t("case.escalate.done") : t("case.escalate.cta")}
+          </button>
+        )}
+      </div>
+
+      {/* Adjuntos / evidencia: ver + subir (owner-checked) */}
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+          <span style={cardTitle}>{t("case.evidence.title")}</span>
+          <label style={{ ...uploadBtn, opacity: busy ? 0.6 : 1 }}>
+            <Icon name="plus" size={13} /> {t("case.evidence.add")}
+            <input type="file" onChange={onUpload} disabled={busy} style={{ display: "none" }} />
+          </label>
+        </div>
+        {attachments.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("case.evidence.empty")}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {attachments.map((a) => (
+              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
+                <Icon name="paperclip" size={14} color="var(--muted)" />
+                <a href={a.url ?? "#"} target="_blank" rel="noopener noreferrer" style={{ flex: 1, fontSize: 12.5, color: "var(--accent-2)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.file_name}</a>
+                <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{Math.round(a.size_bytes / 1024)} KB</span>
+                {a.mine && <button type="button" onClick={() => removeEvidence(a.id)} disabled={busy} title={t("case.evidence.remove")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "inline-flex" }}><Icon name="x" size={13} /></button>}
+              </div>
+            ))}
+          </div>
+        )}
+        {fileErr && <div style={{ fontSize: 11.5, color: "var(--st-critical-fg)", marginTop: 6 }}>{fileErr}</div>}
+      </div>
 
       {/* CSAT al resolverse (o evaluacion ya enviada) */}
       {showCsat && <CaseCsat incidentId={detail.id} existing={survey} />}
