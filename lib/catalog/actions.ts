@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { ErrorCode } from "@/lib/validation";
-import { validateFormData, hasErrors, summarizeFormData, validateItem, validateCategory, type FormField, type ItemInput, type CategoryInput } from "@/lib/catalog/validation";
+import { validateFormData, hasErrors, summarizeFormData, validateItem, validateCategory, normalizeFormSchema, type ItemInput, type CategoryInput } from "@/lib/catalog/validation";
 
 export type CatalogResult = { ok: boolean; error?: string; id?: string; requestId?: string; fieldErrors?: Record<string, string> };
 
@@ -26,7 +26,7 @@ export async function submitRequest(itemId: string, formData: Record<string, unk
     .eq("id", itemId).maybeSingle();
   if (!item || item.status !== "active") return { ok: false, error: ErrorCode.INVALID_REFERENCE };
 
-  const schema = (item.form_schema as FormField[]) ?? [];
+  const schema = normalizeFormSchema(item.form_schema);
   const fieldErrors = validateFormData(schema, formData);
   if (hasErrors(fieldErrors)) return { ok: false, error: ErrorCode.FORMAT, fieldErrors };
 

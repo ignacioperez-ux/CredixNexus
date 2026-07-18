@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateFormData, hasErrors, summarizeFormData, validateItem, validateCategory, type FormField } from "./validation";
+import { validateFormData, hasErrors, summarizeFormData, validateItem, validateCategory, normalizeFormSchema, type FormField } from "./validation";
 import { ErrorCode } from "@/lib/validation";
 
 const schema: FormField[] = [
@@ -66,5 +66,26 @@ describe("validateCategory", () => {
   it("rechaza nombres i18n faltantes", () => {
     expect(validateCategory({ ...c, nameEs: "" })).toBe(ErrorCode.REQUIRED);
     expect(validateCategory({ ...c, nameEn: "" })).toBe(ErrorCode.REQUIRED);
+  });
+});
+
+describe("normalizeFormSchema (fix: campos que se espejaban)", () => {
+  it("coerce schema legado con `name` a `key` (cada campo su propio slot)", () => {
+    const raw = [
+      { name: "sistema", label: "Sistema", type: "text", required: true },
+      { name: "perfil", label: "Perfil solicitado", type: "text", required: true },
+    ];
+    const out = normalizeFormSchema(raw);
+    expect(out.map((f) => f.key)).toEqual(["sistema", "perfil"]);
+    // Antes del fix: ambos caian en data[undefined] -> se espejaban. Ahora tienen claves distintas.
+    expect(new Set(out.map((f) => f.key)).size).toBe(2);
+  });
+  it("respeta `key` cuando ya existe y descarta campos sin clave", () => {
+    const out = normalizeFormSchema([{ key: "a", label: "A", type: "text" }, { label: "sin clave", type: "text" }]);
+    expect(out.map((f) => f.key)).toEqual(["a"]);
+  });
+  it("no-array -> vacio", () => {
+    expect(normalizeFormSchema(null)).toEqual([]);
+    expect(normalizeFormSchema(undefined)).toEqual([]);
   });
 });

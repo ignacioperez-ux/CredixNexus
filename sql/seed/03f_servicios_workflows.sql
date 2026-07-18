@@ -49,14 +49,14 @@ select T, v.code, v.name, v.cat,
        (select id from workflow_definition wd where wd.code='WF-SERVICE-REQUEST' and wd.tenant_id=T),
        v.sla, v.imp::impact_level, v.urg::urgency_level, v.form::jsonb
 from (values
- ('SI_API_DOWN','Reportar caida de API de pagos','general','PAGOS',4,'critical','critical','[{"name":"api","label":"API afectada","type":"text","required":true},{"name":"detalle","label":"Detalle","type":"textarea","required":true}]'),
- ('SI_CARGO_DUPLICADO','Reportar duplicidad de cobro','general','PAGOS',48,'medium','high','[{"name":"referencia","label":"Referencia de transaccion","type":"text","required":true},{"name":"monto","label":"Monto","type":"number","required":true}]'),
- ('SI_SOSPECHA_FRAUDE','Reportar sospecha de fraude','general','PAGOS',8,'high','critical','[{"name":"tarjeta","label":"Ultimos 4 digitos","type":"text","required":true},{"name":"detalle","label":"Detalle","type":"textarea","required":true}]'),
- ('SI_RIESGO_OPERATIVO','Registrar evento de riesgo operativo','general','CUENTA_CORRIENTE',24,'high','medium','[{"name":"descripcion","label":"Descripcion del evento","type":"textarea","required":true},{"name":"perdida","label":"Perdida estimada","type":"number","required":false}]'),
- ('SI_PAGO_NO_APLICADO','Reportar pago no aplicado','general','PAGOS',24,'medium','high','[{"name":"referencia","label":"Referencia","type":"text","required":true},{"name":"fecha","label":"Fecha de pago","type":"date","required":true}]'),
- ('SI_CARGO_NO_RECONOCIDO','Reportar cargo no reconocido','general','PAGOS',48,'medium','medium','[{"name":"referencia","label":"Referencia","type":"text","required":true},{"name":"monto","label":"Monto","type":"number","required":true}]'),
- ('SI_SOLICITUD_ACCESO','Solicitud de acceso','acceso','',24,'low','medium','[{"name":"sistema","label":"Sistema","type":"text","required":true},{"name":"perfil","label":"Perfil solicitado","type":"text","required":true}]'),
- ('SI_SOLICITUD_DATOS','Solicitud de datos / reporte','datos','ANALITICA',72,'low','low','[{"name":"reporte","label":"Reporte solicitado","type":"text","required":true},{"name":"periodo","label":"Periodo","type":"text","required":false}]')
+ ('SI_API_DOWN','Reportar caida de API de pagos','general','PAGOS',4,'critical','critical','[{"key":"api","label":"API afectada","type":"text","required":true},{"key":"detalle","label":"Detalle","type":"textarea","required":true}]'),
+ ('SI_CARGO_DUPLICADO','Reportar duplicidad de cobro','general','PAGOS',48,'medium','high','[{"key":"referencia","label":"Referencia de transaccion","type":"text","required":true},{"key":"monto","label":"Monto","type":"number","required":true}]'),
+ ('SI_SOSPECHA_FRAUDE','Reportar sospecha de fraude','general','PAGOS',8,'high','critical','[{"key":"tarjeta","label":"Ultimos 4 digitos","type":"text","required":true},{"key":"detalle","label":"Detalle","type":"textarea","required":true}]'),
+ ('SI_RIESGO_OPERATIVO','Registrar evento de riesgo operativo','general','CUENTA_CORRIENTE',24,'high','medium','[{"key":"descripcion","label":"Descripcion del evento","type":"textarea","required":true},{"key":"perdida","label":"Perdida estimada","type":"number","required":false}]'),
+ ('SI_PAGO_NO_APLICADO','Reportar pago no aplicado','general','PAGOS',24,'medium','high','[{"key":"referencia","label":"Referencia","type":"text","required":true},{"key":"fecha","label":"Fecha de pago","type":"date","required":true}]'),
+ ('SI_CARGO_NO_RECONOCIDO','Reportar cargo no reconocido','general','PAGOS',48,'medium','medium','[{"key":"referencia","label":"Referencia","type":"text","required":true},{"key":"monto","label":"Monto","type":"number","required":true}]'),
+ ('SI_SOLICITUD_ACCESO','Solicitud de acceso','acceso','',24,'low','medium','[{"key":"sistema","label":"Sistema","type":"text","required":true},{"key":"perfil","label":"Perfil solicitado","type":"text","required":true}]'),
+ ('SI_SOLICITUD_DATOS','Solicitud de datos / reporte','datos','ANALITICA',72,'low','low','[{"key":"reporte","label":"Reporte solicitado","type":"text","required":true},{"key":"periodo","label":"Periodo","type":"text","required":false}]')
 ) v(code,name,cat,svc,sla,imp,urg,form);
 
 update business_unit b set rc_user_id = u.id

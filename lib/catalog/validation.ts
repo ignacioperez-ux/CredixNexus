@@ -44,6 +44,21 @@ export function hasErrors(errors: Record<string, string>): boolean {
   return Object.keys(errors).length > 0;
 }
 
+/** Normaliza un form_schema crudo a FormField[] canonico (clave = `key`). Tolera datos legados que
+ *  usaban `name` como clave (coerce name -> key) y DESCARTA campos sin clave, para que el form dinamico
+ *  nunca colisione en data[undefined]/data[""] (cada campo escribe su propio slot). Defensa en el borde. */
+export function normalizeFormSchema(raw: unknown): FormField[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((f) => {
+      const o = (f ?? {}) as Record<string, unknown>;
+      const key = String((o.key ?? o.name ?? "")).trim();
+      const type = (FIELD_TYPES as readonly string[]).includes(o.type as string) ? (o.type as FieldType) : "text";
+      return { key, label: String(o.label ?? key), type, required: !!o.required, options: Array.isArray(o.options) ? (o.options as string[]) : undefined };
+    })
+    .filter((f) => f.key !== "");
+}
+
 /** Resumen legible de form_data para la descripcion del caso ancla. */
 export function summarizeFormData(schema: FormField[], data: Record<string, unknown>): string {
   return schema

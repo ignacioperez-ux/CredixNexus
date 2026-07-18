@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { FormField } from "@/lib/catalog/validation";
+import { normalizeFormSchema, type FormField } from "@/lib/catalog/validation";
 
 // Catalogo de servicios. RLS aisla por tenant.
 
@@ -17,7 +17,7 @@ function decorateItem(row: Record<string, unknown>): CatalogItem {
     id: row.id as string, code: row.code as string, name: row.name as string,
     description: (row.description as string | null) ?? null, category: row.category as string,
     category_code: cat?.code ?? null, category_name_es: cat?.name_es ?? null, category_name_en: cat?.name_en ?? null,
-    form_schema: (row.form_schema as FormField[]) ?? [], sla_hours: row.sla_hours as number,
+    form_schema: normalizeFormSchema(row.form_schema), sla_hours: row.sla_hours as number,
     status: row.status as string, has_workflow: !!row.workflow_definition_id,
   };
 }
