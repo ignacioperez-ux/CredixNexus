@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import { Icon } from "@/components/ui/icon";
 import type { NotificationItem, NotificationsData } from "@/lib/notifications/queries";
-import { markNotificationRead, markAllNotificationsRead } from "@/lib/notifications/actions";
+import { markNotificationRead, markAllNotificationsRead, fetchNotifications } from "@/lib/notifications/actions";
 
 const SEV_COLOR: Record<string, string> = {
   info: "var(--st-info-fg, var(--accent-2))", success: "var(--st-low-fg)", warning: "var(--st-high-fg)", critical: "var(--st-critical-fg)",
 };
+
+const POLL_MS = 60000; // refresco en vivo de la campanita (sin realtime): cada 60s + al enfocar
 
 export function NotificationBell({ data }: { data: NotificationsData }) {
   const { t, locale } = useI18n();
@@ -17,6 +19,9 @@ export function NotificationBell({ data }: { data: NotificationsData }) {
   const [open, setOpen] = useState(false);
   const [, start] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
+  // Estado propio sembrado por el server; se refresca en vivo sin recargar la pagina.
+  const [feed, setFeed] = useState<NotificationsData>(data);
+  useEffect(() => { setFeed(data); }, [data]);
 
   useEffect(() => {
     if (!open) return;
@@ -25,18 +30,33 @@ export function NotificationBell({ data }: { data: NotificationsData }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const unread = data.unread;
+  // Refresco en vivo: polling + al recuperar foco/visibilidad de la pestana.
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => { fetchNotifications().then((d) => { if (alive) setFeed(d); }).catch(() => {}); };
+    const id = setInterval(refresh, POLL_MS);
+    const onVis = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", refresh);
+    return () => { alive = false; clearInterval(id); document.removeEventListener("visibilitychange", onVis); window.removeEventListener("focus", refresh); };
+  }, []);
+
+  const unread = feed.unread;
 
   function openItem(n: NotificationItem) {
     setOpen(false);
+    // Marca leida de forma optimista para que el badge no quede obsoleto.
+    if (!n.is_read) setFeed((f) => ({ items: f.items.map((i) => i.id === n.id ? { ...i, is_read: true } : i), unread: Math.max(0, f.unread - 1) }));
     start(async () => {
       if (!n.is_read) await markNotificationRead(n.id);
-      if (n.link) router.push(n.link);
+      // Fallback: si la notificacion no trae link, abre el centro de notificaciones (nunca un click muerto).
+      router.push(n.link || "/notificaciones");
       router.refresh();
     });
   }
   function markAll() {
-    start(async () => { await markAllNotificationsRead(); router.refresh(); });
+    setFeed((f) => ({ items: f.items.map((i) => ({ ...i, is_read: true })), unread: 0 }));
+    start(async () => { await markAllNotificationsRead(); const d = await fetchNotifications(); setFeed(d); router.refresh(); });
   }
 
   return (
@@ -62,9 +82,9 @@ export function NotificationBell({ data }: { data: NotificationsData }) {
             {unread > 0 && <button onClick={markAll} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--accent-2)", background: "none", border: "none", cursor: "pointer" }}>{t("notif.markall")}</button>}
           </div>
           <div style={{ maxHeight: 380, overflowY: "auto" }}>
-            {data.items.length === 0 ? (
+            {feed.items.length === 0 ? (
               <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--muted)", fontSize: 12.5 }}>{t("notif.empty")}</div>
-            ) : data.items.map((n) => (
+            ) : feed.items.map((n) => (
               <button key={n.id} onClick={() => openItem(n)}
                 style={{ display: "flex", gap: 10, width: "100%", textAlign: "left", padding: "11px 14px", borderBottom: "1px solid var(--line-soft, var(--line))", background: n.is_read ? "transparent" : "var(--accent-soft, var(--paper))", border: "none", cursor: "pointer" }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", marginTop: 5, flexShrink: 0, background: n.is_read ? "transparent" : (SEV_COLOR[n.severity] ?? "var(--accent)") }} />

@@ -104,7 +104,12 @@ export function CommandMenu({ perms = [], isAdmin = false }: { perms?: string[];
 
   const results = useMemo<Entry[]>(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return [...recents, ...staticEntries];
+    // Sin query: recientes + estaticos, pero un estatico ya presente en recientes no se repite
+    // (visitar Autoservicio/Conocimiento los dejaba en ambas listas -> opciones duplicadas).
+    if (!s) {
+      const recentPaths = new Set(recents.map((r) => r.path));
+      return [...recents, ...staticEntries.filter((e) => !e.path || !recentPaths.has(e.path))];
+    }
     const filtered = staticEntries.filter((e) => e.label.toLowerCase().includes(s) || e.hint.toLowerCase().includes(s));
     return [...entities, ...filtered];
   }, [q, recents, staticEntries, entities]);
