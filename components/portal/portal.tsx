@@ -140,6 +140,18 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const reportSignal = searchParams.get("report");
   const tabParam = searchParams.get("tab") ?? "inicio";
   const tab: Tab = (TABS as string[]).includes(tabParam) ? (tabParam as Tab) : "inicio";
+
+  // Al SALIR de "Registrar", limpia el estado transitorio del intake. En Next App Router la
+  // navegacion entre pestanas (?tab=) y router.refresh() NO desmontan el componente cliente, asi
+  // que sin esto quedan pegados el mensaje "caso creado", el texto, la categoria y las sugerencias
+  // (casos propios / base de conocimiento) al salir y volver a entrar.
+  useEffect(() => {
+    if (tab === "registrar") return;
+    setSubject(""); setTouched(false); setCategoryId(""); setAppId(""); setAutoCat(false);
+    setRes(null); setKb({ articles: [], cases: [] }); setMine([]); setFiles([]);
+    setCreated(null); setErr(null);
+  }, [tab]);
+
   // La CTA "Reportar caso" (?report=1) enfoca el intake de la pestana Registrar.
   useEffect(() => {
     if (reportSignal === null) return;
