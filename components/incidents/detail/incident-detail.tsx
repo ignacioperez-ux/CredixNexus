@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { PriorityTag } from "../badges";
@@ -103,24 +102,9 @@ type VendorChip = { id: string; name: string; criticality: string } | null;
 
 export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEvent = null, canManageRisk = false, problems = [], canManageProblem = false, projects = [], escalations = [], workflows = [], workflowDefs = [], canRunWorkflow = false, changes = [], canManageChange = false, majorIncident = null, canManageMi = false, vendor = null, canUpdateIncident = false, canTriage = false, effort, canLogWork = false, survey = null, canSubmitCsat = false, financialCase = null, canManageFraud = false, canManageDispute = false, attachments = [], tasks, members = [], canManageTalent = false, macros = [], assignees = [], caseTypeName = "", canManageAssign = false, duplicateLinks = { duplicateOf: null, primaryOf: [] } }: { inc: IncidentDetailData; comments: Comment[]; ledger: LedgerRow[]; knowledge?: Kb[]; riskEvent?: RiskLinked; canManageRisk?: boolean; problems?: ProblemLinked[]; canManageProblem?: boolean; projects?: IncidentProject[]; escalations?: EscalationView[]; workflows?: WfLinked[]; workflowDefs?: WfDef[]; canRunWorkflow?: boolean; changes?: ChangeLinked[]; canManageChange?: boolean; majorIncident?: MiLinked; canManageMi?: boolean; vendor?: VendorChip; canUpdateIncident?: boolean; canTriage?: boolean; effort?: IncidentEffort; canLogWork?: boolean; survey?: CsatSurvey | null; canSubmitCsat?: boolean; financialCase?: FinancialCase; canManageFraud?: boolean; canManageDispute?: boolean; attachments?: Attachment[]; tasks?: ChecklistData; members?: AssignableMember[]; canManageTalent?: boolean; macros?: Macro[]; assignees?: IncidentAssignee[]; caseTypeName?: string; canManageAssign?: boolean; duplicateLinks?: DuplicateLinks }) {
   const { t, locale } = useI18n();
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
-  const tab: "gestion" | "analisis" = sp.get("tab") === "analisis" ? "analisis" : "gestion";
-  function setTab(v: "gestion" | "analisis") {
-    const params = new URLSearchParams(sp.toString());
-    if (v === "gestion") params.delete("tab"); else params.set("tab", v);
-    const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }
 
-  // Fintech/Impacto solo se expande si el caso tiene relevancia financiera (monto / caso financiero
-  // / risk score) — proxy de "Disputa / Problema de pago / Sospecha de fraude".
+  // Caso con relevancia financiera (monto / caso financiero / risk score): abre el caso financiero.
   const hasFinancial = !!financialCase || inc.amount != null || inc.risk_score != null;
-  // Badge de "Analisis y vinculos": cuenta de vinculos relevantes en la pestaña 2.
-  const linkCount = problems.length + changes.length + workflows.length + projects.length
-    + (majorIncident ? 1 : 0) + (financialCase ? 1 : 0)
-    + (inc.transformation_candidate || inc.status === "in_evolution" ? 1 : 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -164,23 +148,8 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
         </Link>
       )}
 
-      {/* Pestañas: Gestion (operacion diaria) / Analisis y vinculos (avanzado) */}
-      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
-        {([["gestion", t("inc.tab.gestion"), undefined], ["analisis", t("inc.tab.analisis"), linkCount]] as const).map(([k, label, badge]) => {
-          const active = tab === k;
-          return (
-            <button key={k} onClick={() => setTab(k)}
-              style={{ position: "relative", fontSize: 13, fontWeight: 600, padding: "10px 16px", border: "none", background: "transparent", color: active ? "var(--text)" : "var(--muted)", cursor: "pointer", borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent", marginBottom: -1, display: "flex", alignItems: "center", gap: 8 }}>
-              {label}
-              {badge != null && badge > 0 ? <span title={t("inc.tab.linkshint")} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, minWidth: 18, textAlign: "center", padding: "1px 6px", borderRadius: "var(--r-pill)", background: active ? "var(--accent)" : "var(--paper)", color: active ? "var(--cta-fg)" : "var(--muted)" }}>{badge}</span> : null}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ---- Pestaña 1: GESTION ---- */}
-      {tab === "gestion" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+      {/* Vista unica de gestion del caso */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Card title={t("inc.field.description")}>
               <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>{inc.description}</p>
@@ -263,11 +232,10 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Card>
           </div>
         </div>
-      )}
 
-      {/* ---- Pestaña 2: ANALISIS Y VINCULOS (modulos vacios colapsados) ---- */}
-      {tab === "analisis" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Vinculos y analisis del caso: modulos plegables (vacio -> cerrado). Antes vivian en una
+          pestaña "Analisis y vinculos" separada; ahora forman parte de la misma vista de gestion. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {(majorIncident || inc.priority === "p1_critical" || canManageMi) && (
             <Collapsible title={t("mi.section.incident")} tip="inc.tip.mi" count={majorIncident ? 1 : 0} defaultOpen={!!majorIncident}>
               <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
@@ -341,37 +309,13 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Card>
           </AiSuggestions>
 
-          <Collapsible title={t("inc.section.classification")} tip="inc.tip.classification" defaultOpen>
-            <Row label={t("area.field")} value={inc.area?.name} />
-            <Row label={t("inc.field.category")} value={inc.category?.name} />
-            <Row label={t("inc.team")} value={inc.category?.default_team} />
-            <Row label="RCA" value={inc.category?.requires_rca ? "Sí" : "No"} />
-            <Row label="KB" value={inc.category?.requires_kb ? "Sí" : "No"} />
-          </Collapsible>
-
-          <Collapsible title={t("inc.section.fintech")} tip="inc.tip.fintech" defaultOpen={hasFinancial}>
-            <Row label={t("inc.f.casetype")} value={inc.case_type} />
-            <Row label={t("inc.f.amount")} value={inc.amount != null ? new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: inc.currency || "CRC", maximumFractionDigits: 0 }).format(inc.amount) : null} mono />
-            <Row label={t("inc.f.txn")} value={inc.transaction_reference} mono />
-            <Row label={t("inc.f.customer")} value={inc.customer_name ? (inc.pii_flag ? maskName(inc.customer_name) : inc.customer_name) : null} />
-            {inc.affected_party_id && (
-              <div style={{ padding: "6px 0" }}>
-                <Link href={`/customers/${inc.affected_party_id}`} style={{ fontSize: 12, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600 }}>→ {t("cust.link")}</Link>
-              </div>
-            )}
-            <Row label={t("inc.f.risk")} value={inc.risk_score != null ? String(Math.round(inc.risk_score)) : null} mono />
-            <Row label={t("inc.f.sensitive")} value={inc.sensitive_flag ? "Sí" : "No"} />
-            <Row label={t("inc.f.pii")} value={inc.pii_flag ? "Sí" : "No"} />
-            <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
-          </Collapsible>
-
-          <Collapsible title={t("inc.section.impact")} tip="inc.tip.fintech" defaultOpen={hasFinancial}>
-            <Row label={t("inc.field.financial")} value={formatCurrency(inc.financial_impact_estimate, locale)} mono />
-            <Row label="Transacciones" value={String(inc.affected_transaction_count)} mono />
-            <Row label="Partner" value={inc.partner_impact ? "Sí" : "No"} />
-          </Collapsible>
+          {/* Riesgo operativo (GRC): vinculo al evento de riesgo; se conserva como accion. */}
+          {(riskEvent || canManageRisk) && (
+            <Collapsible title={t("risk.title")} count={riskEvent ? 1 : 0} defaultOpen={!!riskEvent}>
+              <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
+            </Collapsible>
+          )}
         </div>
-      )}
     </div>
   );
 }
@@ -437,11 +381,3 @@ function Row({ label, value, mono }: { label: string; value?: string | null; mon
   );
 }
 
-function formatCurrency(v: number, locale: string): string {
-  return new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(v ?? 0);
-}
-
-/** Enmascara PII: "Juan Perez" -> "J••• P•••" (§3.4 no exponer PII). */
-function maskName(name: string): string {
-  return name.split(/\s+/).map((p) => (p ? p[0] + "•••" : "")).join(" ");
-}
