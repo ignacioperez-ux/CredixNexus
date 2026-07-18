@@ -4,7 +4,7 @@ import { getContext } from "@/lib/auth/context";
 import { callClaude } from "@/lib/ai/anthropic";
 import { extractJson, clampPct } from "@/lib/ai/parse";
 import { minLength } from "@/lib/validation";
-import { searchKnowledge, type KbHit, type CaseHit } from "@/lib/portal/queries";
+import { searchKnowledge, type KbHit, type CaseHit, type SearchResult } from "@/lib/portal/queries";
 
 // Asistente del portal de autoservicio interno. Reusa la busqueda real de KB + casos
 // (deflection) y, si la IA esta configurada, produce una guia basada SOLO en ese material.
@@ -23,6 +23,15 @@ export type PortalAssistResult = {
   articles: KbHit[];
   cases: CaseHit[];
 };
+
+/** Busqueda lexical de KB + casos resueltos (SIN IA), para sugerir en vivo mientras el
+ *  usuario escribe el asunto del caso. Barata: no invoca al modelo. La RLS acota por tenant. */
+export async function searchKb(query: string): Promise<SearchResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { articles: [], cases: [] };
+  if (query.trim().length < 4) return { articles: [], cases: [] };
+  return searchKnowledge(ctx.supabase, query);
+}
 
 export async function portalAssist(query: string): Promise<PortalAssistResult> {
   const ctx = await getContext();

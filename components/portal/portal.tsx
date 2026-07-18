@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { AiReport } from "@/components/ai/ai-report";
-import { portalAssist, type PortalAssistResult } from "@/lib/portal/assist";
+import { portalAssist, searchKb, type PortalAssistResult } from "@/lib/portal/assist";
+import type { SearchResult } from "@/lib/portal/queries";
 import { createIncident, checkMySimilarCases } from "@/lib/incidents/actions";
 import { uploadMyCaseEvidence } from "@/lib/portal/case-actions";
 import type { SimilarCaseHit } from "@/lib/incidents/similar";
@@ -98,6 +99,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
   const [mine, setMine] = useState<SimilarCaseHit[]>([]);
+  const [kb, setKb] = useState<SearchResult>({ articles: [], cases: [] }); // sugerencias KB en vivo (al tipear)
   const [files, setFiles] = useState<File[]>([]);            // evidencia adjunta ANTES de registrar
   const [caseQuery, setCaseQuery] = useState("");            // buscador de "Mis casos"
   const [caseFilter, setCaseFilter] = useState<string | null>(null); // chip de estado activo
@@ -145,13 +147,18 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
     if (el) { el.focus(); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
   }, [reportSignal, tab]);
 
-  // Deteccion de duplicados del propio usuario (debounce; sugiere sin bloquear, §11).
+  // Sugerencia en vivo mientras se escribe (debounce, sin bloquear, §11): casos propios
+  // parecidos (deduplicacion) + base de conocimiento/casos resueltos (deflection, sin IA).
   useEffect(() => {
     const text = subject.trim();
-    if (text.length < MIN_CHARS) { setMine([]); return; }
+    if (text.length < MIN_CHARS) { setMine([]); setKb({ articles: [], cases: [] }); return; }
     const handle = setTimeout(async () => {
-      const r = await checkMySimilarCases({ title: text, description: text, categoryId: categoryId || undefined, affectedCiId: appId || undefined });
+      const [r, k] = await Promise.all([
+        checkMySimilarCases({ title: text, description: text, categoryId: categoryId || undefined, affectedCiId: appId || undefined }),
+        searchKb(text),
+      ]);
       if (r.ok && r.items) setMine(r.items);
+      setKb(k);
     }, 500);
     return () => clearTimeout(handle);
   }, [subject, categoryId, appId]);
@@ -187,7 +194,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
       // Evidencia opcional adjuntada en el intake: se sube al caso recien creado (owner-checked).
       for (const f of files) { const fd = new FormData(); fd.append("file", f); await uploadMyCaseEvidence(r.id, fd); }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      setCreated(r.number ?? ""); setSubject(""); setRes(null); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]);
+      setCreated(r.number ?? ""); setSubject(""); setRes(null); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]);
       router.refresh();
     });
   }
@@ -543,7 +550,30 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
               </div>
             )}
 
-            {!res && mine.length === 0 && <div style={{ background: "var(--acc-teal-bg, var(--paper))", border: "1px dashed var(--acc-teal-border, var(--line))", borderRadius: "var(--r-xl)", padding: 26, textAlign: "center", fontSize: 12.5, color: "var(--muted)" }}>{t("portal.suggest.empty")}</div>}
+            {/* Base de conocimiento EN VIVO: sugiere articulos + casos resueltos mientras se escribe (sin IA). */}
+            {!res && (kb.articles.length > 0 || kb.cases.length > 0) && (
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{t("portal.kb.live.title")}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 9 }}>{t("portal.kb.live.hint")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {kb.articles.map((a) => <KbCard key={a.id} id={a.id} number={a.article_number} title={a.title} summary={a.summary} content={a.content} canFeedback={canFeedback} />)}
+                  {kb.cases.length > 0 && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 2 }}>{t("portal.cases.title")}</div>}
+                  {kb.cases.map((c) => (
+                    <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} className={canViewIncidents ? "cx-lift" : undefined} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
+                      <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: "11px 13px" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{c.incident_number}</span>
+                          <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>{c.title}</span>
+                        </div>
+                        {c.resolution && <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3 }}>{c.resolution}</div>}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!res && mine.length === 0 && kb.articles.length === 0 && kb.cases.length === 0 && <div style={{ background: "var(--acc-teal-bg, var(--paper))", border: "1px dashed var(--acc-teal-border, var(--line))", borderRadius: "var(--r-xl)", padding: 26, textAlign: "center", fontSize: 12.5, color: "var(--muted)" }}>{t("portal.suggest.empty")}</div>}
 
             {res && (
               <>
