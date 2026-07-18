@@ -95,15 +95,17 @@ describe("navegacion de persona (EVOLUTION_NAV / navForRoles)", () => {
     expect(analytics.perm).toEqual(["incident.read", "analytics.read"]);
   });
 
-  it("navForRoles: overlay de persona por rol operativo; admin -> MACRO_NAV", () => {
-    expect(navForRoles(["product_owner"], false)).toBe(EVOLUTION_NAV);
-    expect(navForRoles(["product_owner"], true)).toBe(MACRO_NAV);            // admin ve todo
-    // Prioridad de overlay (navForRoles): support_lead > support_agent > product_owner > squad_member.
-    // Un multi-rol operativo toma el overlay mas prioritario (segregacion de persona), no MACRO_NAV.
-    expect(navForRoles(["product_owner", "support_agent"], false)).toBe(SUPPORT_AGENT_NAV);
+  it("navForRoles: overlay SOLO para una persona; multi-persona -> MACRO_NAV (no se restringe)", () => {
+    // Persona interna unica -> su overlay.
     expect(navForRoles(["support_lead"], false)).toBe(OPERATIONS_NAV);
     expect(navForRoles(["support_agent"], false)).toBe(SUPPORT_AGENT_NAV);
+    expect(navForRoles(["product_owner"], false)).toBe(EVOLUTION_NAV);
     expect(navForRoles(["squad_member"], false)).toBe(SQUAD_MEMBER_NAV);
+    // Multi-persona interna -> nav completa: un multi-rol NO queda restringido a la persona mas acotada.
+    expect(navForRoles(["product_owner", "support_agent"], false)).toBe(MACRO_NAV);
+    expect(navForRoles(["support_lead", "product_owner"], false)).toBe(MACRO_NAV);
+    // Admin ve todo; usuario externo usa el portal.
+    expect(navForRoles(["product_owner"], true)).toBe(MACRO_NAV);
     expect(navForRoles(["partner_user"], false)).toBe(USER_NAV);
   });
 });

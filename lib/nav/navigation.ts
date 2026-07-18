@@ -1,4 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/dictionaries";
+import { solePersona } from "./access";
 
 // ---------------------------------------------------------------------------
 // Navegacion centralizada (Estructura Macro Aprobada - FASE 1).
@@ -261,20 +262,24 @@ export const USER_NAV: NavCategory[] = [
   ] },
 ];
 
-// Roles con navegacion completa (MACRO_NAV): admin. El resto recibe su overlay de persona.
-const FULL_NAV_ROLES = new Set(["system_admin", "tenant_admin"]);
+// Overlay de nav por persona interna. La segregacion aplica SOLO a un usuario de UNA persona (ver
+// solePersona en access.ts); un multi-persona recibe MACRO_NAV (nav completa, cada item gateado por
+// su perm), coherente con isRouteDeniedForRoles.
+const PERSONA_NAV: Record<string, NavCategory[]> = {
+  support_lead: OPERATIONS_NAV,
+  support_agent: SUPPORT_AGENT_NAV,
+  product_owner: EVOLUTION_NAV,
+  squad_member: SQUAD_MEMBER_NAV,
+};
 
-/** Arbol de navegacion para un conjunto de roles: overlay de persona para el Gerente de Operaciones
- *  (support_lead), el Operador (support_agent), el Gerente de Evolucion puro (product_owner) y el
- *  Miembro de Squad puro (squad_member); MACRO_NAV para admin. */
+/** Arbol de navegacion para un conjunto de roles: overlay de persona SOLO para un usuario de UNA
+ *  sola persona interna; un multi-persona (o admin) recibe MACRO_NAV. partner_user (externo) usa el
+ *  portal (USER_NAV). Un multi-rol NO queda restringido a la persona mas acotada. */
 export function navForRoles(roles: string[], isAdmin: boolean): NavCategory[] {
   if (isAdmin) return MACRO_NAV;
-  if (roles.includes("support_lead")) return OPERATIONS_NAV;
-  if (roles.includes("support_agent")) return SUPPORT_AGENT_NAV;
-  if (roles.includes("product_owner") && !roles.some((r) => FULL_NAV_ROLES.has(r))) return EVOLUTION_NAV;
-  if (roles.includes("squad_member") && !roles.some((r) => FULL_NAV_ROLES.has(r) || r === "product_owner")) return SQUAD_MEMBER_NAV;
   if (roles.includes("partner_user")) return USER_NAV;
-  return MACRO_NAV;
+  const persona = solePersona(roles);
+  return persona ? PERSONA_NAV[persona] : MACRO_NAV;
 }
 
 /** true si el arbol del usuario es el portal enfocado (partner_user): el sidebar lo renderiza

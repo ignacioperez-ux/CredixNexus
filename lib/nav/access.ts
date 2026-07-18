@@ -86,13 +86,27 @@ export const ROLE_ROUTE_DENY: Record<string, string[]> = {
   ],
 };
 
-/** true si alguna ruta esta vedada para los roles del usuario (denylist de persona). Admin nunca
- *  se ve afectado (se evalua fuera, con isAdmin). Ignora roles sin denylist declarada. */
+// Personas internas con experiencia/segregacion dedicada. La segregacion de persona (overlay de nav
+// EN navigation.ts + denylist de ruta AQUI) aplica SOLO cuando el usuario es de UNA sola persona
+// interna. Un multi-persona (2+) es un power-user: NO se restringe por persona; su acceso lo gobiernan
+// `perm` por item/ruta + RLS + la regla de oro backend (incident-authz). navForRoles usa el MISMO
+// criterio (solePersona) para el overlay -> ambas capas coherentes.
+export const INTERNAL_PERSONA_ROLES = ["support_lead", "support_agent", "product_owner", "squad_member"];
+
+/** La unica persona interna del usuario, o null si tiene 0 o 2+ (multi-persona / power-user). */
+export function solePersona(roles: string[]): string | null {
+  const p = INTERNAL_PERSONA_ROLES.filter((r) => roles.includes(r));
+  return p.length === 1 ? p[0] : null;
+}
+
+/** true si la ruta esta vedada para la persona del usuario (denylist de persona). Solo aplica a un
+ *  usuario de UNA sola persona interna; un multi-persona no se restringe por persona. Admin nunca se
+ *  ve afectado (se evalua fuera, con isAdmin). */
 export function isRouteDeniedForRoles(pathname: string, roles: string[]): boolean {
-  for (const role of roles) {
-    for (const prefix of ROLE_ROUTE_DENY[role] ?? []) {
-      if (pathname === prefix || pathname.startsWith(prefix + "/")) return true;
-    }
+  const persona = solePersona(roles);
+  if (!persona) return false;
+  for (const prefix of ROLE_ROUTE_DENY[persona] ?? []) {
+    if (pathname === prefix || pathname.startsWith(prefix + "/")) return true;
   }
   return false;
 }
