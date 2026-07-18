@@ -23,11 +23,10 @@ describe("ROLE_UX / emphasisForRoles", () => {
     expect(e.has("administracion")).toBe(false);
   });
 
-  it("Operador -> Inicio/Tickets/Conocimiento; no Operaciones ni Admin", () => {
+  it("Operador -> Mi dia/Mis casos (persona Operador); no Operaciones ni Admin", () => {
     const e = emphasisForRoles(["support_agent"], false);
-    expect(e.has("inicio")).toBe(true);
-    expect(e.has("tickets")).toBe(true);
-    expect(e.has("conocimiento")).toBe(true);
+    expect(e.has("ag.dia")).toBe(true);
+    expect(e.has("ag.casos")).toBe(true);
     expect(e.has("operaciones")).toBe(false);
     expect(e.has("administracion")).toBe(false);
   });
@@ -48,7 +47,7 @@ describe("ROLE_UX / emphasisForRoles", () => {
 
   it("union de multiples roles suma sus enfasis", () => {
     const e = emphasisForRoles(["support_agent", "product_owner"], false);
-    expect(e.has("tickets")).toBe(true);    // support_agent
+    expect(e.has("ag.dia")).toBe(true);     // support_agent (persona Operador)
     expect(e.has("evolucion")).toBe(true);  // product_owner
   });
 
@@ -57,8 +56,8 @@ describe("ROLE_UX / emphasisForRoles", () => {
   });
 
   it("homeForRoles devuelve el landing del primer rol con home", () => {
-    expect(homeForRoles(["support_agent"])).toBe("/workspace");
-    expect(homeForRoles(["squad_member"])).toBe("/projects");
+    expect(homeForRoles(["support_agent"])).toBe("/mi-dia");
+    expect(homeForRoles(["squad_member"])).toBe("/mi-trabajo");
     expect(homeForRoles(["rol_x"])).toBeNull();
   });
 
@@ -73,8 +72,8 @@ describe("ROLE_UX / emphasisForRoles", () => {
       expect(resolveHome(["system_admin"], [], true)).toBe("/dashboard");
     });
     it("usa el home del rol si el usuario puede abrirlo", () => {
-      expect(resolveHome(["support_agent"], ["incident.read"], false)).toBe("/workspace");
-      expect(resolveHome(["squad_member"], ["project.read"], false)).toBe("/projects");
+      expect(resolveHome(["support_agent"], ["incident.read"], false)).toBe("/mi-dia");
+      expect(resolveHome(["squad_member"], ["project.read"], false)).toBe("/mi-trabajo");
     });
     it("cae al heuristico si el home del rol no es accesible por permiso", () => {
       // support_agent.home=/workspace exige incident.read; sin el, fallback -> /portal
@@ -94,8 +93,8 @@ describe("ROLE_UX / emphasisForRoles", () => {
       expect(a.code).toBe("assignTicket");
       expect(a.route).toBe("/triage");
     });
-    it("Operador -> Tomar siguiente", () => {
-      expect(resolvePrimaryAction(["support_agent"], ["incident.read"], false)?.code).toBe("takeNext");
+    it("Operador -> Crear caso (no toma casos: los recibe asignados)", () => {
+      expect(resolvePrimaryAction(["support_agent"], ["incident.read"], false)?.code).toBe("reportCase");
     });
     it("Gte. Evolucion -> Nuevo proyecto", () => {
       expect(resolvePrimaryAction(["product_owner"], ["project.manage"], false)?.code).toBe("newProject");

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MACRO_NAV, ALL_NAV_ITEMS, QUICK_ACTIONS, categoryOfPath, EVOLUTION_NAV, navForRoles } from "./navigation";
+import { MACRO_NAV, ALL_NAV_ITEMS, QUICK_ACTIONS, categoryOfPath, EVOLUTION_NAV, OPERATIONS_NAV, SUPPORT_AGENT_NAV, SQUAD_MEMBER_NAV, USER_NAV, navForRoles } from "./navigation";
 import { dictionaries } from "@/lib/i18n/dictionaries";
 
 // Integridad de la navegacion macro (FASE 1): 8 categorias, i18n ES/EN completo,
@@ -95,11 +95,15 @@ describe("navegacion de persona (EVOLUTION_NAV / navForRoles)", () => {
     expect(analytics.perm).toEqual(["incident.read", "analytics.read"]);
   });
 
-  it("navForRoles: product_owner puro -> overlay; admin y multi-rol operativo -> MACRO_NAV", () => {
+  it("navForRoles: overlay de persona por rol operativo; admin -> MACRO_NAV", () => {
     expect(navForRoles(["product_owner"], false)).toBe(EVOLUTION_NAV);
     expect(navForRoles(["product_owner"], true)).toBe(MACRO_NAV);            // admin ve todo
-    expect(navForRoles(["product_owner", "support_agent"], false)).toBe(MACRO_NAV); // no degradar multi-rol
-    expect(navForRoles(["support_lead"], false)).toBe(MACRO_NAV);
-    expect(navForRoles(["partner_user"], false)).toBe(MACRO_NAV);
+    // Prioridad de overlay (navForRoles): support_lead > support_agent > product_owner > squad_member.
+    // Un multi-rol operativo toma el overlay mas prioritario (segregacion de persona), no MACRO_NAV.
+    expect(navForRoles(["product_owner", "support_agent"], false)).toBe(SUPPORT_AGENT_NAV);
+    expect(navForRoles(["support_lead"], false)).toBe(OPERATIONS_NAV);
+    expect(navForRoles(["support_agent"], false)).toBe(SUPPORT_AGENT_NAV);
+    expect(navForRoles(["squad_member"], false)).toBe(SQUAD_MEMBER_NAV);
+    expect(navForRoles(["partner_user"], false)).toBe(USER_NAV);
   });
 });
