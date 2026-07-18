@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n, useErrorMessage } from "@/lib/i18n/provider";
+import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { email as vEmail, required as vRequired, minLength } from "@/lib/validation";
+import { SSO_ENABLED, signInWithAzure } from "@/lib/auth/sso";
 
 export function LoginForm() {
   const router = useRouter();
@@ -18,6 +20,23 @@ export function LoginForm() {
   const [passErr, setPassErr] = useState<string | null>(null);
   const [formErr, setFormErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [ssoBusy, setSsoBusy] = useState(false);
+
+  // Error de SSO devuelto por /auth/callback (cancelacion / intercambio fallido).
+  const searchParams = useSearchParams();
+  const ssoErrParam = searchParams.get("sso_error");
+  const ssoErrKey: MessageKey | null =
+    ssoErrParam === "cancelled" ? "sso.error.cancelled" :
+    ssoErrParam === "exchange" ? "sso.error.exchange" :
+    ssoErrParam ? "sso.error.provider" : null;
+
+  async function onSso() {
+    setFormErr(null);
+    setSsoBusy(true);
+    const { error } = await signInWithAzure(supabase);
+    // En exito el navegador ya se redirige a Microsoft; solo llegamos aca si fallo la iniciacion.
+    if (error) { setSsoBusy(false); setFormErr(t("sso.error.provider")); }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -139,6 +158,29 @@ export function LoginForm() {
       >
         {submitting ? t("login.submitting") : t("login.submit")}
       </button>
+
+      {SSO_ENABLED && (
+        <>
+          {ssoErrKey && (
+            <div role="alert" style={{ background: "var(--st-critical-bg)", border: "1px solid var(--st-critical)", color: "var(--st-critical-fg)", borderRadius: "var(--r-lg)", padding: "10px 12px", fontSize: 12.5 }}>
+              {t(ssoErrKey)}
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0" }}>
+            <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".06em" }}>{t("sso.or")}</span>
+            <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+          </div>
+          <button
+            type="button"
+            onClick={onSso}
+            disabled={ssoBusy}
+            style={{ minHeight: 44, borderRadius: "var(--r-md)", background: "var(--card)", color: "var(--text)", border: "1px solid var(--line)", fontWeight: 700, fontSize: 13, cursor: ssoBusy ? "default" : "pointer", opacity: ssoBusy ? 0.7 : 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            {ssoBusy ? t("sso.starting") : t("sso.button")}
+          </button>
+        </>
+      )}
     </form>
   );
 }

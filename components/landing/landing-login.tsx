@@ -3,18 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/provider";
 import { email as vEmail, required as vRequired, minLength } from "@/lib/validation";
+import { SSO_ENABLED, signInWithAzure } from "@/lib/auth/sso";
 
 // Login embebido en la landing (estilo oscuro de marca, autocontenido).
 // Al autenticar cae directo en la app: sin pantalla intermedia de /login.
 
 export function LandingLogin() {
   const router = useRouter();
+  const { t } = useI18n();
   const supabase = createClient();
   const [emailValue, setEmailValue] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [ssoBusy, setSsoBusy] = useState(false);
+
+  async function onSso() {
+    setErr(null);
+    setSsoBusy(true);
+    const { error } = await signInWithAzure(supabase);
+    if (error) { setSsoBusy(false); setErr(t("sso.error.provider")); }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +67,20 @@ export function LandingLogin() {
         {submitting ? "Ingresando…" : "Entrar a la plataforma"}
         {!submitting && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>}
       </button>
+
+      {SSO_ENABLED && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,.14)" }} />
+            <span style={{ fontSize: 10.5, color: "#8A9098", textTransform: "uppercase", letterSpacing: ".08em" }}>{t("sso.or")}</span>
+            <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,.14)" }} />
+          </div>
+          <button type="button" onClick={onSso} disabled={ssoBusy}
+            style={{ minHeight: 46, borderRadius: 12, background: "rgba(255,255,255,.05)", color: "#fff", border: "1px solid rgba(255,255,255,.18)", fontWeight: 700, fontSize: 13.5, cursor: ssoBusy ? "default" : "pointer", opacity: ssoBusy ? 0.7 : 1 }}>
+            {ssoBusy ? t("sso.starting") : t("sso.button")}
+          </button>
+        </>
+      )}
     </form>
   );
 }
