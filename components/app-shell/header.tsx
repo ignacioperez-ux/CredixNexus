@@ -115,17 +115,16 @@ export function Header({ roles = [], perms = [], isAdmin = false, notifications 
         <span style={{ fontSize: 10.5, fontWeight: 700, border: "1px solid var(--line)", borderRadius: 5, padding: "1px 6px" }}>Ctrl K</span>
       </button>
 
-      {/* Toggle de tema Nexus / Claro (oculto en el portal: su tema por defecto es Claro) */}
-      {!portal && (
-        <Segmented
-          options={[
-            { value: "nexus", label: t("theme.nexus") },
-            { value: "claro", label: t("theme.claro") },
-          ]}
-          value={theme}
-          onChange={(v) => setTheme(v as Theme)}
-        />
-      )}
+      {/* Toggle de tema Nexus (oscuro) / Claro. Disponible en TODAS las pantallas, incluido el
+          portal, para que el usuario pueda elegir el tema oscuro (Nexus). */}
+      <Segmented
+        options={[
+          { value: "nexus", label: t("theme.nexus") },
+          { value: "claro", label: t("theme.claro") },
+        ]}
+        value={theme}
+        onChange={(v) => setTheme(v as Theme)}
+      />
 
       {/* Toggle de idioma */}
       <Segmented
