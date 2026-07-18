@@ -210,7 +210,9 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Card>
 
             <Card title={t("inc.section.timeline")}>
-              <CommentThread incidentId={inc.id} comments={comments} macros={macros} />
+              {/* Macros: solo para quien ATIENDE el caso (Gerencia de Operaciones = assign/triage,
+                  operador = incident.update). Otros roles que ven el caso no tienen la opcion. */}
+              <CommentThread incidentId={inc.id} comments={comments} macros={(canUpdateIncident || canManageAssign) ? macros : []} />
             </Card>
           </div>
 

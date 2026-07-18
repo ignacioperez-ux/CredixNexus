@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/icon";
 import { statusColors, statusKey } from "@/lib/incidents/labels";
 import { SlaRing } from "@/components/portal/hub-viz";
 import { SlaStatusRow } from "@/components/sla/sla-status";
+import { useDictation } from "./use-dictation";
 import { addMyCaseComment, uploadMyCaseEvidence, deleteMyCaseEvidence, escalateMyCase } from "@/lib/portal/case-actions";
 import type { MyCaseDetail, CaseThreadItem, MyCaseSurvey, PortalAttachment } from "@/lib/portal/case-queries";
 import { CaseCsat } from "./case-csat";
@@ -32,6 +33,8 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
   const [busy, startBusy] = useTransition();
   const [fileErr, setFileErr] = useState<string | null>(null);
   const [escalated, setEscalated] = useState(false);
+  // Dictado por voz para responder en el hilo (mismo mecanismo que el intake). Degrada si no hay soporte.
+  const dictation = useDictation(locale === "en" ? "en-US" : "es-ES", (txt) => setReply((r) => (r ? `${r} ${txt}` : txt)));
 
   function onUpload(ev: React.ChangeEvent<HTMLInputElement>) {
     const file = ev.target.files?.[0];
@@ -142,6 +145,13 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
             )}
             {canReply && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                {dictation.supported && (
+                  <button type="button" onClick={dictation.toggle} title={t("portal.voice")}
+                    style={{ alignSelf: "flex-end", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, padding: "4px 9px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                      border: `1px solid ${dictation.listening ? "var(--accent)" : "var(--line)"}`, background: dictation.listening ? "var(--accent-soft)" : "var(--card)", color: dictation.listening ? "var(--accent-2)" : "var(--muted)" }}>
+                    <Icon name={dictation.listening ? "power" : "play"} size={12} /> {dictation.listening ? t("portal.voice.stop") : t("portal.voice")}
+                  </button>
+                )}
                 <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("case.reply.placeholder")}
                   style={{ fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%", resize: "vertical" }} />
                 {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err}</div>}
