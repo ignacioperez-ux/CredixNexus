@@ -10,7 +10,7 @@ const HEALTH_COLOR: Record<string, string> = { healthy: "var(--st-low-fg)", degr
 
 export function ExecDashboard({ o, trends = {} }: { o: Overview; trends?: Record<string, number[]> }) {
   const { t, locale } = useI18n();
-  const health = serviceHealth({ p1Open: o.incidents.p1_open, slaBreached: o.incidents.sla_breached, sev1: o.major_incidents.sev1, unackEscalations: o.escalations.unack });
+  const health = serviceHealth({ open: o.incidents.open, p1Open: o.incidents.p1_open, slaBreached: o.incidents.sla_breached, sev1: o.major_incidents.sev1, unackEscalations: o.escalations.unack });
   const fmtMoney = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
   const prio = [
     { key: "p1", label: "P1", value: o.incidents.p1_open, color: "var(--st-critical)" },

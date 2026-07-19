@@ -9,6 +9,7 @@ import type { PendingCaseRow } from "@/lib/triage/queries";
 import { acceptCase, discardCase } from "@/lib/triage/actions";
 import { fmtDurationShort } from "@/lib/sla/thresholds";
 import { useListFilters, FilterBar, Drill, EmptyState, type FilterDef } from "@/components/common/filters";
+import { Icon } from "@/components/ui/icon";
 
 const H24 = 86_400_000, H72 = 3 * 86_400_000;
 
@@ -59,7 +60,7 @@ export function TriageQueue({ rows, canManage }: { rows: PendingCaseRow[]; canMa
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: canManage ? "128px 1.5fr 128px 128px 118px 168px" : "128px 1.6fr 130px 130px 118px", minWidth: canManage ? 940 : 780 }}>
+          <div style={{ display: "grid", gridTemplateColumns: canManage ? "108px minmax(100px,1.3fr) 92px 92px 84px 76px" : "108px minmax(130px,1.5fr) 116px 116px 96px", minWidth: canManage ? 560 : 540 }}>
             {[t("inc.col.number"), t("inc.col.title"), t("inc.col.category"), t("inc.col.app"), t("tri.col.received"), ...(canManage ? [t("tri.col.actions")] : [])].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("tri.queue.empty")} icon="check" />}
             {f.filtered.map((r) => {
@@ -75,11 +76,14 @@ export function TriageQueue({ rows, canManage }: { rows: PendingCaseRow[]; canMa
                     <span style={{ color, fontWeight: age && age > H24 ? 700 : 400 }}>{age == null ? new Date(r.opened_at).toLocaleDateString(locale) : fmtDurationShort(age)}</span>
                   </Cell>
                   {canManage && (
-                    <div style={{ ...cellSt, gap: 6 }}>
-                      <button onClick={() => admit(r.id)} disabled={pending && busy === r.id}
-                        style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: "var(--r-pill)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: "pointer", opacity: pending && busy === r.id ? 0.6 : 1 }}>{t("tri.act.admit")}</button>
-                      <button onClick={() => discard(r.id)} disabled={pending && busy === r.id}
-                        style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: "var(--r-pill)", border: "1px solid var(--line)", background: "var(--paper)", color: "var(--muted)", cursor: "pointer" }}>{t("tri.act.discard")}</button>
+                    <div style={{ ...cellSt, gap: 6, justifyContent: "flex-start" }}>
+                      {/* Acciones compactas (icono + tooltip) para que la columna quepa sin recortar. */}
+                      <button onClick={() => admit(r.id)} disabled={pending && busy === r.id} title={t("tri.act.admit")} aria-label={t("tri.act.admit")}
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: "pointer", opacity: pending && busy === r.id ? 0.6 : 1, flexShrink: 0 }}>
+                        <Icon name="check" size={14} color="var(--cta-fg)" /></button>
+                      <button onClick={() => discard(r.id)} disabled={pending && busy === r.id} title={t("tri.act.discard")} aria-label={t("tri.act.discard")}
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--paper)", color: "var(--muted)", cursor: "pointer", flexShrink: 0 }}>
+                        <Icon name="x" size={14} color="var(--muted)" /></button>
                     </div>
                   )}
                 </div>
@@ -92,7 +96,7 @@ export function TriageQueue({ rows, canManage }: { rows: PendingCaseRow[]; canMa
   );
 }
 
-const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)" };
+const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)", minWidth: 0, overflow: "hidden" };
 function Cell({ children, mono, accent, muted, title }: { children: React.ReactNode; mono?: boolean; accent?: boolean; muted?: boolean; title?: string }) {
-  return <div title={title} style={{ ...cellSt, fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: accent ? "var(--accent-2)" : muted ? "var(--muted)" : "var(--text)" }}>{children}</div>;
+  return <div title={title} style={{ ...cellSt, fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: accent ? "var(--accent-2)" : muted ? "var(--muted)" : "var(--text)", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{children}</div>;
 }

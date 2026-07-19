@@ -5,6 +5,7 @@ import { getContext, hasPermission } from "@/lib/auth/context";
 import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode } from "@/lib/validation";
 import { validateMajorIncident, validateUpdate, canTransition } from "@/lib/major-incidents/validation";
+import { getMiCommanders } from "@/lib/major-incidents/queries";
 
 export type MiResult = { ok: boolean; error?: string; id?: string };
 
@@ -28,6 +29,11 @@ export async function declareMajorIncident(input: { incidentId: string; title: s
   const { data: existing } = await ctx.supabase.from("major_incident").select("id").eq("incident_id", input.incidentId).maybeSingle();
   if (existing) return { ok: true, id: existing.id as string };
 
+  // Comandante fijo por rol (§11): la Gerencia de Operaciones (support_lead) del tenant.
+  // Fallback al declarante solo si el rol no esta cubierto, para no dejar el campo nulo.
+  const commanders = await getMiCommanders(ctx.supabase);
+  const commanderId = commanders.ops?.id ?? ctx.accountId;
+
   const { data, error } = await ctx.supabase
     .from("major_incident")
     .insert({
@@ -38,7 +44,7 @@ export async function declareMajorIncident(input: { incidentId: string; title: s
       summary: orNull(input.summary),
       impact_summary: orNull(input.impactSummary),
       bridge_url: orNull(input.bridgeUrl),
-      commander_user_id: ctx.accountId,
+      commander_user_id: commanderId,
       status: "declared",
       created_by: ctx.accountId,
     })
@@ -117,7 +123,10 @@ export async function changeMiStatus(miId: string, next: string): Promise<MiResu
 export async function assignCommand(miId: string, field: "commander" | "comms_lead", userId: string): Promise<MiResult> {
   const { ctx, err } = await guard();
   if (!ctx) return { ok: false, error: err! };
-  const col = field === "commander" ? "commander_user_id" : "comms_lead_user_id";
+  // El comandante es FIJO por rol (§11) y no se asigna manualmente: se deriva del titular de
+  // Gerencia de Operaciones / Lider de Evolucion. Solo comms_lead es asignable.
+  if (field === "commander") return { ok: false, error: ErrorCode.PERMISSION };
+  const col = "comms_lead_user_id";
   const { error } = await ctx.supabase.from("major_incident").update({ [col]: orNull(userId), updated_by: ctx.accountId }).eq("id", miId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/major-incidents/${miId}`);

@@ -17,20 +17,31 @@ describe("toCsv", () => {
 
 describe("serviceHealth", () => {
   it("100 saludable sin senales", () => {
-    expect(serviceHealth({ p1Open: 0, slaBreached: 0, sev1: 0, unackEscalations: 0 })).toEqual({ score: 100, label: "healthy" });
+    expect(serviceHealth({ open: 50, p1Open: 0, slaBreached: 0, sev1: 0, unackEscalations: 0 })).toEqual({ score: 100, label: "healthy" });
   });
-  it("penaliza y clasifica degradado", () => {
-    const h = serviceHealth({ p1Open: 3, slaBreached: 3, sev1: 0, unackEscalations: 0 }); // 100-18-12=70
-    expect(h.score).toBe(70);
+  it("sin casos abiertos es saludable (sin division por cero)", () => {
+    expect(serviceHealth({ open: 0, p1Open: 0, slaBreached: 0, sev1: 0, unackEscalations: 0 })).toEqual({ score: 100, label: "healthy" });
+  });
+  it("penaliza por TASA y clasifica degradado", () => {
+    // 40% de abiertos con SLA vencido: 100 - 0.4*55 = 78
+    const h = serviceHealth({ open: 10, p1Open: 0, slaBreached: 4, sev1: 0, unackEscalations: 0 });
+    expect(h.score).toBe(78);
     expect(h.label).toBe("degraded");
   });
-  it("un SEV1 empuja a critico", () => {
-    const h = serviceHealth({ p1Open: 5, slaBreached: 5, sev1: 1, unackEscalations: 5 }); // 100-30-20-20-5=25
-    expect(h.score).toBe(25);
+  it("un SEV1 activo empuja a critico", () => {
+    // 100% SLA vencido (-55) + 1 SEV1 (-15) = 30
+    const h = serviceHealth({ open: 10, p1Open: 0, slaBreached: 10, sev1: 1, unackEscalations: 0 });
+    expect(h.score).toBe(30);
     expect(h.label).toBe("critical");
   });
-  it("no baja de 0 ni sube de 100", () => {
-    expect(serviceHealth({ p1Open: 100, slaBreached: 100, sev1: 10, unackEscalations: 100 }).score).toBe(0);
+  it("es robusto a conteos altos: no satura ni baja de 0", () => {
+    // conteos > abiertos: cada tasa se topa en 1; SEV1 topa en 30
+    const h = serviceHealth({ open: 10, p1Open: 100, slaBreached: 100, sev1: 10, unackEscalations: 100 });
+    expect(h.score).toBe(0);
+    // volumen realista alto NO satura en 0: 158/166 SLA + 14 P1 + 1 SEV1 -> ~31, critico
+    const real = serviceHealth({ open: 166, p1Open: 14, slaBreached: 158, sev1: 1, unackEscalations: 0 });
+    expect(real.score).toBeGreaterThan(20);
+    expect(real.label).toBe("critical");
   });
 });
 

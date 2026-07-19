@@ -11,16 +11,21 @@ export function toCsv(headers: string[], rows: (string | number | null | undefin
   return lines.join("\r\n");
 }
 
-export type HealthInput = { p1Open: number; slaBreached: number; sev1: number; unackEscalations: number };
+export type HealthInput = { open: number; p1Open: number; slaBreached: number; sev1: number; unackEscalations: number };
 export type Health = { score: number; label: "healthy" | "degraded" | "critical" };
 
-/** Puntaje de salud del servicio 0-100 penalizando senales criticas. */
+/** Puntaje de salud del servicio 0-100 basado en TASAS relativas al volumen abierto.
+ *  Antes penalizaba por conteos absolutos, que con datos reales (p.ej. 158 SLA vencidos)
+ *  saturaban el puntaje en 0 y lo volvian no informativo. Ahora cada senal pesa segun su
+ *  PROPORCION sobre los casos abiertos; un SEV1 activo es senal fuerte con tope propio. */
 export function serviceHealth(i: HealthInput): Health {
+  const denom = Math.max(1, i.open); // evita division por cero cuando no hay casos abiertos
+  const rate = (n: number) => Math.min(1, Math.max(0, n) / denom);
   let score = 100;
-  score -= i.p1Open * 6;
-  score -= i.slaBreached * 4;
-  score -= i.sev1 * 20;
-  score -= i.unackEscalations * 1;
+  score -= rate(i.slaBreached) * 55;               // cumplimiento SLA: senal dominante
+  score -= rate(i.p1Open) * 25;                    // presion de criticos (P1) abiertos
+  score -= rate(i.unackEscalations) * 15;          // escalamientos sin reconocer
+  score -= Math.min(30, Math.max(0, i.sev1) * 15); // incidentes mayores SEV1 activos, tope 30
   score = Math.max(0, Math.min(100, Math.round(score)));
   const label = score >= 80 ? "healthy" : score >= 50 ? "degraded" : "critical";
   return { score, label };

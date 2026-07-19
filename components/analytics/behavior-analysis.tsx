@@ -65,7 +65,9 @@ export function BehaviorAnalysisView({ data, dimension, weeks }: { data: Behavio
   const [rankSort, setRankSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
   const [detSort, setDetSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
 
-  const go = (dim: BehaviorDimension, w: number) => startTransition(() => router.push(`/analytics/comportamiento?dim=${dim}&weeks=${w}`));
+  // scroll:false conserva la posicion del lector: cambiar Ventana o Agrupar por no debe
+  // saltar al tope (los controles de agrupacion viven bajo la tendencia).
+  const go = (dim: BehaviorDimension, w: number) => startTransition(() => router.push(`/analytics/comportamiento?dim=${dim}&weeks=${w}`, { scroll: false }));
   const fmtMoney = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
   const fmtMoneyShort = (n: number) => Math.abs(n) >= 1_000_000 ? "₡" + (n / 1_000_000).toLocaleString(locale === "es" ? "es-CR" : "en-US", { maximumFractionDigits: 1 }) + " M" : fmtMoney(n);
   const dimLabel = t(DIM_LABEL[dimension]);

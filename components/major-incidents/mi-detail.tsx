@@ -24,7 +24,7 @@ type MiView = {
 type Person = { id: string; full_name: string };
 type LedgerRow = { block_height: number; action: string; current_hash: string; timestamp: string };
 
-export function MiDetail({ mi, updates, people, ledger, canManage }: { mi: MiView; updates: MiUpdateRow[]; people: Person[]; ledger: LedgerRow[]; canManage: boolean }) {
+export function MiDetail({ mi, updates, people, ledger, canManage, commanderName, commanderScope }: { mi: MiView; updates: MiUpdateRow[]; people: Person[]; ledger: LedgerRow[]; canManage: boolean; commanderName: string | null; commanderScope: "ops" | "evo" }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -110,7 +110,9 @@ export function MiDetail({ mi, updates, people, ledger, canManage }: { mi: MiVie
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("mi.command")}</div>
-            <RoleRow label={t("mi.commander")} value={mi.commander?.full_name} people={people} current={mi.commander_user_id} canManage={canManage} pending={pending} onSet={(uid) => run(() => assignCommand(mi.id, "commander", uid))} />
+            {/* Comandante FIJO por rol (§11): no editable. Gerencia de Operaciones por defecto;
+                Lider de Evolucion si el caso ya paso a Evolucion. */}
+            <CommanderRow label={t("mi.commander")} value={commanderName} hint={t(commanderScope === "evo" ? "mi.commander.byrole.evo" : "mi.commander.byrole.ops")} lockedTip={t("mi.commander.locked")} />
             <RoleRow label={t("mi.commslead")} value={mi.comms_lead?.full_name} people={people} current={mi.comms_lead_user_id} canManage={canManage} pending={pending} onSet={(uid) => run(() => assignCommand(mi.id, "comms_lead", uid))} />
             <Row label={t("mi.declared")} value={new Date(mi.declared_at).toLocaleString(locale)} mono />
             <Row label={t("mi.nextupdate")} value={mi.next_update_due_at ? new Date(mi.next_update_due_at).toLocaleString(locale) : null} mono style={overdue ? { color: "var(--st-critical)" } : undefined} />
@@ -167,6 +169,21 @@ function Row({ label, value, mono, style }: { label: string; value?: string | nu
   return <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--line-soft)" }}>
     <span style={{ fontSize: 12, color: "var(--muted)" }}>{label}</span>
     <span style={{ fontSize: 12.5, color: "var(--text)", fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", textAlign: "right", ...style }}>{value || "—"}</span></div>;
+}
+/** Comandante de solo lectura: asignado por rol, no modificable. Muestra candado + rotulo del rol. */
+function CommanderRow({ label, value, hint, lockedTip }: { label: string; value: string | null; hint: string; lockedTip: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--line-soft)" }}>
+      <span style={{ fontSize: 12, color: "var(--muted)" }}>{label}</span>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, minWidth: 0 }}>
+        <span title={lockedTip} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--text)", fontWeight: 600, textAlign: "right" }}>
+          <Icon name="lock" size={11} color="var(--muted)" style={{ verticalAlign: "-1px", flexShrink: 0 }} />
+          {value || "—"}
+        </span>
+        <span style={{ fontSize: 10.5, color: "var(--muted)", textAlign: "right" }}>{hint}</span>
+      </div>
+    </div>
+  );
 }
 function RoleRow({ label, value, people, current, canManage, pending, onSet }: { label: string; value?: string | null; people: Person[]; current: string | null; canManage: boolean; pending: boolean; onSet: (uid: string) => void }) {
   if (!canManage) return <Row label={label} value={value} />;

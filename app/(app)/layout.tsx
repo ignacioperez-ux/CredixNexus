@@ -46,7 +46,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Sidebar userName={userName} userRole={tenantName} perms={permList} isAdmin={isAdmin} roles={roleList} portalActiveCount={portalActiveCount} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
           <Header roles={roleList} perms={permList} isAdmin={isAdmin} notifications={notifications} />
-          <main style={{ flex: 1, minHeight: 0, overflowY: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>
+          {/* overflowX auto: red de seguridad para que ningun contenido ancho quede recortado
+              (clip duro) por el `overflow:hidden` del contenedor raiz; peor caso, hace scroll. */}
+          <main style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "auto", background: "var(--bg)", padding: "26px 30px 40px" }}>
             <PageBack />
             {children}
           </main>

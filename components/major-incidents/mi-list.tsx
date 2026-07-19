@@ -51,7 +51,7 @@ export function MiList({ data }: { data: MiData }) {
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 70px 1.6fr 130px 140px 120px", minWidth: 880 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "104px 54px minmax(100px,1.6fr) 104px 92px 96px", minWidth: 560 }}>
             {[t("mi.col.number"), t("mi.col.sev"), t("mi.col.title"), t("mi.col.commander"), t("mi.col.nextupdate"), t("mi.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("mi.empty")} icon="alert" />}
             {g.groups
@@ -69,9 +69,9 @@ export function MiList({ data }: { data: MiData }) {
   );
 }
 
-const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)" };
+const cellSt: React.CSSProperties = { fontSize: 12.5, padding: "11px 12px", borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", color: "var(--text)", minWidth: 0, overflow: "hidden" };
 function Cell({ children, mono, accent, muted, style }: { children: React.ReactNode; mono?: boolean; accent?: boolean; muted?: boolean; style?: React.CSSProperties }) {
-  return <div style={{ ...cellSt, fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: accent ? "var(--accent-2)" : muted ? "var(--muted)" : "var(--text)", ...style }}>{children}</div>;
+  return <div style={{ ...cellSt, fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)", color: accent ? "var(--accent-2)" : muted ? "var(--muted)" : "var(--text)", whiteSpace: "nowrap", textOverflow: "ellipsis", ...style }}>{children}</div>;
 }
 function Kpi({ label, value, color }: { label: string; value: string; color?: string }) {
   return <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 16 }}>

@@ -304,7 +304,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
 
       {/* Tabla */}
       <div style={{ borderTop: "1px solid var(--line)", overflowX: "auto" }}>
-        <div style={{ minWidth: 974 }}>
+        <div style={{ minWidth: 820 }}>
           <div style={gridStyle(true)}>
             <div style={{ display: "flex", alignItems: "center" }}><input type="checkbox" checked={allPicked} onChange={toggleAll} aria-label={t("inc.bulk.all")} style={{ cursor: "pointer" }} /></div>
             <div>{t("inc.col.number")}</div>
@@ -371,8 +371,8 @@ function distinct(values: (string | null | undefined)[]): string[] {
 function gridStyle(header: boolean): React.CSSProperties {
   return {
     display: "grid",
-    gridTemplateColumns: "34px 120px minmax(180px, 1fr) 150px 104px 100px 64px 128px",
-    gap: 12,
+    gridTemplateColumns: "30px 104px minmax(150px, 1fr) 128px 92px 88px 58px 116px",
+    gap: 10,
     alignItems: "center",
     padding: header ? "10px 20px" : "14px 20px",
     borderBottom: "1px solid var(--line-soft)",
