@@ -48,6 +48,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const [app, setApp] = useState("");
   const [prio, setPrio] = useState("");
   const [resp, setResp] = useState(initialResp);
+  const [reporter, setReporter] = useState("");
   const [q, setQ] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());  // seleccion para acciones en lote
@@ -62,6 +63,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   const buOptions = useMemo(() => distinct(rows.map((r) => r.business_unit?.name)), [rows]);
   const appOptions = useMemo(() => distinct(rows.map((r) => r.ci?.name)), [rows]);
   const respOptions = useMemo(() => distinct(rows.map((r) => r.assignee?.name)), [rows]);
+  const reporterOptions = useMemo(() => distinct(rows.map((r) => r.reporter?.full_name)), [rows]);
   const prioOptions = useMemo(() => PRIORITY_ORDER.filter((p) => rows.some((r) => r.priority === p)), [rows]);
 
   const ql = q.trim().toLowerCase();
@@ -73,10 +75,11 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
       (!bu || r.business_unit?.name === bu) &&
       (!app || r.ci?.name === app) &&
       (!resp || r.assignee?.name === resp) &&
+      (!reporter || r.reporter?.full_name === reporter) &&
       (!prio || r.priority === prio) &&
       (!ql || r.incident_number.toLowerCase().includes(ql) || r.title.toLowerCase().includes(ql))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, view, filter, domain, bu, app, prio, resp, ql, myMemberId, now],
+    [rows, view, filter, domain, bu, app, prio, resp, reporter, ql, myMemberId, now],
   );
 
   // Agrupacion por campo de maestro (estado, responsable, aplicacion, unidad, prioridad).
@@ -133,13 +136,14 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
     bu && { label: t("inc.field.bu"), value: bu, clear: () => setBu("") },
     app && { label: t("inc.field.app"), value: app, clear: () => setApp("") },
     resp && { label: t("flt.responsible"), value: resp, clear: () => setResp("") },
+    reporter && { label: t("flt.reporter"), value: reporter, clear: () => setReporter("") },
     prio && { label: t("inc.col.priority"), value: t(priorityKey(prio)), clear: () => setPrio("") },
     domain !== "all" && { label: t("inc.domain"), value: t(("dom." + domain) as MessageKey), clear: () => setDomain("all") },
     filter !== "all" && { label: t("inc.col.status"), value: t(("st." + filter) as MessageKey), clear: () => setFilter("all") },
   ].filter(Boolean) as { label: string; value: string; clear: () => void }[];
 
-  const activeCount = (domain !== "all" ? 1 : 0) + (filter !== "all" ? 1 : 0) + (bu ? 1 : 0) + (app ? 1 : 0) + (resp ? 1 : 0) + (prio ? 1 : 0);
-  function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); setQ(""); }
+  const activeCount = (domain !== "all" ? 1 : 0) + (filter !== "all" ? 1 : 0) + (bu ? 1 : 0) + (app ? 1 : 0) + (resp ? 1 : 0) + (reporter ? 1 : 0) + (prio ? 1 : 0);
+  function clearAll() { setFilter("all"); setDomain("all"); setBu(""); setApp(""); setPrio(""); setResp(""); setReporter(""); setQ(""); }
 
   // --- Seleccion multiple + acciones en lote (FASE 3.1 pilar 5) ---
   const filteredIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
@@ -151,7 +155,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   }
 
   // --- Vistas guardadas por usuario (persistentes) ---
-  const currentFilters = { view, filter, domain, bu, app, prio, resp, q };
+  const currentFilters = { view, filter, domain, bu, app, prio, resp, reporter, q };
   function saveCurrentView() {
     const name = window.prompt(t("view.name.prompt"));
     if (!name || !name.trim()) return;
@@ -159,7 +163,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   }
   function loadView(f: Record<string, unknown>) {
     setView((f.view as string) ?? "all"); setFilter((f.filter as string) ?? "all"); setDomain((f.domain as string) ?? "all");
-    setBu((f.bu as string) ?? ""); setApp((f.app as string) ?? ""); setPrio((f.prio as string) ?? ""); setResp((f.resp as string) ?? ""); setQ((f.q as string) ?? "");
+    setBu((f.bu as string) ?? ""); setApp((f.app as string) ?? ""); setPrio((f.prio as string) ?? ""); setResp((f.resp as string) ?? ""); setReporter((f.reporter as string) ?? ""); setQ((f.q as string) ?? "");
   }
   function removeView(id: string) {
     if (!window.confirm(t("view.delete.confirm"))) return;
@@ -256,6 +260,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
             <FieldSelect label={t("inc.field.bu")} value={bu} onChange={setBu} options={buOptions} allLabel={t("inc.filter.allbu")} />
             <FieldSelect label={t("inc.field.app")} value={app} onChange={setApp} options={appOptions} allLabel={t("inc.filter.allapp")} />
             <FieldSelect label={t("flt.responsible")} value={resp} onChange={setResp} options={respOptions} allLabel={t("flt.allresp")} />
+            <FieldSelect label={t("flt.reporter")} value={reporter} onChange={setReporter} options={reporterOptions} allLabel={t("flt.allreporter")} />
             <FieldSelect label={t("inc.col.priority")} value={prio} onChange={setPrio}
               options={prioOptions} allLabel={t("inc.filter.allprio")} render={(p) => t(priorityKey(p))} />
             <GroupBar defs={groupDefs} groupKey={g.groupKey} setGroupKey={g.setGroupKey} label={t("flt.groupby")} allLabel={t("flt.nogroup")} />

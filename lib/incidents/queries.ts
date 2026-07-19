@@ -20,13 +20,14 @@ export type IncidentRow = {
   ci: { name: string } | null;
   business_unit: { name: string } | null;
   assignee: { name: string } | null;
+  reporter: { full_name: string } | null;
 };
 
 export async function listIncidents(supabase: SupabaseClient): Promise<IncidentRow[]> {
   const { data, error } = await supabase
     .from("incident")
     .select(
-      "id, incident_number, title, status, priority, case_type, transformation_score, transformation_candidate, opened_at, resolved_at, sla_resolution_due_at, assigned_member_id, category:category_id(name), ci:affected_ci_id(name), business_unit:affected_business_unit_id(name), assignee:assigned_member_id(name)",
+      "id, incident_number, title, status, priority, case_type, transformation_score, transformation_candidate, opened_at, resolved_at, sla_resolution_due_at, assigned_member_id, category:category_id(name), ci:affected_ci_id(name), business_unit:affected_business_unit_id(name), assignee:assigned_member_id(name), reporter:reported_by_user_id(full_name)",
     )
     .order("transformation_score", { ascending: false })
     .order("opened_at", { ascending: false });
