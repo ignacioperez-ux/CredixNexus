@@ -127,6 +127,7 @@ Violaciones son bloqueantes y requieren autorización explícita del arquitecto.
 | 5 | SIEMPRE verificar autorización antes de `git reset`, `git amend` o cualquier operación destructiva |
 | 6 | SIEMPRE incluir `tenant_id` en queries a tablas con datos de tenant |
 | 7 | SIEMPRE usar ASCII español sin tildes en mensajes de commit (encoding seguro Windows + Git for Windows) |
+| 8 | SIEMPRE mantener y correr **pruebas Playwright E2E exhaustivas** como parte del ciclo de cada cambio (no paso final opcional), con foco en el **rol usuario** (`partner_user` / Mi Portal). Correrlas contra el server que levanta el usuario (`playwright.config` con `reuseExistingServer`), ya que §3.1 #4 impide `npm run dev` desde Claude Code. Si el server no esta arriba, pedir al usuario `! npm run dev` y correr `npx playwright test`; nunca declarar un cambio de UI "listo" sin cobertura E2E del flujo afectado. |
 
 ---
 
