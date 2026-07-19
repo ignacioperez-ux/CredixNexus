@@ -5,16 +5,16 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 
 export type DashboardCounts = {
-  apps: number;
-  systems: number;
+  cmdb: number;         // total de configuration_item (CMDB); antes "apps" (ci_type='application', inexistente)
+  integrations: number; // configuration_item con ci_type='integracion'; antes "systems" (ci_type='system', inexistente)
   processes: number;
   products: number;
   ledger: number;
 };
 
 const CARDS: { key: keyof DashboardCounts; label: MessageKey; href: string }[] = [
-  { key: "apps", label: "dash.kpi.apps", href: "/cmdb?type=application" },
-  { key: "systems", label: "dash.kpi.systems", href: "/cmdb?type=system" },
+  { key: "cmdb", label: "dash.kpi.cmdb", href: "/cmdb" },
+  { key: "integrations", label: "dash.kpi.integrations", href: "/cmdb?type=integracion" },
   { key: "processes", label: "dash.kpi.processes", href: "/catalog/processes" },
   { key: "products", label: "dash.kpi.products", href: "/catalog/products" },
   { key: "ledger", label: "dash.kpi.ledger", href: "/ledger" },

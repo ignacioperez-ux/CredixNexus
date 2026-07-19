@@ -1710,8 +1710,8 @@ export const dictionaries = {
 
     "dash.title": "Dashboard ejecutivo",
     "dash.subtitle": "Estado de servicios, casos, transformación y auditoría",
-    "dash.kpi.apps": "Aplicaciones",
-    "dash.kpi.systems": "Sistemas",
+    "dash.kpi.cmdb": "Sistemas (CMDB)",
+    "dash.kpi.integrations": "Integraciones",
     "dash.kpi.processes": "Procesos",
     "dash.kpi.products": "Productos",
     "dash.kpi.ledger": "Bloques de ledger",
@@ -4309,8 +4309,8 @@ export const dictionaries = {
 
     "dash.title": "Executive dashboard",
     "dash.subtitle": "Services, cases, transformation and audit status",
-    "dash.kpi.apps": "Applications",
-    "dash.kpi.systems": "Systems",
+    "dash.kpi.cmdb": "Systems (CMDB)",
+    "dash.kpi.integrations": "Integrations",
     "dash.kpi.processes": "Processes",
     "dash.kpi.products": "Products",
     "dash.kpi.ledger": "Ledger blocks",

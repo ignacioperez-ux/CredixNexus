@@ -21,7 +21,7 @@ export default async function OperacionesPage() {
   ]);
   const c = (countsRes.data ?? {}) as Partial<DashboardCounts>;
   const counts: DashboardCounts = {
-    apps: c.apps ?? 0, systems: c.systems ?? 0, processes: c.processes ?? 0, products: c.products ?? 0, ledger: c.ledger ?? 0,
+    cmdb: c.cmdb ?? 0, integrations: c.integrations ?? 0, processes: c.processes ?? 0, products: c.products ?? 0, ledger: c.ledger ?? 0,
   };
   const firstName = ctx.name.trim().split(/\s+/)[0] || ctx.name;
 

@@ -327,7 +327,8 @@ function Kpis({ kpis, t }: { kpis: OpsKpis; t: (k: MessageKey) => string }) {
   ];
   const toneColor = (tone: string) => tone === "good" ? "var(--st-low-fg)" : tone === "warn" ? "var(--st-high-fg)" : tone === "bad" ? "var(--st-critical-fg)" : "var(--text)";
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+    // Indicadores ITSM SIEMPRE en una sola fila (5 columnas iguales; minmax(0,1fr) evita desborde).
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10 }}>
       {items.map((k) => (
         <div key={k.label} title={t(k.def)} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px", borderRadius: 10, background: "var(--head-bg)", border: "1px solid color-mix(in srgb, var(--line) 60%, transparent)" }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t(k.label)}</span>
