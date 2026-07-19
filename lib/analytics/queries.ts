@@ -23,6 +23,19 @@ export async function getOverview(supabase: SupabaseClient): Promise<Overview> {
   return data as Overview;
 }
 
+// ---- Reincidencia y efectividad de fixes (Gerencia de Operaciones) --------------------
+export type RecurrenceAnalytics = {
+  window_days: number; total: number; recurrences: number; rate_pct: number;
+  by_operator: { name: string; resolved: number; came_back: number; effectiveness_pct: number | null }[];
+  by_category: { category: string; recurrences: number }[];
+};
+
+export async function getRecurrenceAnalytics(supabase: SupabaseClient, days = 90): Promise<RecurrenceAnalytics> {
+  const { data, error } = await supabase.rpc("recurrence_analytics", { p_days: days });
+  if (error) throw new Error(error.message);
+  return data as RecurrenceAnalytics;
+}
+
 // ---- Analisis de comportamiento AGREGADO (Fase Evolucion 1.3) --------------------
 // Sirve por RPC incident_behavior_analysis (SECURITY DEFINER + gate analytics.read +
 // scope tenant). NUNCA devuelve casos individuales: solo agregados por dimension.
