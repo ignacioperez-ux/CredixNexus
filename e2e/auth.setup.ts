@@ -1,20 +1,26 @@
-import { test as setup, expect } from "@playwright/test";
+import { test as setup } from "@playwright/test";
 
-// Autentica un usuario partner_user de prueba y guarda el storageState para los specs del portal.
-// Credenciales por ENV (nunca en el repo). Si faltan, el setup falla con un mensaje claro.
-const EMAIL = process.env.E2E_PORTAL_EMAIL;
-const PASSWORD = process.env.E2E_PORTAL_PASSWORD;
+// Login por PERSONA -> storageState reutilizable. Credenciales por ENV (nunca en el repo).
+// Cada persona se saltea si faltan sus credenciales. Foco: usuario (Mi Portal), pero se cubren
+// tambien las personas internas para E2E exhaustivo (regla §3.2 #8).
+const PERSONAS = [
+  { name: "usuario",     email: process.env.E2E_USUARIO_EMAIL,     password: process.env.E2E_USUARIO_PASSWORD,     state: "e2e/.auth/usuario.json" },
+  { name: "operaciones", email: process.env.E2E_OPERACIONES_EMAIL, password: process.env.E2E_OPERACIONES_PASSWORD, state: "e2e/.auth/operaciones.json" },
+  { name: "operador",    email: process.env.E2E_OPERADOR_EMAIL,    password: process.env.E2E_OPERADOR_PASSWORD,    state: "e2e/.auth/operador.json" },
+  { name: "evolucion",   email: process.env.E2E_EVOLUCION_EMAIL,   password: process.env.E2E_EVOLUCION_PASSWORD,   state: "e2e/.auth/evolucion.json" },
+  { name: "squads",      email: process.env.E2E_SQUADS_EMAIL,      password: process.env.E2E_SQUADS_PASSWORD,      state: "e2e/.auth/squads.json" },
+];
 
-setup("login partner_user", async ({ page }) => {
-  expect(EMAIL, "Falta E2E_PORTAL_EMAIL (usuario partner_user de prueba)").toBeTruthy();
-  expect(PASSWORD, "Falta E2E_PORTAL_PASSWORD").toBeTruthy();
-
-  await page.goto("/login");
-  await page.locator("#email").fill(EMAIL!);
-  await page.locator("#password").fill(PASSWORD!);
-  await page.getByRole("button", { name: /^ingresar$|^sign in$/i }).click();
-
-  // Tras login basta con salir de /login (cada rol cae en su home): capturamos el storageState.
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 });
-  await page.context().storageState({ path: "e2e/.auth/portal.json" });
-});
+for (const p of PERSONAS) {
+  setup(`login ${p.name}`, async ({ page }) => {
+    setup.skip(!p.email || !p.password, `Sin credenciales E2E para ${p.name} (E2E_${p.name.toUpperCase()}_EMAIL/PASSWORD)`);
+    await page.goto("/login");
+    await page.locator("#email").fill(p.email!);
+    await page.locator("#password").fill(p.password!);
+    await page.getByRole("button", { name: /^ingresar$|^sign in$/i }).click();
+    // Basta con salir de /login (cada rol cae en su home): capturamos el storageState.
+    // Timeout amplio: el dev server puede recompilar la home del rol en la primera visita.
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 45_000 });
+    await page.context().storageState({ path: p.state });
+  });
+}
