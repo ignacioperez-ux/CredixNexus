@@ -22,14 +22,14 @@ test.describe("Mi Portal · navegacion y estados", () => {
 
   test("registrar: al salir de la pestana y volver, el intake queda limpio (regresion)", async ({ page }) => {
     await page.goto("/portal?tab=registrar");
-    const subject = page.getByPlaceholder(/describe|placeholder|search/i).first();
+    const subject = page.locator("textarea").first();
     await subject.fill("Necesito acceso al sistema core de prueba e2e");
     await expect(subject).toHaveValue(/acceso/);
 
     // Salir a otra pestana y volver -> el textarea debe quedar vacio (fix del reset del intake).
     await page.goto("/portal?tab=miscasos");
     await page.goto("/portal?tab=registrar");
-    await expect(page.getByPlaceholder(/describe|placeholder|search/i).first()).toHaveValue("");
+    await expect(page.locator("textarea").first()).toHaveValue("");
   });
 
   test("toggle de tema: la opcion oscuro (Nexus) esta y cambia el tema", async ({ page }) => {
@@ -71,7 +71,7 @@ test.describe("Mi Portal · mutaciones (solo con E2E_ALLOW_MUTATIONS=1)", () => 
 
   test("registrar un caso y ver el mensaje de exito", async ({ page }) => {
     await page.goto("/portal?tab=registrar");
-    await page.getByPlaceholder(/describe|placeholder|search/i).first().fill("Caso de prueba E2E (ignorar) - acceso");
+    await page.locator("textarea").first().fill("Caso de prueba E2E (ignorar) - acceso");
     // Elegir una categoria (el primer select con opciones de categoria).
     const cat = page.locator("select").filter({ hasText: /categor|elegi|choose/i }).first();
     await cat.selectOption({ index: 1 });

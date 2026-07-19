@@ -10,11 +10,11 @@ setup("login partner_user", async ({ page }) => {
   expect(PASSWORD, "Falta E2E_PORTAL_PASSWORD").toBeTruthy();
 
   await page.goto("/login");
-  await page.getByLabel(/correo|email/i).fill(EMAIL!);
-  await page.getByLabel(/contrase|password/i).fill(PASSWORD!);
-  await page.getByRole("button", { name: /ingresar|sign in/i }).click();
+  await page.locator("#email").fill(EMAIL!);
+  await page.locator("#password").fill(PASSWORD!);
+  await page.getByRole("button", { name: /^ingresar$|^sign in$/i }).click();
 
-  // Tras login, el usuario final cae en su portal (start -> /portal).
-  await page.waitForURL(/\/(portal|start)/, { timeout: 15_000 });
+  // Tras login basta con salir de /login (cada rol cae en su home): capturamos el storageState.
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 });
   await page.context().storageState({ path: "e2e/.auth/portal.json" });
 });
