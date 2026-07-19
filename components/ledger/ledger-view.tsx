@@ -58,7 +58,7 @@ export function LedgerView({ data }: { data: LedgerData }) {
         </div>
 
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "70px 160px 100px 1.4fr 1.2fr 110px 60px", minWidth: 940 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "70px 160px 100px 1.4fr 1.2fr 110px 60px", minWidth: 800 }}>
             {[t("led.col.block"), t("led.col.time"), t("led.col.actor"), t("led.col.action"), t("led.col.entity"), t("led.col.hash"), t("led.col.verified")].map((h, i) => (
               <div key={h} style={{ ...headSt, textAlign: i === 0 || i === 6 ? "right" : "left" }}>{h}</div>
             ))}

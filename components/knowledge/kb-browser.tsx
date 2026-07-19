@@ -65,7 +65,7 @@ export function KbBrowser({ data }: { data: KbData }) {
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1.7fr 120px 130px 90px 90px 130px", minWidth: 960 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "120px 1.7fr 120px 130px 90px 90px 130px", minWidth: 800 }}>
             {[t("kb.col.number"), t("kb.col.title"), t("kb.col.type"), t("kb.col.category"), t("kb.col.views"), t("kb.col.deflect"), t("kb.col.health")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("kb.empty")} icon="search" />}
             {g.groups

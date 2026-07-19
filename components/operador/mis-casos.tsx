@@ -67,7 +67,7 @@ export function OpCasesView({ cases, linked }: { cases: OpCase[]; linked: boolea
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "110px minmax(180px,1.5fr) 92px 96px 190px 130px", minWidth: 900 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "110px minmax(180px,1.5fr) 92px 96px 190px 130px", minWidth: 760 }}>
             {[t("inc.col.number"), t("inc.col.title"), t("inc.col.priority"), t("inc.col.status"), t("inc.col.sla"), t("inc.col.app")].map((h) => <div key={h} style={head}>{h}</div>)}
             {rows.length === 0 && <EmptyState text={t("op.cases.empty")} icon="inbox" />}
             {rows.map((c) => (

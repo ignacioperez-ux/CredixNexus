@@ -22,7 +22,7 @@ export function InstancesTab({ instances }: { instances: InstanceRow[] }) {
       <FilterBar defs={defs} filters={f} />
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "130px 1.6fr 1fr 120px 110px", minWidth: 820 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "130px 1.6fr 1fr 120px 110px", minWidth: 720 }}>
           {[t("wf.col.number"), t("wf.col.title"), t("wf.col.definition"), t("wf.col.progress"), t("wf.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
           {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("wf.inst.empty")}</div>}
           {f.filtered.map((i) => (

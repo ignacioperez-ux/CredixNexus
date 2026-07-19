@@ -41,7 +41,7 @@ export function AlertsTab({ data, canManage }: { data: AlertData; canManage: boo
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "90px 1.7fr 110px 130px 70px 120px 150px 210px", minWidth: 1080 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "90px 1.7fr 110px 130px 70px 120px 150px 210px", minWidth: 900 }}>
             {[t("obs.col.severity"), t("obs.col.title"), t("obs.col.source"), t("obs.col.system"), t("obs.col.occ"), t("obs.col.status"), t("obs.col.seen"), ""].map((h, i) => <div key={i} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("obs.alerts.empty")}</div>}
             {f.filtered.map((a) => (

@@ -31,7 +31,7 @@ export function ItemManager({ items, categories }: { items: CatalogItem[]; categ
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "140px 1.6fr 120px 90px 90px 130px", minWidth: 820 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "140px 1.6fr 120px 90px 90px 130px", minWidth: 720 }}>
             {[t("cat.item.code"), t("cat.item.name"), t("cat.item.category"), t("cat.item.sla"), t("cat.fb.fields"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {items.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("cat.empty")}</div>}
             {items.map((it) => {

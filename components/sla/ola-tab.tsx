@@ -62,7 +62,7 @@ export function OlaTab({ policies, options, canManage }: { policies: OlaPolicyRo
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 130px 130px 100px 120px", minWidth: 760 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 130px 130px 100px 120px", minWidth: 700 }}>
             {[t("sla.col.priority"), t("sla.ola.team"), t("sla.ola.respmin"), t("sla.ola.resomin"), t("sla.rule.statuscol"), ""].map((h, i) => <div key={i} style={head}>{h}</div>)}
             {policies.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("sla.ola.empty")}</div>}
             {policies.map((p) => (

@@ -170,7 +170,7 @@ function Scorecard({ rows, t, head }: { rows: VendorScorecardRow[]; t: (k: Messa
       <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 10 }}>{t("vsc.hint")}</div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: cols.map((c) => c.w).join(" "), minWidth: 820 }}>
+          <div style={{ display: "grid", gridTemplateColumns: cols.map((c) => c.w).join(" "), minWidth: 720 }}>
             {cols.map((c) => <div key={c.h} style={{ ...head, textAlign: c.align }}>{c.h}</div>)}
             {rows.length === 0 && <EmptyState text={t("vnd.empty")} icon="database" />}
             {rows.map((v) => <ScorecardRow key={v.id} v={v} t={t} />)}

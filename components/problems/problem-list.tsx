@@ -61,7 +61,7 @@ export function ProblemList({ data, canManage }: { data: ProblemData; canManage:
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 110px 90px 90px 130px", minWidth: 860 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 110px 90px 90px 130px", minWidth: 740 }}>
             {[t("prob.col.number"), t("prob.col.title"), t("prob.col.category"), t("prob.col.priority"), t("prob.col.linked"), t("prob.col.status")].map((h) => (
               <div key={h} style={head}>{h}</div>
             ))}

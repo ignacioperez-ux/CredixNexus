@@ -48,7 +48,7 @@ export function AiCenter({ interactions }: { interactions: AiInteraction[] }) {
           <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("aic.log.empty")}</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1.2fr 1fr 1.2fr 90px 150px", minWidth: 760 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1.2fr 1fr 1.2fr 90px 150px", minWidth: 700 }}>
               {[t("aic.col.agent"), t("aic.col.action"), t("aic.col.entity"), t("aic.col.model"), t("aic.col.review"), t("aic.col.date")].map((h) => (
                 <div key={h} style={headSt}>{h}</div>
               ))}

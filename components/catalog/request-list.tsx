@@ -52,7 +52,7 @@ export function RequestList({ rows, stats, ownOnly = true }: { rows: RequestRow[
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 130px 150px 110px", minWidth: 820 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 130px 150px 110px", minWidth: 720 }}>
             {[t("cat.col.number"), t("cat.col.item"), t("cat.col.case"), t("cat.col.due"), t("obs.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t(ownOnly ? "cat.req.empty" : "cat.req.empty.all")} icon="inbox" />}
             {g.groups

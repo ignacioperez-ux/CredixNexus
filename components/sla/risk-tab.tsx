@@ -126,7 +126,7 @@ export function RiskTab({ data, canManage }: { data: AtRiskData; canManage: bool
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: COLS, minWidth: 920 }}>
+          <div style={{ display: "grid", gridTemplateColumns: COLS, minWidth: 800 }}>
             <Th col="number" label={t("sla.col.number")} sort={sort} onSort={toggleSort} aria={ariaSort("number")} sticky />
             <Th col="title" label={t("sla.col.title")} sort={sort} onSort={toggleSort} aria={ariaSort("title")} />
             <Th col="priority" label={t("sla.col.priority")} sort={sort} onSort={toggleSort} aria={ariaSort("priority")} />

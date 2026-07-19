@@ -55,7 +55,7 @@ export function CustomerList({ rows }: { rows: CustomerRow[] }) {
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 130px 100px 90px 80px 130px", minWidth: 820 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 130px 100px 90px 80px 130px", minWidth: 720 }}>
             <div style={head}>{t("cust.col.customer")}</div>
             <div style={head}>{t("cust.segment")}</div>
             <div style={{ ...head, textAlign: "center" }}>{t("cust.risk")}</div>

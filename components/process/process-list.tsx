@@ -49,7 +49,7 @@ export function ProcessList({ rows, stats }: { rows: ProcessRow[]; stats: Proces
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 110px 160px 90px 130px", minWidth: 780 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 110px 160px 90px 130px", minWidth: 700 }}>
             {[t("proc.col.name"), t("proc.col.level"), t("proc.col.owner"), t("proc.col.systems"), t("proc.col.coverage")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("proc.empty")} icon="activity" />}
             {g.groups

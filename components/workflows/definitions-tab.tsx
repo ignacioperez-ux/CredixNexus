@@ -58,7 +58,7 @@ export function DefinitionsTab({ definitions, canManage }: { definitions: Defini
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "150px 1.5fr 110px 80px 90px 110px", minWidth: 780 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "150px 1.5fr 110px 80px 90px 110px", minWidth: 700 }}>
             {[t("wf.def.code"), t("wf.def.name"), t("wf.def.entity"), t("wf.def.nodes"), t("wf.def.insts"), t("wf.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("wf.def.empty")}</div>}
             {f.filtered.map((d) => (

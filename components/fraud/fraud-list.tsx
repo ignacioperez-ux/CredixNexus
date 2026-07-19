@@ -55,7 +55,7 @@ export function FraudList({ rows, stats }: { rows: FraudRow[]; stats: FraudStats
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 150px 150px 90px 110px 120px", minWidth: 940 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "120px 1.5fr 150px 150px 90px 110px 120px", minWidth: 800 }}>
             {[t("fr.col.number"), t("fr.col.case"), t("fr.col.type"), t("fr.col.source"), t("fr.col.risk"), t("fr.col.exposed"), t("obs.col.status")].map((h, i) => <div key={h} style={{ ...head, textAlign: i === 5 ? "right" : "left" }}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("fr.empty")} icon="shield" />}
             {g.groups

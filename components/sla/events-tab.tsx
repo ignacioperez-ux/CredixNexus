@@ -42,7 +42,7 @@ export function EventsTab({ events, canManage }: { events: EscalationEventRow[];
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "116px 1.3fr 150px 130px 96px 116px 92px", minWidth: 940 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "116px 1.3fr 150px 130px 96px 116px 92px", minWidth: 800 }}>
             {[t("sla.col.number"), t("sla.ev.rule"), t("sla.ev.action"), t("sla.ev.clock"), t("sla.ev.elapsed"), t("sla.ev.when"), t("sla.ev.ack")].map((h) => (
               <div key={h} style={head}>{h}</div>
             ))}

@@ -62,7 +62,7 @@ export function AgentWorkspace({ ws }: { ws: Workspace }) {
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>{ws.counts[active]}</span>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1.6fr 150px 104px 120px 120px", minWidth: 860 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "120px 1.6fr 150px 104px 120px 120px", minWidth: 740 }}>
             {[t("inc.col.number"), t("inc.col.title"), t("inc.col.app"), t("inc.col.priority"), t("ws.col.sla"), t("inc.col.status")].map((h) => (
               <div key={h} style={head}>{h}</div>
             ))}

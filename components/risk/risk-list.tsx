@@ -98,7 +98,7 @@ export function RiskList({ data, canManage }: { data: RiskData; canManage: boole
       {/* Tabla completa */}
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "108px 110px minmax(200px, 1.5fr) 108px 108px 100px 112px 1fr", minWidth: 1040 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "108px 110px minmax(200px, 1.5fr) 108px 108px 100px 112px 1fr", minWidth: 860 }}>
             {[t("risk.col.number"), t("risk.col.category"), t("risk.col.desc"), t("risk.col.estimated"), t("risk.col.actual"), t("risk.col.due"), t("risk.col.status"), t("risk.col.plan")].map((h, i) => (
               <div key={h} style={{ ...headSt, textAlign: i === 3 || i === 4 ? "right" : "left", ...(i === 0 ? { position: "sticky", left: 0, zIndex: 2 } : {}) }}>{h}</div>
             ))}

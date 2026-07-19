@@ -76,7 +76,7 @@ export function RulesTab({ rules, options, canManage }: { rules: EscalationRuleR
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "130px 1.4fr 130px 90px 170px 90px 120px", minWidth: 940 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1.4fr 130px 90px 170px 90px 120px", minWidth: 800 }}>
             {[t("sla.rule.code"), t("sla.rule.name"), t("sla.rule.clock"), t("sla.rule.threshold"), t("sla.rule.action"), t("sla.rule.statuscol"), ""].map((h, idx) => <div key={idx} style={head}>{h}</div>)}
             {rules.map((r) => (
               <div key={r.id} style={{ display: "contents" }}>

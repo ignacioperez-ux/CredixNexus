@@ -51,7 +51,7 @@ export function OpQueueView({ queue }: { queue: { unassigned: QueueCase[]; other
       {/* Tabla ligera de SOLO LECTURA (sin acciones, cursor default) */}
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "110px minmax(180px,1.5fr) 90px 96px 160px 190px", minWidth: 900 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "110px minmax(180px,1.5fr) 90px 96px 160px 190px", minWidth: 760 }}>
             {[t("inc.col.number"), t("inc.col.title"), t("inc.col.priority"), t("inc.col.status"), t("flt.responsible"), t("inc.col.sla")].map((h) => <div key={h} style={head}>{h}</div>)}
             {list.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 32, textAlign: "center", color: "var(--muted)", fontSize: 12.5 }}>{t("op.queue.empty")}</div>}
             {list.map((c) => (

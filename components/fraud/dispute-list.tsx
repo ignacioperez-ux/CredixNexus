@@ -94,7 +94,7 @@ export function DisputeList({ rows, stats }: { rows: DisputeRow[]; stats: Disput
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "114px minmax(180px, 1.4fr) 140px 118px 150px 128px", minWidth: 860 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "114px minmax(180px, 1.4fr) 140px 118px 150px 128px", minWidth: 740 }}>
             {[t("dp.col.number"), t("fr.col.case"), t("fr.col.type"), t("dp.col.disputed"), t("dp.col.due"), t("obs.col.status")].map((h, i) => <div key={h} style={{ ...head, textAlign: i === 3 ? "right" : "left" }}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("dp.empty")} icon="shield" />}
             {g.groups

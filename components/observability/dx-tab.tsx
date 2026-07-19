@@ -50,7 +50,7 @@ export function DxTab({ data }: { data: DxData }) {
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "90px 1.2fr 1.2fr 100px 100px 150px 140px", minWidth: 940 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "90px 1.2fr 1.2fr 100px 100px 150px 140px", minWidth: 800 }}>
             {[t("obs.dx.col.channel"), t("obs.dx.col.journey"), t("obs.dx.col.step"), t("obs.dx.col.status"), t("obs.dx.col.rt"), t("obs.dx.col.error"), t("obs.dx.col.when")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <div style={{ gridColumn: "1 / -1", padding: 36, textAlign: "center", color: "var(--muted)" }}>{t("obs.dx.empty")}</div>}
             {f.filtered.map((e) => (

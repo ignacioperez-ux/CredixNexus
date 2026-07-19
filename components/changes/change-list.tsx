@@ -54,7 +54,7 @@ export function ChangeList({ data, canManage }: { data: ChangeData; canManage: b
 
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 110px 90px 120px 120px", minWidth: 880 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1.7fr 110px 90px 120px 120px", minWidth: 740 }}>
             {[t("chg.col.number"), t("chg.col.title"), t("chg.col.type"), t("chg.col.risk"), t("chg.col.origin"), t("chg.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("chg.empty")} icon="search" />}
             {g.groups
