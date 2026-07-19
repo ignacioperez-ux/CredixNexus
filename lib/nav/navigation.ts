@@ -183,7 +183,6 @@ export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
 export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
   { id: "op.torre", label: "nav.op.torre", icon: "home", items: [
     { id: "nav.ophome" },
-    { id: "nav.dashboard", label: "dash.title" },
   ] },
   { id: "op.analitica", label: "nav.op.analitica", icon: "activity", items: [
     { id: "nav.analytics" }, { id: "nav.behavior" },

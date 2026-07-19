@@ -9,6 +9,9 @@ export default async function DashboardPage() {
   // final (sin incident.read) se redirige a su home (/start -> /portal), nunca ve el dashboard total.
   const access = await getAccessControl();
   if (!access.isAdmin && !access.perms.includes("incident.read")) redirect("/start");
+  // El Gerente de Operaciones (support_lead, no admin) tiene su vista unificada en la Torre de
+  // Control: /dashboard redirige a /operaciones para ese rol. Admin conserva el dashboard ejecutivo.
+  if (!access.isAdmin && access.roles.includes("support_lead")) redirect("/operaciones");
   const supabase = await getSupabase();
 
   // Datos reales bajo RLS (solo el tenant del usuario), en paralelo:
