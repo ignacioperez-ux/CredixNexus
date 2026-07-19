@@ -20,6 +20,8 @@ const DOMAIN_FILTERS = ["all", "business", "technology", "service"];
 const PRIORITY_ORDER = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
 const OPEN_STATES = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
 const SETTLED_STATES = ["resolved", "closed", "cancelled"];
+// Estados donde un caso AUN puede sugerirse a elevar: abierto y NO ya derivado a Evolucion.
+const ELEVATION_STATES = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
 
 /** SLA vencido: con fecha de vencimiento pasada, aun sin resolver y en estado abierto. */
 function slaBreached(r: IncidentRow, now: number): boolean {
@@ -34,7 +36,10 @@ const SAVED_VIEWS: ViewDef[] = [
   { key: "mine", label: "inc.view.mine", icon: "user", needsMember: true, pred: (r, m) => !!m && r.assigned_member_id === m },
   { key: "unassigned", label: "inc.view.unassigned", icon: "users", pred: (r) => !r.assignee && OPEN_STATES.includes(r.status) },
   { key: "sla", label: "inc.view.sla", icon: "alert", pred: (r, _m, now) => slaBreached(r, now) },
-  { key: "candidates", label: "inc.view.candidates", icon: "zap", pred: (r) => r.transformation_candidate },
+  // Candidato a ELEVAR (forward-looking): caso abierto y no derivado con senal de transformacion
+  // del motor de scoring (transformation_score > 0), ordenado desc por la query. Distinto de
+  // transformation_candidate, que solo se activa AL derivar (mira hacia atras). Sin umbral quemado (§11).
+  { key: "candidates", label: "inc.view.candidates", icon: "zap", pred: (r) => ELEVATION_STATES.includes(r.status) && r.transformation_score > 0 },
 ];
 const domainColor: Record<string, string> = { business: "var(--accent-2)", technology: "var(--st-info)", service: "var(--teal)" };
 
@@ -322,7 +327,7 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
           </div>
 
           {filtered.length === 0 ? (
-            <EmptyState text={t("inc.empty")} icon="inbox" />
+            <EmptyState text={view === "candidates" ? t("inc.candidates.empty") : t("inc.empty")} icon={view === "candidates" ? "zap" : "inbox"} />
           ) : g.groups ? (
             g.groups.map((grp) => (
               <div key={grp.value}>
