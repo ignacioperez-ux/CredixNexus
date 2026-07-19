@@ -153,6 +153,44 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
   return { ok: true, id: data.id as string, number: data.incident_number as string };
 }
 
+/** Cambia el flag de reincidencia despues del registro. Solo el REPORTANTE (libre, es su
+ *  afirmacion) o la GERENCIA de Operaciones pueden cambiarlo; la Gerencia DEBE documentar el
+ *  motivo (evidencia para discusiones posteriores). Backend-authoritative (§10.7/§10.8). La
+ *  justificacion queda en columna + comentario de sistema, ademas del ledger (audit_row_change). */
+export async function setIncidentRecurrence(incidentId: string, isRecurrence: boolean, reviewNote?: string): Promise<ActionResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  const { data: inc } = await ctx.supabase.from("incident").select("reported_by_user_id, is_recurrence").eq("id", incidentId).maybeSingle();
+  if (!inc) return { ok: false, error: ErrorCode.INVALID_REFERENCE };
+  const isReporter = inc.reported_by_user_id === ctx.accountId;
+  // Gerencia de Operaciones (no operador): mismas potestades que triar/asignar (cf. sendToEvolution).
+  const isOpsMgr = await anyPerm(["triage.manage", "incident.assign"]);
+  if (!isReporter && !isOpsMgr) return { ok: false, error: ErrorCode.PERMISSION };
+
+  const note = (reviewNote ?? "").trim();
+  // Si lo cambia la Gerencia (no el reportante), el motivo es OBLIGATORIO (evidencia documentada).
+  if (!isReporter && note.length < 5) return { ok: false, error: "RECURRENCE_REASON_REQUIRED" };
+  if (inc.is_recurrence === isRecurrence && !(!isReporter && note)) return { ok: true, id: incidentId };
+
+  const patch: Record<string, unknown> = { is_recurrence: isRecurrence, updated_by: ctx.accountId };
+  if (!isReporter) {
+    patch.recurrence_review_note = note;
+    patch.recurrence_reviewed_by = ctx.accountId;
+    patch.recurrence_reviewed_at = new Date().toISOString();
+  }
+  const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId);
+  if (error) return { ok: false, error: error.message };
+
+  await ctx.supabase.from("incident_comment").insert({
+    tenant_id: ctx.tenantId, incident_id: incidentId, author_user_id: ctx.accountId,
+    body: `Reincidencia ${isRecurrence ? "marcada" : "desmarcada"}${note ? ` — motivo: ${note}` : ""}.`,
+    visibility: "internal", is_system_generated: true,
+  });
+  revalidatePath(`/incidents/${incidentId}`);
+  revalidatePath(`/portal/cases/${incidentId}`);
+  return { ok: true, id: incidentId };
+}
+
 export type SimilarResult = { ok: boolean; error?: string; items?: SimilarCaseHit[] };
 
 /** Deteccion de duplicados en el registro (mesa de ayuda): casos ABIERTOS del tenant

@@ -8,6 +8,7 @@ import { PriorityTag } from "../badges";
 import { CommentThread } from "./comment-thread";
 import { StatusActions } from "./status-actions";
 import { StatusStepper } from "./status-stepper";
+import { RecurrenceReview } from "./recurrence-review";
 import { AssignResponsible } from "./assign-responsible";
 import type { IncidentAssignee } from "@/lib/incidents/assignees";
 import { assignmentEditable } from "@/lib/incidents/transitions";
@@ -83,6 +84,9 @@ export type IncidentDetailData = {
   area: ({ name: string; code: string }) | null;
   is_recurrence: boolean;
   recurrence_of: ({ id: string; incident_number: string; title: string }) | null;
+  recurrence_review_note: string | null;
+  recurrence_reviewed_at: string | null;
+  recurrence_reviewer: ({ full_name: string }) | null;
   intake_status: string;
   classified_as: string | null;
   assigned_member_id: string | null;
@@ -150,20 +154,10 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
         </Link>
       )}
 
-      {/* Banner: reincidencia marcada por el reportante (fix previo fallido / derivo en problemas). */}
-      {inc.is_recurrence && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--st-high-bg)", border: "1px solid var(--st-high)", borderRadius: "var(--r-md)", padding: "10px 14px" }} title={t("inc.recurrence.note")}>
-          <Icon name="alert" size={14} color="var(--st-high-fg)" />
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--st-high-fg)" }}>{t("inc.recurrence.badge")}</span>
-          {inc.recurrence_of && (
-            <>
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>· {t("inc.recurrence.of")}</span>
-              <Link href={`/incidents/${inc.recurrence_of.id}`} style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600 }}>{inc.recurrence_of.incident_number}</Link>
-              <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.recurrence_of.title}</span>
-            </>
-          )}
-        </div>
-      )}
+      {/* Reincidencia: banner + gobierno de edicion (Gerencia con motivo obligatorio). */}
+      <RecurrenceReview incidentId={inc.id} isRecurrence={inc.is_recurrence} priorCase={inc.recurrence_of}
+        reviewNote={inc.recurrence_review_note} reviewedAt={inc.recurrence_reviewed_at}
+        reviewerName={inc.recurrence_reviewer?.full_name ?? null} canManage={canManageAssign} />
 
       {/* Vista unica de gestion del caso */}
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
