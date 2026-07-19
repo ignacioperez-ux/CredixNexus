@@ -348,6 +348,31 @@ export async function updateIncident(id: string, input: IncidentInput): Promise<
   return { ok: true, id };
 }
 
+/** Resuelve un caso EXIGIENDO el reporte de solucion del operador (#11). El resumen alimenta el
+ *  KB via capture_incident_closure_kb (seccion Solucion). Evidencia: se adjunta con uploadAttachment
+ *  (bucket case-attachments) por separado desde la UI. Backend-authoritative. */
+export async function resolveIncident(incidentId: string, resolutionSummary: string, rootCause?: string): Promise<ActionResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!(await anyPerm(["incident.update", "incident.resolve", "triage.manage"]))) return { ok: false, error: ErrorCode.PERMISSION };
+  const own = await assertActOnIncident(ctx, incidentId);
+  if (own) return { ok: false, error: own };
+  const summary = (resolutionSummary ?? "").trim();
+  if (summary.length < 15) return { ok: false, error: "RESOLUTION_REPORT_REQUIRED" };
+
+  const patch: Record<string, unknown> = { status: "resolved", resolved_at: new Date().toISOString(), resolution_summary: summary };
+  const rc = (rootCause ?? "").trim();
+  if (rc) patch.root_cause_summary = rc;
+  const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId).select("id").single();
+  if (error) return { ok: false, error: error.message };
+  // Knowledge al cierre: ahora con SOLUCION real documentada (no placeholder).
+  await ctx.supabase.rpc("capture_incident_closure_kb", { p_id: incidentId });
+  void triggerIncidentEmbedding(ctx.supabase, incidentId);
+  revalidatePath(`/incidents/${incidentId}`);
+  revalidatePath("/incidents");
+  return { ok: true, id: incidentId };
+}
+
 /** Eliminacion logica (soft delete) — nunca fisica (referenciado por el ledger). */
 export async function softDeleteIncident(id: string): Promise<ActionResult> {
   const ctx = await getContext();
@@ -402,7 +427,13 @@ export async function changeStatus(incidentId: string, status: string): Promise<
     if (guard) return { ok: false, error: guard };
   }
   const patch: Record<string, unknown> = { status };
-  if (status === "resolved") patch.resolved_at = new Date().toISOString();
+  if (status === "resolved") {
+    // #11: no se resuelve sin reporte de solucion documentado (alimenta el KB). Si no existe ya en
+    // el caso, se exige usar el flujo de resolucion (resolveIncident) que lo captura.
+    const { data: cur } = await ctx.supabase.from("incident").select("resolution_summary").eq("id", incidentId).maybeSingle();
+    if (!cur?.resolution_summary || (cur.resolution_summary as string).trim().length < 15) return { ok: false, error: "RESOLUTION_REPORT_REQUIRED" };
+    patch.resolved_at = new Date().toISOString();
+  }
   const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId).select("id").single();
   if (error) return { ok: false, error: error.message };
   // Knowledge al RESOLVER/CERRAR: captura el caso como articulo draft (sintoma + SOLUCION: causa raiz
