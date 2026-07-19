@@ -10,6 +10,7 @@ import { priorityKey, statusKey } from "@/lib/incidents/labels";
 import { changeStatus } from "@/lib/incidents/actions";
 import { assignIncidentMember } from "@/lib/talent/actions";
 import { saveView, deleteSavedView } from "@/lib/views/actions";
+import { evaluateOpenIncidents } from "@/lib/rules/engine";
 import type { SavedView } from "@/lib/views/queries";
 import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
 import { useGrouping, GroupBar, EmptyState, type GroupDef } from "@/components/common/filters";
@@ -157,6 +158,17 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
   function toggleAll() { setPicked((p) => { const n = new Set(p); if (allPicked) filteredIds.forEach((id) => n.delete(id)); else filteredIds.forEach((id) => n.add(id)); return n; }); }
   function bulkRun(fn: (id: string) => Promise<{ ok: boolean; error?: string }>) {
     startBulk(async () => { await Promise.all([...picked].map(fn)); setPicked(new Set()); router.refresh(); });
+  }
+  // #4: puntuar casos abiertos sin score (corre el motor real) para poblar la vista Candidatos.
+  const [scoreMsg, setScoreMsg] = useState<string | null>(null);
+  function evalOpen() {
+    setScoreMsg(null);
+    startBulk(async () => {
+      const r = await evaluateOpenIncidents();
+      if (!r.ok) { setScoreMsg(t("inc.candidates.evalerr")); return; }
+      setScoreMsg(t("inc.candidates.evaldone").replace("{n}", String(r.evaluated ?? 0)).replace("{r}", String(r.remaining ?? 0)));
+      router.refresh();
+    });
   }
 
   // --- Vistas guardadas por usuario (persistentes) ---
@@ -327,7 +339,17 @@ export function IncidentTable({ rows, caseTypes = {}, myMemberId = null, default
           </div>
 
           {filtered.length === 0 ? (
-            <EmptyState text={view === "candidates" ? t("inc.candidates.empty") : t("inc.empty")} icon={view === "candidates" ? "zap" : "inbox"} />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "8px 0" }}>
+              <EmptyState text={view === "candidates" ? t("inc.candidates.empty") : t("inc.empty")} icon={view === "candidates" ? "zap" : "inbox"} />
+              {view === "candidates" && canAssign && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                  <button onClick={evalOpen} disabled={pending} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, padding: "8px 14px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "var(--accent-soft)", color: "var(--accent-2)", cursor: pending ? "default" : "pointer", opacity: pending ? 0.6 : 1 }}>
+                    <Icon name="zap" size={14} color="var(--accent-2)" /> {pending ? t("inc.candidates.evaling") : t("inc.candidates.evalbtn")}
+                  </button>
+                  {scoreMsg && <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{scoreMsg}</span>}
+                </div>
+              )}
+            </div>
           ) : g.groups ? (
             g.groups.map((grp) => (
               <div key={grp.value}>

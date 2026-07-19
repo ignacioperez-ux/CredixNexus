@@ -162,3 +162,23 @@ export async function evaluateIncident(incidentId: string): Promise<EvaluationRe
   revalidatePath("/rules");
   return { ok: true, score, decision, factors, explanation };
 }
+
+/** Evalua en lote los casos ABIERTOS aun sin puntuar (transformation_score = 0), corriendo el
+ *  motor real (auditado). Poblar la vista "Candidatos" con senal legitima, sin mock (§11). Accion
+ *  controlada por el usuario (§2.4); acotada por `max` para no exceder el tiempo del server action. */
+export async function evaluateOpenIncidents(max = 100): Promise<{ ok: boolean; error?: string; evaluated?: number; remaining?: number }> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId) return { ok: false, error: "ERR_PERMISSION_DENIED" };
+  if (!(await hasPermission(ctx.supabase, "incident.update")) && !(await hasPermission(ctx.supabase, "triage.manage"))) {
+    return { ok: false, error: "ERR_PERMISSION_DENIED" };
+  }
+  const OPEN = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+  const { data: rows } = await ctx.supabase
+    .from("incident").select("id").in("status", OPEN).eq("transformation_score", 0).limit(max + 1);
+  const ids = (rows ?? []).map((r) => r.id as string);
+  const remaining = Math.max(0, ids.length - max);
+  let evaluated = 0;
+  for (const id of ids.slice(0, max)) { const r = await evaluateIncident(id); if (r.ok) evaluated++; }
+  revalidatePath("/incidents");
+  return { ok: true, evaluated, remaining };
+}
