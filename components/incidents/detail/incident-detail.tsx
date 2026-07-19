@@ -253,10 +253,10 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Collapsible>
           )}
 
-          <Collapsible title={t("inc.section.knowledge")} tip="inc.tip.kb" count={knowledge.length} defaultOpen={knowledge.length > 0}>
-            {knowledge.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("inc.kb.none")}</div>
-            ) : (
+          {/* Vinculos: se ocultan cuando estan VACIOS para no ensuciar la pantalla; quien puede
+              gestionar los sigue viendo (aunque vacios) para poder vincular. KB solo si hay match. */}
+          {knowledge.length > 0 && (
+            <Collapsible title={t("inc.section.knowledge")} tip="inc.tip.kb" count={knowledge.length} defaultOpen>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {knowledge.map((k) => (
                   <div key={k.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: "var(--r-md)", background: "var(--teal-soft)" }}>
@@ -266,20 +266,26 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
                   </div>
                 ))}
               </div>
-            )}
-          </Collapsible>
+            </Collapsible>
+          )}
 
-          <Collapsible title={t("prob.linked")} tip="inc.tip.problem" count={problems.length} defaultOpen={problems.length > 0}>
-            <ProblemLink incidentId={inc.id} problems={problems} canManage={canManageProblem} />
-          </Collapsible>
+          {(problems.length > 0 || canManageProblem) && (
+            <Collapsible title={t("prob.linked")} tip="inc.tip.problem" count={problems.length} defaultOpen={problems.length > 0}>
+              <ProblemLink incidentId={inc.id} problems={problems} canManage={canManageProblem} />
+            </Collapsible>
+          )}
 
-          <Collapsible title={t("chg.section.incident")} tip="inc.tip.changes" count={changes.length} defaultOpen={changes.length > 0}>
-            <ChangeLink changes={changes} canManage={canManageChange} newHref={`/changes/new?incident=${inc.id}`} />
-          </Collapsible>
+          {(changes.length > 0 || canManageChange) && (
+            <Collapsible title={t("chg.section.incident")} tip="inc.tip.changes" count={changes.length} defaultOpen={changes.length > 0}>
+              <ChangeLink changes={changes} canManage={canManageChange} newHref={`/changes/new?incident=${inc.id}`} />
+            </Collapsible>
+          )}
 
-          <Collapsible title={t("wf.section.incident")} tip="inc.tip.workflows" count={workflows.length} defaultOpen={workflows.length > 0}>
-            <IncidentWorkflows incidentId={inc.id} incidentTitle={inc.title} linked={workflows} definitions={workflowDefs} canRun={canRunWorkflow} />
-          </Collapsible>
+          {(workflows.length > 0 || canRunWorkflow) && (
+            <Collapsible title={t("wf.section.incident")} tip="inc.tip.workflows" count={workflows.length} defaultOpen={workflows.length > 0}>
+              <IncidentWorkflows incidentId={inc.id} incidentTitle={inc.title} linked={workflows} definitions={workflowDefs} canRun={canRunWorkflow} />
+            </Collapsible>
+          )}
 
           {(financialCase || canManageFraud || canManageDispute) && (
             <Collapsible title={t("fc.section")} tip="inc.tip.financial" count={financialCase ? 1 : 0} defaultOpen={hasFinancial}>
@@ -303,22 +309,25 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             </Collapsible>
           )}
 
-          {/* Regla de transformacion / Evolucion: accion, no se colapsa (paneles con su propia tarjeta) */}
-          {(canUpdateIncident || canTriage) && <EvaluatePanel incidentId={inc.id} />}
+          {/* Transformacion / Evolucion / IA: solo Gerencia y roles con permiso (el operador ve la
+              pantalla limpia; no se pierde el motor de scoring, §3.1 #2). */}
+          {(canTriage || canManageAssign) && <EvaluatePanel incidentId={inc.id} />}
           {(canManageAssign || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
 
-          <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")} tip="inc.tip.ai">
-            <Card title={t("inc.section.rca")}>
-              <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
-            </Card>
-            <Card title={t("ai2.title")}>
-              <AiInsights incidentId={inc.id} canUpdate={canUpdateIncident} />
-            </Card>
-            <AiExecSummary incidentId={inc.id} />
-            <Card title={t("inc.section.kb")}>
-              <AiKb incidentId={inc.id} />
-            </Card>
-          </AiSuggestions>
+          {(canTriage || canManageAssign) && (
+            <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")} tip="inc.tip.ai">
+              <Card title={t("inc.section.rca")}>
+                <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
+              </Card>
+              <Card title={t("ai2.title")}>
+                <AiInsights incidentId={inc.id} canUpdate={canUpdateIncident} />
+              </Card>
+              <AiExecSummary incidentId={inc.id} />
+              <Card title={t("inc.section.kb")}>
+                <AiKb incidentId={inc.id} />
+              </Card>
+            </AiSuggestions>
+          )}
 
           {/* Riesgo operativo (GRC): vinculo al evento de riesgo; se conserva como accion. */}
           {(riskEvent || canManageRisk) && (
