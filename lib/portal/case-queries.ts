@@ -12,6 +12,7 @@ export type MyCaseDetail = {
   app: string | null; service: string | null; product: string | null;
   channel: string | null; business_unit: string | null; reporter: string | null;
   assignee: string | null;
+  is_recurrence: boolean; recurrence_of_number: string | null;
 };
 
 export type CaseThreadItem = { id: string; body: string; created_at: string; is_system_generated: boolean; is_mine: boolean };

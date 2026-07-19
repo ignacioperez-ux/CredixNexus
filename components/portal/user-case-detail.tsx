@@ -11,6 +11,7 @@ import { SlaRing } from "@/components/portal/hub-viz";
 import { SlaStatusRow } from "@/components/sla/sla-status";
 import { useDictation } from "./use-dictation";
 import { addMyCaseComment, uploadMyCaseEvidence, deleteMyCaseEvidence, escalateMyCase } from "@/lib/portal/case-actions";
+import { setIncidentRecurrence } from "@/lib/incidents/actions";
 import type { MyCaseDetail, CaseThreadItem, MyCaseSurvey, PortalAttachment } from "@/lib/portal/case-queries";
 import { CaseCsat } from "./case-csat";
 
@@ -54,6 +55,10 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
   }
   function escalate() {
     startBusy(async () => { const r = await escalateMyCase(detail.id); if (r.ok) { setEscalated(true); router.refresh(); } });
+  }
+  // El reportante puede cambiar libremente su propio flag de reincidencia (sin motivo).
+  function toggleRecurrence(next: boolean) {
+    startBusy(async () => { const r = await setIncidentRecurrence(detail.id, next); if (r.ok) router.refresh(); });
   }
 
   const sc = statusColors(detail.status);
@@ -112,6 +117,19 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
           {detail.description && (
             <div style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "12px 14px", fontSize: 13, color: "var(--text)" }}>{detail.description}</div>
           )}
+
+          {/* Reincidencia: el reportante puede marcar/desmarcar libremente su propio caso. */}
+          <div style={{ ...panel, padding: "12px 14px" }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: busy ? "default" : "pointer" }}>
+              <input type="checkbox" checked={detail.is_recurrence} disabled={busy} onChange={(e) => toggleRecurrence(e.target.checked)} style={{ marginTop: 2, cursor: "inherit" }} />
+              <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>
+                {t("portal.recurrence.label")}
+                {detail.is_recurrence && detail.recurrence_of_number && (
+                  <span style={{ display: "block", fontWeight: 400, fontSize: 11.5, color: "var(--muted)", marginTop: 3 }}>{t("inc.recurrence.of")}: <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-2)" }}>{detail.recurrence_of_number}</span></span>
+                )}
+              </span>
+            </label>
+          </div>
 
           {showCsat && <CaseCsat incidentId={detail.id} existing={survey} />}
 
