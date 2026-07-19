@@ -2,9 +2,9 @@
 
 import { Icon } from "@/components/ui/icon";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import { changeStatus, softDeleteIncident, resolveIncident } from "@/lib/incidents/actions";
@@ -27,10 +27,23 @@ const NEXT: Record<string, string[]> = {
 export function StatusActions({ incidentId, status, hasAssignee }: { incidentId: string; status: string; hasAssignee: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   // #11: resolver exige el reporte de solucion (modal). Otros estados avanzan directo.
   const [resolveOpen, setResolveOpen] = useState(false);
+  // Deep-link ?resolve=1 (p.ej. desde el command-menu): abre el modal si resolver es valido y
+  // limpia el parametro para que no reabra al refrescar.
+  useEffect(() => {
+    if (searchParams.get("resolve") === "1" && (NEXT[status] ?? []).includes("resolved")) {
+      setResolveOpen(true);
+      const params = new URLSearchParams(Array.from(searchParams.entries()));
+      params.delete("resolve");
+      router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, status]);
   const [solution, setSolution] = useState("");
   const [rootCause, setRootCause] = useState("");
   const [files, setFiles] = useState<File[]>([]);

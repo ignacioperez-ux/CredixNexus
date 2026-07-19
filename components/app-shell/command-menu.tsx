@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import { canSeeNav } from "@/lib/nav/access";
 import { MACRO_NAV, QUICK_ACTIONS } from "@/lib/nav/navigation";
-import { changeStatus, sendToEvolution } from "@/lib/incidents/actions";
+import { sendToEvolution } from "@/lib/incidents/actions";
 
 // Command Menu global (Cmd/Ctrl+K). FASE 2: navegacion + acciones rapidas + busqueda de
 // entidades + recientes. FASE 3.1: comandos que EJECUTAN sobre el ticket en contexto
@@ -88,7 +88,9 @@ export function CommandMenu({ perms = [], isAdmin = false }: { perms?: string[];
     const commands: Entry[] = [];
     if (currentIncidentId) {
       if (isAdmin || perms.includes("incident.resolve"))
-        commands.push({ id: "cmd:resolve", label: t("cmd.cmd.resolve"), hint: t("cmd.group.command"), icon: "check", path: "", kind: "command", run: () => changeStatus(currentIncidentId, "resolved") });
+        // Resolver exige reporte de solucion (#11): en vez de resolver directo, navega al detalle
+        // y abre el modal de resolucion via ?resolve=1.
+        commands.push({ id: "cmd:resolve", label: t("cmd.cmd.resolve"), hint: t("cmd.group.command"), icon: "check", path: `/incidents/${currentIncidentId}?resolve=1`, kind: "command" });
       if (isAdmin || perms.includes("problem.manage") || perms.includes("project.manage"))
         commands.push({ id: "cmd:evolve", label: t("cmd.cmd.evolve"), hint: t("cmd.group.command"), icon: "zap", path: "", kind: "command", run: () => sendToEvolution(currentIncidentId) });
     }
