@@ -17,7 +17,8 @@ for (const p of PERSONAS) {
     await page.goto("/login");
     await page.locator("#email").fill(p.email!);
     await page.locator("#password").fill(p.password!);
-    await page.getByRole("button", { name: /^ingresar$|^sign in$/i }).click();
+    // Enviar el form con Enter: robusto ante el texto/estado del boton y variantes del login.
+    await page.locator("#password").press("Enter");
     // Basta con salir de /login (cada rol cae en su home): capturamos el storageState.
     // Timeout amplio: el dev server puede recompilar la home del rol en la primera visita.
     await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 45_000 });

@@ -10,6 +10,10 @@ import { defineConfig, devices } from "@playwright/test";
 //   E2E_USUARIO_EMAIL / E2E_USUARIO_PASSWORD       (partner_user / Mi Portal)
 //   E2E_EVOLUCION_EMAIL / E2E_EVOLUCION_PASSWORD   (product_owner / Gerente de Evolucion)
 // Mutaciones (crear casos, enviar formularios) SOLO si E2E_ALLOW_MUTATIONS=1 (la BD es prod).
+// Puerto dedicado para E2E (evita chocar con otras apps que el usuario tenga en 3000/3001).
+const E2E_PORT = process.env.E2E_PORT ?? "3100";
+const BASE_URL = process.env.E2E_BASE_URL ?? `http://localhost:${E2E_PORT}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -21,12 +25,21 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    baseURL: BASE_URL,
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+  },
+  // Playwright administra el server de CredixNexus en un puerto dedicado (readiness automatico).
+  // reuseExistingServer: si ya hay algo en E2E_PORT lo reusa; si no, lo levanta. §3.1 #4 se cumple
+  // porque no lo corre "a mano" el asistente: lo gestiona el runner (el usuario habilito el server).
+  webServer: {
+    command: `npm run dev -- --port ${E2E_PORT}`,
+    url: BASE_URL,
+    reuseExistingServer: true,
+    timeout: 180_000,
   },
   projects: [
     // 1) Login del usuario de prueba -> guarda storageState reutilizable.
