@@ -37,7 +37,7 @@ export function CmdbList({ rows, initialType }: { rows: CiRow[]; initialType?: s
       </div>
       <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 130px 1fr 110px", minWidth: 720 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 130px 1fr 110px", minWidth: 640 }}>
             {[t("cmdb.col.name"), t("cmdb.col.type"), t("cmdb.col.vendor"), t("cmdb.col.status")].map((h) => <div key={h} style={head}>{h}</div>)}
             {f.filtered.length === 0 && <EmptyState text={t("cmdb.empty")} icon="database" />}
             {g.groups

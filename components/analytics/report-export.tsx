@@ -112,7 +112,7 @@ export function ReportExport() {
           <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", overflow: "hidden" }}>
             <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)", fontSize: 12, color: "var(--muted)" }}>{filtered.length} / {result.rows.length} {t("an.rep.rows")}</div>
             <div style={{ overflowX: "auto", maxHeight: 480, overflowY: "auto" }}>
-              <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 700 }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 640 }}>
                 <thead>
                   <tr>{result.columns.map((c) => <th key={c} style={{ position: "sticky", top: 0, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#8A948A", padding: "9px 12px", background: "var(--head-bg)", textAlign: "left", whiteSpace: "nowrap" }}>{c}</th>)}</tr>
                 </thead>
