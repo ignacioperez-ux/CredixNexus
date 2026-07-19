@@ -33,9 +33,10 @@ export function MiDetail({ mi, updates, people, ledger, canManage, commanderName
   const [uBody, setUBody] = useState("");
   const [nextMin, setNextMin] = useState("30");
   const nexts = MI_NEXT[mi.status] ?? [];
-  // Solo se enlaza al war-room si es una URL externa http(s) valida. Una URL relativa o con otro
-  // esquema (p.ej. javascript:) NO se convierte en enlace: evita navegacion in-app rota o insegura.
-  const bridgeHref = safeExternalUrl(mi.bridge_url);
+  // War-room: solo se enlaza si es http(s) valido Y el host es PUBLICAMENTE ruteable. Un host no
+  // publico (.local, localhost, IP privada) NO se enlaza -> evita mandar al navegador a NXDOMAIN
+  // (DNS_PROBE_FINISHED_NXDOMAIN). En ese caso se muestra para COPIAR (por si resuelve en la red interna).
+  const bridge = classifyBridge(mi.bridge_url);
   const overdue = mi.next_update_due_at && new Date(mi.next_update_due_at).toISOString() < new Date().toISOString() && mi.status !== "resolved" && mi.status !== "stood_down";
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
@@ -61,12 +62,15 @@ export function MiDetail({ mi, updates, people, ledger, canManage, commanderName
               {nexts.map((s) => <button key={s} onClick={() => run(() => changeMiStatus(mi.id, s))} disabled={pending} style={btnGhost}>{t(("mi.st." + s) as MessageKey)}</button>)}
             </div>
           )}
-          {/* Enlace EXTERNO al puente/sala virtual: estilo distinto (guiones + flecha externa) para
-              que no se confunda con un paso de la cadena de estado. Abre en pestana nueva y seguro. */}
-          {bridgeHref && (
-            <a href={bridgeHref} target="_blank" rel="noopener noreferrer" style={{ ...btnGhost, color: "var(--accent-2)", borderStyle: "dashed", textDecoration: "none" } as React.CSSProperties}>
+          {/* Sala virtual publica: enlace externo real (pestana nueva, seguro). */}
+          {bridge.href && (
+            <a href={bridge.href} target="_blank" rel="noopener noreferrer" style={{ ...btnGhost, color: "var(--accent-2)", borderStyle: "dashed", textDecoration: "none" } as React.CSSProperties}>
               <Icon name="link" size={13} color="var(--accent-2)" style={{ verticalAlign: "-2px" }} /> {t("mi.bridge")} <span aria-hidden>&#8599;</span>
             </a>
+          )}
+          {/* Sala virtual NO publica: no navega (evita NXDOMAIN); clic copia el enlace. */}
+          {bridge.display && !bridge.href && (
+            <BridgeCopyChip url={bridge.display} label={t("mi.bridge")} tip={t("mi.bridge.notpublic")} copyLabel={t("mi.bridge.copy")} copiedLabel={t("mi.bridge.copied")} />
           )}
         </div>
       </div>
@@ -153,13 +157,43 @@ export function MiDetail({ mi, updates, people, ledger, canManage, commanderName
   );
 }
 
-/** Solo acepta URLs externas absolutas http(s). Evita enlaces relativos (navegacion in-app rota)
- *  o esquemas peligrosos (javascript:, data:) que romperian o comprometerian la pantalla. */
-function safeExternalUrl(u: string | null): string | null {
-  if (!u) return null;
+/** Clasifica el bridge_url del war-room:
+ *  - href: solo si es http(s) valido Y el host es publicamente ruteable -> se puede enlazar.
+ *  - display: el valor http(s) valido (para copiar) aunque el host no sea ruteable.
+ *  Evita enlaces relativos / esquemas peligrosos y, sobre todo, evita mandar al navegador a un host
+ *  no publico (p.ej. meet.credix.local) que cae en DNS_PROBE_FINISHED_NXDOMAIN. */
+function classifyBridge(u: string | null): { href: string | null; display: string | null } {
+  if (!u) return { href: null, display: null };
   const s = u.trim();
-  if (!/^https?:\/\//i.test(s)) return null;
-  try { new URL(s); return s; } catch { return null; }
+  if (!/^https?:\/\//i.test(s)) return { href: null, display: null };
+  let host = "";
+  try { host = new URL(s).hostname.toLowerCase(); } catch { return { href: null, display: null }; }
+  return { href: isPublicHost(host) ? s : null, display: s };
+}
+
+/** Host resoluble en Internet publico (no .local/localhost/IP privada/host de una sola etiqueta). */
+function isPublicHost(host: string): boolean {
+  if (!host || host === "localhost") return false;
+  if (/\.(local|internal|localhost|test|example|invalid)$/.test(host)) return false;
+  if (!host.includes(".")) return false; // una sola etiqueta: no es un FQDN publico
+  if (/^(127\.|10\.|192\.168\.|169\.254\.)/.test(host)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+  return true;
+}
+
+/** Sala virtual no publica: chip que NO navega; al hacer clic copia el enlace al portapapeles. */
+function BridgeCopyChip({ url, label, tip, copyLabel, copiedLabel }: { url: string; label: string; tip: string; copyLabel: string; copiedLabel: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* portapapeles no disponible */ }
+  };
+  return (
+    <button type="button" onClick={copy} title={`${tip}\n${url}`} aria-label={`${label} — ${tip}`}
+      style={{ ...btnGhost, color: "var(--muted)", borderStyle: "dashed", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <Icon name="link" size={13} color="var(--muted)" style={{ verticalAlign: "-2px" }} /> {label}
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent-2)" }}>{copied ? copiedLabel : copyLabel}</span>
+    </button>
+  );
 }
 
 const inp: React.CSSProperties = { fontSize: 12.5, padding: "8px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%" };
