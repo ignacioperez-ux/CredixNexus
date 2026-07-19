@@ -33,4 +33,18 @@ test.describe("Operaciones (support_lead) · Torre de Control", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/operaciones/);
   });
+
+  test("Analisis de comportamiento: carga y cambiar ventana/dimension no rompe", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    page.on("response", (r) => { if (r.status() >= 500) errors.push(`HTTP ${r.status()} ${r.url()}`); });
+    await page.goto("/analytics/comportamiento");
+    await expect(page).toHaveURL(/comportamiento/);
+    await expect(page.locator("body")).toBeVisible();
+    // Ventana (gobierna la tendencia) y dimension (gobierna el ranking) via ?dim=&weeks=.
+    await page.goto("/analytics/comportamiento?dim=product&weeks=26");
+    await expect(page).toHaveURL(/dim=product/);
+    await expect(page.locator("body")).toBeVisible();
+    expect(errors, `Errores de runtime: ${errors.join(" | ")}`).toHaveLength(0);
+  });
 });

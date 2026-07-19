@@ -104,8 +104,8 @@ export function BehaviorAnalysisView({ data, dimension, weeks }: { data: Behavio
         <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, minWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t("beh.subtitle")}</span>
       </div>
 
+      {/* Solo VENTANA arriba: gobierna la tendencia (data.trend depende de weeks, no de la dimension). */}
       <div className="ba-controls" style={{ opacity: pending ? 0.6 : 1, transition: "opacity .15s" }}>
-        <div className="ba-cg"><span style={lbl}>{t("beh.groupBy")}</span>{BEHAVIOR_DIMENSIONS.map((d) => <Pill key={d} active={d === dimension} onClick={() => go(d, weeks)}>{t(DIM_LABEL[d])}</Pill>)}</div>
         <div className="ba-cg"><span style={lbl}>{t("beh.window")}</span>{WINDOWS.map((w) => <Pill key={w} active={w === weeks} onClick={() => go(dimension, w)}>{w}{t("beh.weeksUnit")}</Pill>)}</div>
       </div>
 
@@ -119,6 +119,12 @@ export function BehaviorAnalysisView({ data, dimension, weeks }: { data: Behavio
 
       {/* §2 Tendencia como banda ancha */}
       <TrendBand data={data} proj={proj} t={t} />
+
+      {/* Agrupar por: gobierna el Ranking / Detalle / Senales (agrupacion por dimension), NO la
+          tendencia. Por eso vive aca abajo, junto a lo que controla, y no arriba con la Ventana. */}
+      <div className="ba-controls" style={{ opacity: pending ? 0.6 : 1, transition: "opacity .15s" }}>
+        <div className="ba-cg"><span style={lbl}>{t("beh.groupBy")}</span>{BEHAVIOR_DIMENSIONS.map((d) => <Pill key={d} active={d === dimension} onClick={() => go(d, weeks)}>{t(DIM_LABEL[d])}</Pill>)}</div>
+      </div>
 
       {/* §1 Ranking: una sola tabla compacta y sortable */}
       <div className="ba-card" style={{ padding: 16 }}>
