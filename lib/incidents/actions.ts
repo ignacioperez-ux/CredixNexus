@@ -57,6 +57,9 @@ export type IncidentInput = {
   customerName?: string;
   sensitiveFlag?: boolean;
   piiFlag?: boolean;
+  // Reincidencia: el usuario indica que reincide un caso previo cuyo fix no funciono.
+  isRecurrence?: boolean;
+  recurrenceOfIncidentId?: string;
 };
 
 function fintechCols(i: IncidentInput) {
@@ -109,6 +112,14 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
 
   const priority = derivePriority(input.impact, input.urgency);
 
+  // Reincidencia: si se enlaza un caso previo, verificar que existe en el tenant (RLS). Si no
+  // se encuentra, se guarda la marca pero sin enlace (no bloquea el registro del caso).
+  let recurrenceOf: string | null = null;
+  if (input.isRecurrence && input.recurrenceOfIncidentId) {
+    const { data: prior } = await ctx.supabase.from("incident").select("id").eq("id", input.recurrenceOfIncidentId).maybeSingle();
+    recurrenceOf = prior ? (prior.id as string) : null;
+  }
+
   const { data, error } = await ctx.supabase
     .from("incident")
     .insert({
@@ -128,6 +139,8 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
       financial_impact_estimate: input.financialImpactEstimate ?? 0,
       reported_by_user_id: ctx.accountId,
       status: "new",
+      is_recurrence: !!input.isRecurrence,
+      recurrence_of_incident_id: recurrenceOf,
       ...fintechCols(input),
     })
     .select("id, incident_number")

@@ -67,6 +67,7 @@ export async function getIncident(supabase: SupabaseClient, id: string) {
        business_unit:affected_business_unit_id(name),
        reporter:reported_by_user_id(full_name),
        assignee:assigned_member_id(name),
+       recurrence_of:recurrence_of_incident_id(id, incident_number, title),
        area:delivery_area_id(name, code)`,
     )
     .eq("id", id)

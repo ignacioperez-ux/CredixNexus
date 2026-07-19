@@ -81,6 +81,8 @@ export type IncidentDetailData = {
   business_unit: Named;
   reporter: ({ full_name: string }) | null;
   area: ({ name: string; code: string }) | null;
+  is_recurrence: boolean;
+  recurrence_of: ({ id: string; incident_number: string; title: string }) | null;
   intake_status: string;
   classified_as: string | null;
   assigned_member_id: string | null;
@@ -146,6 +148,21 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)" }}>{duplicateLinks.duplicateOf.incident_number}</span>
           <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{duplicateLinks.duplicateOf.title}</span>
         </Link>
+      )}
+
+      {/* Banner: reincidencia marcada por el reportante (fix previo fallido / derivo en problemas). */}
+      {inc.is_recurrence && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--st-high-bg)", border: "1px solid var(--st-high)", borderRadius: "var(--r-md)", padding: "10px 14px" }} title={t("inc.recurrence.note")}>
+          <Icon name="alert" size={14} color="var(--st-high-fg)" />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--st-high-fg)" }}>{t("inc.recurrence.badge")}</span>
+          {inc.recurrence_of && (
+            <>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>· {t("inc.recurrence.of")}</span>
+              <Link href={`/incidents/${inc.recurrence_of.id}`} style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600 }}>{inc.recurrence_of.incident_number}</Link>
+              <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.recurrence_of.title}</span>
+            </>
+          )}
+        </div>
       )}
 
       {/* Vista unica de gestion del caso */}

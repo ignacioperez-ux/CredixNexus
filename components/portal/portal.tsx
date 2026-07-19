@@ -93,6 +93,8 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [categoryId, setCategoryId] = useState("");
   const [autoCat, setAutoCat] = useState(false);
   const [urgency, setUrgency] = useState<Urgency>("medium");
+  const [isRecurrence, setIsRecurrence] = useState(false);       // reincidencia: fix previo fallido
+  const [recurrenceOf, setRecurrenceOf] = useState("");          // caso previo (opcional)
   const [res, setRes] = useState<PortalAssistResult | null>(null);
   const [searching, startSearch] = useTransition();
   const [registering, startReg] = useTransition();
@@ -200,13 +202,13 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
     if (tooShort) { setTouched(true); return; }
     if (!categoryId) { setErr("ERR_REQUIRED_FIELD"); return; }
     startReg(async () => {
-      const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId, affectedCiId: appId || undefined, impact: INTAKE_IMPACT, urgency });
+      const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId, affectedCiId: appId || undefined, impact: INTAKE_IMPACT, urgency, isRecurrence, recurrenceOfIncidentId: recurrenceOf || undefined });
       if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
       if (res) await Promise.all(res.articles.map((a) => recordKbEvent(a.id, "escalation", "portal", subject)));
       // Evidencia opcional adjuntada en el intake: se sube al caso recien creado (owner-checked).
       for (const f of files) { const fd = new FormData(); fd.append("file", f); await uploadMyCaseEvidence(r.id, fd); }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      setCreated(r.number ?? ""); setSubject(""); setRes(null); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]);
+      setCreated(r.number ?? ""); setSubject(""); setRes(null); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf("");
       router.refresh();
     });
   }
@@ -518,6 +520,24 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
                       <button type="button" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "inline-flex" }}><Icon name="x" size={12} /></button>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Reincidencia: el usuario indica que el caso ya se reporto y el fix no funciono o
+                derivo en otros problemas. Alimenta deteccion de problema (#4) y efectividad de fixes. */}
+            <div style={{ padding: "12px 14px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--paper)" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: "pointer" }}>
+                <input type="checkbox" checked={isRecurrence} onChange={(e) => { setIsRecurrence(e.target.checked); if (!e.target.checked) setRecurrenceOf(""); }} style={{ marginTop: 2, cursor: "pointer" }} />
+                <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>{t("portal.recurrence.label")}</span>
+              </label>
+              {isRecurrence && (
+                <div style={{ marginTop: 10, paddingLeft: 27 }}>
+                  <label style={lbl}>{t("portal.recurrence.prior")}</label>
+                  <select value={recurrenceOf} onChange={(e) => setRecurrenceOf(e.target.value)} style={{ ...field, maxWidth: 380 }}>
+                    <option value="">{t("portal.recurrence.priornone")}</option>
+                    {sortedCases.map((c) => <option key={c.id} value={c.id}>{c.incident_number} · {c.title}</option>)}
+                  </select>
                 </div>
               )}
             </div>
