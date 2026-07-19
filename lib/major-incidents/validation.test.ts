@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateMajorIncident, validateUpdate, canTransition, MI_NEXT } from "./validation";
+import { validateMajorIncident, validateUpdate, canTransition, MI_NEXT, isMiEditable, isMiClosed, MI_CLOSED_STATUSES } from "./validation";
 import { ErrorCode } from "@/lib/validation";
 
 describe("validateMajorIncident", () => {
@@ -38,5 +38,21 @@ describe("canTransition (mando MI)", () => {
   });
   it("stood_down es terminal", () => {
     expect(MI_NEXT.stood_down).toEqual([]);
+  });
+});
+
+describe("gobierno de edicion (editable / cerrado)", () => {
+  it("es editable mientras esta ACTIVO", () => {
+    for (const s of ["declared", "investigating", "identified", "mitigating", "monitoring"]) {
+      expect(isMiEditable(s)).toBe(true);
+      expect(isMiClosed(s)).toBe(false);
+    }
+  });
+  it("es SOLO LECTURA cuando esta cerrado (resuelto / stand-down)", () => {
+    expect(MI_CLOSED_STATUSES).toEqual(["resolved", "stood_down"]);
+    for (const s of ["resolved", "stood_down"]) {
+      expect(isMiEditable(s)).toBe(false);
+      expect(isMiClosed(s)).toBe(true);
+    }
   });
 });

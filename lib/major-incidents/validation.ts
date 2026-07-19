@@ -25,6 +25,18 @@ export function canTransition(from: string, to: string): boolean {
   return (MI_NEXT[from] ?? []).includes(to as MiStatus);
 }
 
+// Gobierno de edicion (comunicacion + evidencia): el MI se edita mientras esta ACTIVO.
+// Al cerrarse (resuelto / stand-down) queda de SOLO LECTURA; para volver a editar se REABRE.
+export const MI_CLOSED_STATUSES: MiStatus[] = ["resolved", "stood_down"];
+export function isMiEditable(status: string): boolean {
+  return !(MI_CLOSED_STATUSES as string[]).includes(status);
+}
+export function isMiClosed(status: string): boolean {
+  return (MI_CLOSED_STATUSES as string[]).includes(status);
+}
+/** Estado al que vuelve un MI reabierto: retoma la mitigacion activa. */
+export const MI_REOPEN_TO: MiStatus = "mitigating";
+
 export type MiValidatable = { title: string; severity: string };
 
 export function validateMajorIncident(i: MiValidatable): string | null {

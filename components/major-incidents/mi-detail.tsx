@@ -4,12 +4,14 @@ import { Icon } from "@/components/ui/icon";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
+import { useErrorMessage } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import type { MiUpdateRow } from "@/lib/major-incidents/queries";
-import { MI_NEXT, UPDATE_TYPES } from "@/lib/major-incidents/validation";
-import { postUpdate, changeMiStatus, assignCommand } from "@/lib/major-incidents/actions";
+import type { MiUpdateRow, MiEvidence } from "@/lib/major-incidents/queries";
+import { MI_NEXT, UPDATE_TYPES, isMiClosed } from "@/lib/major-incidents/validation";
+import { postUpdate, changeMiStatus, assignCommand, uploadMiEvidence, deleteMiEvidence, reopenMajorIncident } from "@/lib/major-incidents/actions";
+import { formatBytes } from "@/lib/casework/validation";
 import { MiStatusBadge, SevBadge, UPDATE_COLOR } from "./badges";
 import { BackButton } from "@/components/common/back-button";
 
@@ -24,11 +26,16 @@ type MiView = {
 type Person = { id: string; full_name: string };
 type LedgerRow = { block_height: number; action: string; current_hash: string; timestamp: string };
 
-export function MiDetail({ mi, updates, people, ledger, canManage, commanderName, commanderScope }: { mi: MiView; updates: MiUpdateRow[]; people: Person[]; ledger: LedgerRow[]; canManage: boolean; commanderName: string | null; commanderScope: "ops" | "evo" }) {
+export function MiDetail({ mi, updates, people, ledger, canManage, commanderName, commanderScope, evidence, editable }: { mi: MiView; updates: MiUpdateRow[]; people: Person[]; ledger: LedgerRow[]; canManage: boolean; commanderName: string | null; commanderScope: "ops" | "evo"; evidence: MiEvidence[]; editable: boolean }) {
   const { t, locale } = useI18n();
+  const errMsg = useErrorMessage();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  // Mensaje de error legible: MI_CLOSED tiene copy propio; el resto pasa por el diccionario de errores.
+  const msgText = (code: string) => (code === "MI_CLOSED" ? t("mi.err.closed") : errMsg(code) ?? code);
+  const closed = isMiClosed(mi.status);
+  const canEdit = canManage && editable;
   const [uType, setUType] = useState("customer");
   const [uBody, setUBody] = useState("");
   const [nextMin, setNextMin] = useState("30");
@@ -74,11 +81,23 @@ export function MiDetail({ mi, updates, people, ledger, canManage, commanderName
           )}
         </div>
       </div>
-      {msg && <div style={{ fontSize: 12, color: "var(--st-critical)" }}>{msg}</div>}
+      {msg && <div style={{ fontSize: 12, color: "var(--st-critical)" }}>{msgText(msg)}</div>}
 
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {canManage && (
+          {/* Cerrado: SOLO LECTURA. Se muestra el motivo y (con permiso) el boton Reabrir. */}
+          {closed && (
+            <div style={{ background: "var(--st-medium-bg, var(--paper))", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <Icon name="lock" size={16} color="var(--muted)" />
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{t("mi.readonly.title")}</div>
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>{t("mi.readonly.hint")}</div>
+              </div>
+              {canManage && <button onClick={() => run(() => reopenMajorIncident(mi.id))} disabled={pending} style={btnPrimary}>{t("mi.reopen")}</button>}
+            </div>
+          )}
+
+          {canEdit && (
             <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{t("mi.post.title")}</div>
               <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
@@ -89,6 +108,9 @@ export function MiDetail({ mi, updates, people, ledger, canManage, commanderName
               <button onClick={() => run(() => postUpdate(mi.id, uType, uBody, nextMin ? Number(nextMin) : undefined), () => setUBody(""))} disabled={pending || !uBody} style={{ ...btnPrimary, marginTop: 8 }}>{t("mi.post.send")}</button>
             </div>
           )}
+
+          {/* Evidencia del incidente mayor: lista siempre visible; subir/borrar solo con MI activo. */}
+          <EvidencePanel miId={mi.id} evidence={evidence} canEdit={canEdit} locale={locale} t={t} errMsg={errMsg} onDone={() => router.refresh()} />
 
           <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("mi.timeline")}</div>
@@ -152,6 +174,68 @@ export function MiDetail({ mi, updates, people, ledger, canManage, commanderName
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Evidencia del incidente mayor: lista con descarga firmada; subir/borrar solo con MI activo (canEdit). */
+function EvidencePanel({ miId, evidence, canEdit, locale, t, errMsg, onDone }: {
+  miId: string; evidence: MiEvidence[]; canEdit: boolean; locale: string;
+  t: (k: MessageKey) => string; errMsg: (code: string | null) => string | null; onDone: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const failMsg = (code: string | null | undefined) => (code === "MI_CLOSED" ? t("mi.err.closed") : errMsg(code ?? null) ?? t("tri.act.error"));
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErr(null);
+    const fd = new FormData();
+    fd.set("file", file);
+    start(async () => {
+      const r = await uploadMiEvidence(miId, fd);
+      if (inputRef.current) inputRef.current.value = "";
+      if (!r.ok) { setErr(failMsg(r.error)); return; }
+      onDone();
+    });
+  }
+  function remove(id: string) {
+    setErr(null);
+    start(async () => { const r = await deleteMiEvidence(id, miId); if (!r.ok) setErr(failMsg(r.error)); else onDone(); });
+  }
+
+  return (
+    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 20 }}>
+      <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{t("mi.evidence.title")}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {evidence.length === 0 && <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("mi.evidence.empty")}</div>}
+        {evidence.map((a) => (
+          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
+            <Icon name="paperclip" size={15} color="var(--muted)" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {a.url
+                ? <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--accent-2)", textDecoration: "none", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{a.file_name}</a>
+                : <span style={{ fontSize: 13, color: "var(--text)" }}>{a.file_name}</span>}
+              <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
+                {formatBytes(a.size_bytes)}{a.uploaded_by ? ` · ${a.uploaded_by}` : ""} · {new Date(a.created_at).toLocaleDateString(locale)}
+              </div>
+            </div>
+            {canEdit && <button onClick={() => remove(a.id)} disabled={pending} aria-label={t("att.delete")} title={t("att.delete")} style={{ width: 22, height: 22, border: "none", background: "transparent", color: "var(--st-critical-fg)", cursor: "pointer", fontSize: 15 }}>&times;</button>}
+          </div>
+        ))}
+        {canEdit && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ alignSelf: "flex-start", fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: "var(--r-md)", border: "1px dashed var(--accent)", color: "var(--accent-2)", cursor: pending ? "default" : "pointer", opacity: pending ? 0.6 : 1 }}>
+              {pending ? t("att.uploading") : `+ ${t("mi.evidence.add")}`}
+              <input ref={inputRef} type="file" onChange={onPick} disabled={pending} style={{ display: "none" }} />
+            </label>
+            <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{t("att.hint")}</span>
+            {err && <div style={{ fontSize: 11.5, color: "var(--st-critical-fg)" }}>{err}</div>}
+          </div>
+        )}
       </div>
     </div>
   );

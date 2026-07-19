@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { captureClosureKnowledge } from "@/lib/knowledge/closure";
 import { ErrorCode } from "@/lib/validation";
-import { validateMajorIncident, validateUpdate, canTransition } from "@/lib/major-incidents/validation";
+import { validateMajorIncident, validateUpdate, canTransition, isMiEditable, MI_REOPEN_TO } from "@/lib/major-incidents/validation";
 import { getMiCommanders } from "@/lib/major-incidents/queries";
+import { validateAttachment, safeFileName } from "@/lib/casework/validation";
+import { ATTACHMENT_BUCKET } from "@/lib/casework/queries";
 
 export type MiResult = { ok: boolean; error?: string; id?: string };
 
@@ -75,6 +77,10 @@ export async function postUpdate(miId: string, updateType: string, body: string,
   if (!ctx) return { ok: false, error: err! };
   const v = validateUpdate(updateType, body);
   if (v) return { ok: false, error: v };
+  // Gobierno de edicion: solo se publica comunicacion con el MI ACTIVO; cerrado = solo lectura.
+  const { data: st } = await ctx.supabase.from("major_incident").select("status").eq("id", miId).maybeSingle();
+  if (!st) return { ok: false, error: "not_found" };
+  if (!isMiEditable(st.status as string)) return { ok: false, error: "MI_CLOSED" };
 
   const { error } = await ctx.supabase.from("major_incident_update").insert({
     tenant_id: ctx.tenantId, mi_id: miId, update_type: updateType, body: body.trim(), posted_by: ctx.accountId, created_by: ctx.accountId,
@@ -114,6 +120,71 @@ export async function changeMiStatus(miId: string, next: string): Promise<MiResu
   await ctx.supabase.from("major_incident_update").insert({
     tenant_id: ctx.tenantId, mi_id: miId, update_type: "status",
     body: `Estado del incidente mayor: ${next}.`, posted_by: ctx.accountId, created_by: ctx.accountId,
+  });
+  revalidatePath(`/major-incidents/${miId}`);
+  revalidatePath("/major-incidents");
+  return { ok: true, id: miId };
+}
+
+/** Sube evidencia al incidente mayor (bucket privado, gate por estado ACTIVO). */
+export async function uploadMiEvidence(miId: string, formData: FormData): Promise<MiResult> {
+  const { ctx, err } = await guard();
+  if (!ctx) return { ok: false, error: err! };
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: ErrorCode.REQUIRED };
+  const v = validateAttachment(file.name, file.type, file.size);
+  if (v) return { ok: false, error: v };
+  const { data: st } = await ctx.supabase.from("major_incident").select("status").eq("id", miId).maybeSingle();
+  if (!st) return { ok: false, error: "not_found" };
+  if (!isMiEditable(st.status as string)) return { ok: false, error: "MI_CLOSED" };
+
+  // Path aislado por tenant (primera carpeta = tenant_id, exigido por la policy de storage).
+  const path = `${ctx.tenantId}/mi/${miId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+  const { error: upErr } = await ctx.supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (upErr) return { ok: false, error: upErr.message };
+  const { data, error } = await ctx.supabase
+    .from("major_incident_evidence")
+    .insert({ tenant_id: ctx.tenantId, mi_id: miId, storage_path: path, file_name: file.name.slice(0, 260), mime_type: file.type || null, size_bytes: file.size, uploaded_by: ctx.accountId })
+    .select("id").single();
+  if (error) {
+    await ctx.supabase.storage.from(ATTACHMENT_BUCKET).remove([path]); // no dejar huerfano
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/major-incidents/${miId}`);
+  return { ok: true, id: data.id as string };
+}
+
+/** Borra evidencia del incidente mayor (gate por estado ACTIVO). */
+export async function deleteMiEvidence(evidenceId: string, miId: string): Promise<MiResult> {
+  const { ctx, err } = await guard();
+  if (!ctx) return { ok: false, error: err! };
+  const { data: st } = await ctx.supabase.from("major_incident").select("status").eq("id", miId).maybeSingle();
+  if (!st) return { ok: false, error: "not_found" };
+  if (!isMiEditable(st.status as string)) return { ok: false, error: "MI_CLOSED" };
+  const { data: ev } = await ctx.supabase.from("major_incident_evidence").select("storage_path").eq("id", evidenceId).eq("mi_id", miId).maybeSingle();
+  if (!ev) return { ok: false, error: ErrorCode.INVALID_REFERENCE };
+  await ctx.supabase.storage.from(ATTACHMENT_BUCKET).remove([ev.storage_path as string]);
+  const { error } = await ctx.supabase.from("major_incident_evidence").delete().eq("id", evidenceId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/major-incidents/${miId}`);
+  return { ok: true, id: evidenceId };
+}
+
+/** Reabre un incidente mayor cerrado: vuelve a estado activo (mitigacion) y se puede editar. */
+export async function reopenMajorIncident(miId: string): Promise<MiResult> {
+  const { ctx, err } = await guard();
+  if (!ctx) return { ok: false, error: err! };
+  const { data: cur } = await ctx.supabase.from("major_incident").select("status").eq("id", miId).maybeSingle();
+  if (!cur) return { ok: false, error: "not_found" };
+  if (isMiEditable(cur.status as string)) return { ok: false, error: ErrorCode.FORMAT }; // ya esta activo
+  const { error } = await ctx.supabase
+    .from("major_incident")
+    .update({ status: MI_REOPEN_TO, resolved_at: null, stood_down_at: null, updated_by: ctx.accountId })
+    .eq("id", miId);
+  if (error) return { ok: false, error: error.message };
+  await ctx.supabase.from("major_incident_update").insert({
+    tenant_id: ctx.tenantId, mi_id: miId, update_type: "status",
+    body: "Incidente mayor reabierto: retoma mitigacion activa.", posted_by: ctx.accountId, created_by: ctx.accountId,
   });
   revalidatePath(`/major-incidents/${miId}`);
   revalidatePath("/major-incidents");

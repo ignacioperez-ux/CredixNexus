@@ -90,6 +90,39 @@ export async function getMajorIncident(supabase: SupabaseClient, id: string) {
   return data;
 }
 
+// ---- Evidencia del incidente mayor (bucket privado, URLs firmadas). Espeja casework. ----
+const MI_EVIDENCE_BUCKET = "case-attachments";
+const MI_EVIDENCE_TTL = 3600; // 1 hora
+
+export type MiEvidence = {
+  id: string; file_name: string; mime_type: string | null; size_bytes: number;
+  created_at: string; uploaded_by: string | null; url: string | null;
+};
+
+export async function getMajorIncidentEvidence(supabase: SupabaseClient, miId: string): Promise<MiEvidence[]> {
+  const { data, error } = await supabase
+    .from("major_incident_evidence")
+    .select("id, file_name, mime_type, size_bytes, storage_path, created_at, uploader:uploaded_by(full_name)")
+    .eq("mi_id", miId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const paths = rows.map((r) => r.storage_path as string);
+  const urls = new Map<string, string>();
+  if (paths.length > 0) {
+    const { data: signed } = await supabase.storage.from(MI_EVIDENCE_BUCKET).createSignedUrls(paths, MI_EVIDENCE_TTL);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl);
+  }
+  return rows.map((r) => {
+    const up = r.uploader as { full_name: string } | null;
+    return {
+      id: r.id as string, file_name: r.file_name as string, mime_type: (r.mime_type as string | null) ?? null,
+      size_bytes: Number(r.size_bytes), created_at: r.created_at as string,
+      uploaded_by: up?.full_name ?? null, url: urls.get(r.storage_path as string) ?? null,
+    };
+  });
+}
+
 export type MiUpdateRow = { id: string; update_type: string; body: string; posted_at: string; poster: { full_name: string } | null };
 
 export async function getMajorIncidentUpdates(supabase: SupabaseClient, miId: string): Promise<MiUpdateRow[]> {
