@@ -105,6 +105,7 @@ export const MACRO_NAV: NavCategory[] = [
     id: "administracion", label: "nav.macro.administracion", icon: "gear",
     items: [
       { id: "nav.admin", label: "nav.admin", path: "/admin", perm: "user.manage" },
+      { id: "nav.sso_domains", label: "nav.sso_domains", path: "/admin/sso-domains", perm: "user.manage" },
       { id: "nav.catalog", label: "nav.catalog", path: "/catalog", perm: "masterdata.manage" },
       { id: "nav.processes", label: "nav.processes", path: "/processes", perm: "process.read", absorbedInHub: true },
       { id: "nav.cmdb", label: "nav.cmdb", path: "/cmdb", perm: "cmdb.read" },
