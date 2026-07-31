@@ -1,9 +1,15 @@
 @import "tailwindcss";
 
+/* Tokens del Design System oficial de Credix (autogenerados desde el export Figma).
+   Expone la capa curada --credix-* (color/tipografia/radios). Regenerar:
+   node scripts/generate-credix-tokens.mjs  (ver docs/ui/CREDIX_DESIGN_SYSTEM_INTEGRATION.md) */
+@import "../design-system/generated/credix-tokens.css";
+
 /* ============================================================================
    CREDIX NEXUS — DESIGN TOKENS
-   Fuente: CLAUDE DESIGN SPECIFICATIONS. Valores hex literales del prototipo.
-   Dos temas conmutables: Nexus (oscuro) y Claro (claro), ambos con acento rojo Credix.
+   Fuente de verdad: Design System oficial de Credix (export Figma -> --credix-*).
+   Dos temas conmutables: Nexus (oscuro, se conserva) y Claro (alineado al esquema
+   Baseline oficial). Acento de marca rojo Credix #E42313 (DS) en ambos temas.
    Los componentes SOLO referencian var(--token), nunca hex directos
    (salvo colores semanticos de estado, que son globales).
    ============================================================================ */
@@ -11,8 +17,9 @@
 /* ---- Tipografia: las variables --font-display/-ui/-mono las provee next/font
        en el <html> (ver app/layout.tsx). Aqui solo definimos fallbacks. ---- */
 :root {
-  --font-display: var(--font-jakarta, system-ui, sans-serif); /* titulos, wordmark */
-  --font-ui: var(--font-inter, system-ui, sans-serif);        /* cuerpo, labels, botones */
+  /* Heebo = fuente oficial del DS Credix (UI + titulos). Cifras siguen en mono. */
+  --font-display: var(--font-heebo, var(--font-jakarta), system-ui, sans-serif); /* titulos, wordmark */
+  --font-ui: var(--font-heebo, var(--font-inter), system-ui, sans-serif);        /* cuerpo, labels, botones */
   --font-mono: var(--font-jetbrains, ui-monospace, monospace);/* TODO dato numerico */
 
   /* ---- Radios ---- */
@@ -69,7 +76,7 @@
   /* Overlays y sombras tokenizadas (UX-016): evita hex sueltos en componentes. */
   --overlay: rgba(0, 0, 0, .42);
   --sh-modal: 0 24px 60px -20px rgba(0, 0, 0, .5);
-  --sh-fab: 0 8px 22px -6px rgba(227, 6, 19, .5);
+  --sh-fab: 0 8px 22px -6px rgba(228, 35, 19, .5);
 }
 
 /* ============================================================================
@@ -88,12 +95,12 @@
   --track: #23262D;
   --head-bg: #101216;
   --row-hover: #191C22;
-  --chart-bar: rgba(228, 0, 43, .30);
+  --chart-bar: rgba(228, 35, 19, .30);
 
-  --accent: #E4002B;          /* rojo Credix — indicadores, barras primarias */
-  --accent-2: #FF5A70;        /* rojo brillante — IDs/enlaces (resalta sobre negro) */
-  --accent-bright: #FF2247;
-  --accent-soft: rgba(228, 0, 43, .18);
+  --accent: #E42313;          /* rojo Credix oficial (DS) — indicadores, barras primarias */
+  --accent-2: #FF8A77;        /* rojo brillante — IDs/enlaces (resalta sobre negro; primitivo rojo 70) */
+  --accent-bright: #FF553F;   /* primitivo rojo 60 */
+  --accent-soft: rgba(228, 35, 19, .18);
   --on-accent: #FFFFFF;
 
   --teal: #2DD4BF;            /* acento secundario para variedad en graficos */
@@ -107,9 +114,9 @@
   --sb-border: #23262D;
   --sb-hover: #1C1F26;
 
-  --cta-bg: #E4002B;          /* CTA rojo: resalta sobre el negro */
+  --cta-bg: #E42313;          /* CTA rojo oficial: resalta sobre el negro */
   --cta-fg: #FFFFFF;
-  --cta-icon: #FF8A9C;
+  --cta-icon: #FF8A77;
 
   --dark-surface: linear-gradient(135deg, #17191E, #1F222A);
   --dark-surface-border: #2E323A;
@@ -150,38 +157,38 @@
 [data-theme="claro"] {
   /* ===== CLARO SOBRIO-PREMIUM (calido) — neutrales calidos, cajas que flotan, rojo solo accion ===== */
 
-  /* Tipografia SOLO Claro: Inter en toda la UI (incl. titulos), IBM Plex Mono en cifras. */
-  --font-display: var(--font-inter, system-ui, sans-serif);
-  --font-ui: var(--font-inter, system-ui, sans-serif);
+  /* Tipografia Claro: Heebo (fuente oficial DS) en toda la UI incl. titulos; cifras en IBM Plex Mono. */
+  --font-display: var(--font-heebo, var(--font-inter), system-ui, sans-serif);
+  --font-ui: var(--font-heebo, var(--font-inter), system-ui, sans-serif);
   --font-mono: var(--font-plex-mono, ui-monospace, monospace);
 
-  /* Neutros calidos — nunca blanco puro en el canvas */
-  --bg: #F0EEE8;            /* canvas app */
-  --card: #FFFFFF;          /* superficie de tarjeta */
-  --line: #EAE8E2;          /* bordes 1px */
-  --line-soft: #EEECE6;     /* separadores internos */
-  --text: #1B1A1F;          /* ink-900 (titulos/cuerpo) */
-  --muted: #6A6474;         /* ink-600 (secundario) */
-  --ink-500: #928C9E; --ink-400: #B0AABB;   /* muy sutil (micro/placeholder), no para body */
-  --paper: #FBFAF7;         /* surface-alt / inputs / headers de tabla / filas alternas */
-  --track: #E6E3DB;         /* pista de donut/anillos */
-  --head-bg: #FBFAF7;       /* cabeceras de tabla */
-  --row-hover: #F5F3EE;
-  --chart-bar: #3F9D8E;     /* barras/data-viz secundario en verde-agua */
+  /* Neutros Baseline oficial (esquema surface del DS Credix). Mapeados a la capa curada. */
+  --bg: var(--credix-color-surface);                /* canvas app  #F7FAFC */
+  --card: var(--credix-color-surface-lowest);       /* superficie de tarjeta  #FFFFFF */
+  --line: var(--credix-color-outline-variant);      /* bordes 1px  #C3C7C9 */
+  --line-soft: var(--credix-color-surface-high);    /* separadores internos  #E5E9EB */
+  --text: var(--credix-color-on-surface);           /* on surface  #181C1E */
+  --muted: var(--credix-color-on-surface-variant);  /* on surface variant (AA)  #434749 */
+  --ink-500: var(--credix-color-outline); --ink-400: var(--credix-color-outline-variant);  /* micro/placeholder */
+  --paper: var(--credix-color-surface-low);         /* surface-alt / inputs / headers / filas alt  #F1F4F6 */
+  --track: var(--credix-color-surface-high);        /* pista de donut/anillos  #E5E9EB */
+  --head-bg: var(--credix-color-surface-low);       /* cabeceras de tabla  #F1F4F6 */
+  --row-hover: var(--credix-color-surface-container);/* hover de fila  #EBEEF0 */
+  --chart-bar: #3F9D8E;     /* data-viz secundario en verde-agua (dato, no marca) */
 
-  /* Marca — rojo Credix SOLO para acciones */
-  --accent: #E4002B;
-  --accent-2: #C10025;      /* rojo hover / IDs-enlaces */
-  --accent-bright: #E4002B;
-  --accent-soft: #FDECEF;   /* rojo suave (fondos rojos) */
+  /* Marca — rojo Credix oficial #E42313 SOLO para acciones (primitivos rojo 50/40/95) */
+  --accent: #E42313;
+  --accent-2: #BF0600;      /* rojo hover / IDs-enlaces (primitivo rojo 40) */
+  --accent-bright: #E42313;
+  --accent-soft: #FFEDEA;   /* rojo suave / fondos rojos (primitivo rojo 95) */
   --on-accent: #FFFFFF;
-  --red-soft: #FDECEF; --red-border: #F6C9D3; --red-2: #C40025;
-  --icon-chip: #F3F1EA; --icon-stroke: #57545E;   /* chips de icono neutros (sidebar/tiles) */
+  --red-soft: #FFEDEA; --red-border: #FFDAD4; --red-2: #BF0600;
+  --icon-chip: var(--credix-color-surface-container); --icon-stroke: #434749;   /* chips de icono neutros */
 
   /* Alias forward-compat */
-  --surface: #FFFFFF; --surface-alt: #FBFAF7;
-  --ink: #3A3842; --ink-strong: #1B1A1F;   /* ink-700 / ink-900 */
-  --primary: #E4002B; --primary-hover: #C10025; --on-primary: #FFFFFF;
+  --surface: var(--credix-color-surface-lowest); --surface-alt: var(--credix-color-surface-low);
+  --ink: #3A3842; --ink-strong: var(--credix-color-on-surface);   /* ink-700 / on surface */
+  --primary: #E42313; --primary-hover: #BF0600; --on-primary: #FFFFFF;
 
   /* Verde-agua = exito/foco/IA/resuelto y dato secundario. --teal se usa como TEXTO en algunos
      chips -> variante AA (#2A7568). El #3F9D8E brillante vive en --chart-bar y el anillo de foco. */
@@ -189,14 +196,14 @@
 
   /* Sidebar: gradiente calido; item ACTIVO = tarjeta blanca (--sb-active) + texto oscuro +
      barra izquierda roja 3px (la pinta el componente) + sombra suave. Hover subitems = --sb-hover. */
-  --sb-bg: linear-gradient(180deg, #FCFBF8 0%, #F1EEE6 100%);
-  --sb-fg: #3A3842; --sb-fg-active: #1B1A1F;
-  --sb-muted: #6C6A72; --sb-label: #A6A3AC;
-  --sb-border: #EAE8E2; --sb-hover: #F1EEE6;
-  --sb-active: #FFFFFF;
+  --sb-bg: var(--credix-color-surface-container);   /* nav bg Baseline #EBEEF0 */
+  --sb-fg: var(--credix-color-on-surface-variant); --sb-fg-active: var(--credix-color-on-surface);
+  --sb-muted: var(--credix-color-outline); --sb-label: var(--credix-color-outline);
+  --sb-border: var(--credix-color-outline-variant); --sb-hover: var(--credix-color-surface-highest);
+  --sb-active: var(--credix-color-surface-lowest);  /* item activo = tarjeta blanca + barra roja */
 
-  --cta-bg: #E4002B; --cta-fg: #FFFFFF; --cta-icon: #FFFFFF;
-  --cta-grad: linear-gradient(150deg, #E4002B 0%, #C40025 100%);
+  --cta-bg: #E42313; --cta-fg: #FFFFFF; --cta-icon: #FFFFFF;
+  --cta-grad: linear-gradient(150deg, #E42313 0%, #BF0600 100%);
 
   /* Negro carbon (chip de logo, avatar, paneles oscuros dentro del claro) */
   --dark-surface: linear-gradient(150deg, #232428, #121317);
@@ -208,14 +215,14 @@
   --sh-e1: 0 1px 2px rgba(27, 26, 31, .04), 0 14px 30px -24px rgba(27, 26, 31, .28);
   --sh-hero: 0 1px 2px rgba(27, 26, 31, .04), 0 18px 40px -30px rgba(27, 26, 31, .2);
   --sh-float: 0 1px 2px rgba(27, 26, 31, .04), 0 18px 40px -30px rgba(27, 26, 31, .2);
-  --sh-red: 0 8px 18px -8px rgba(228, 0, 43, .55);
+  --sh-red: 0 8px 18px -8px rgba(228, 35, 19, .55);
   --sh-black: 0 1px 2px rgba(27, 26, 31, .04), 0 14px 30px -24px rgba(27, 26, 31, .28);
 
   /* Alias con los nombres del brief (fidelidad) — apuntan a los tokens ya definidos arriba. */
   --shadow-sm: var(--sh-sm); --shadow-md: var(--sh-card); --shadow-lg: var(--sh-float); --shadow-red: var(--sh-red);
 
-  /* Campos de formulario (brief): bg calido + borde propio + foco verde-agua (regla mas abajo). */
-  --field-bg: #FBFAF7; --field-border: #E1DED6;
+  /* Campos de formulario Baseline: superficie blanca + borde outline del DS (#74787A). */
+  --field-bg: var(--credix-color-surface-lowest); --field-border: var(--credix-color-outline);
 
   /* Arena (calido - destacar). --sand = hue de marca (dots/bordes, no-texto); --sand-ink = variante AA
      para texto sobre --sand-soft. */
@@ -228,7 +235,7 @@
      var(--token, valor-actual) deja Nexus byte-identico y solo Claro toma el valor premium. */
   --r-card: 20px; --fw-title: 800; --tracking-title: -0.01em;
   --fs-greeting: 36px; --fs-page-title: 25px;   /* saludo / titulo de pantalla (v2) */
-  --step-glow: 0 0 0 5px rgba(228, 0, 43, .14);   /* halo rojo sutil del paso actual (stepper) */
+  --step-glow: 0 0 0 5px rgba(228, 35, 19, .14);   /* halo rojo sutil del paso actual (stepper) */
 
   /* Gradiente del hero (greige -> rosa/violeta muy sutil, v2) */
   --hero-grad: linear-gradient(120deg, #F6F3EC 0%, #FDECEF 52%, #EEF0FF 100%);
@@ -317,8 +324,12 @@ body {
 [data-theme="claro"] :is(input, select, textarea):focus,
 [data-theme="claro"] [data-radix-collection-item]:focus-visible {
   outline: none;
-  border-color: #3F9D8E !important;
-  box-shadow: 0 0 0 4px rgba(63, 157, 142, .14);
+  border-color: var(--credix-color-on-surface) !important;   /* borde fuerte (#181C1E) al enfocar */
+  box-shadow: 0 0 0 3px rgba(228, 35, 19, .18);              /* halo rojo de marca (no error) */
+}
+/* Hover de campo (DS): borde on-surface. */
+[data-theme="claro"] :is(input, select, textarea):hover:not(:focus) {
+  border-color: var(--credix-color-on-surface);
 }
 
 /* Utilidades de tipografia (brief) — solo Claro. Titulos con tracking negativo; cifras tabulares. */
@@ -375,6 +386,14 @@ body {
 }
 .cx-empty .t { font-size: 13.5px; font-weight: 600; color: var(--text); }
 .cx-empty .h { font-size: 12px; color: var(--muted); max-width: 42ch; }
+
+/* Focus ring de los componentes base del DS (Button/IconButton). Indicador del DS Credix:
+   secondary #5B5F61, grosor 3px, offset 2px. Solo teclado (:focus-visible). */
+.cx-ds-btn:focus-visible {
+  outline: 3px solid var(--credix-color-secondary, #5B5F61);
+  outline-offset: 2px;
+}
+.cx-ds-btn:hover:not(:disabled) { transform: translateY(-1px); }
 
 /* Animacion dot "en vivo" (ledger) */
 @keyframes cnpulse {

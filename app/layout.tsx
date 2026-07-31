@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter, JetBrains_Mono, IBM_Plex_Mono } from "next/font/google";
+import { Heebo, Plus_Jakarta_Sans, Inter, JetBrains_Mono, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n/provider";
 
+// Heebo: fuente oficial del Design System de Credix (self-hosted por next/font en build,
+// sin llamada remota en runtime). Cubre UI + titulos; las cifras siguen en mono (ver globals.css).
+const heebo = Heebo({
+  subsets: ["latin"],
+  variable: "--font-heebo",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
@@ -43,7 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html
       lang="es"
       data-theme="nexus"
-      className={`${jakarta.variable} ${inter.variable} ${jetbrains.variable} ${plexMono.variable}`}
+      className={`${heebo.variable} ${jakarta.variable} ${inter.variable} ${jetbrains.variable} ${plexMono.variable}`}
       suppressHydrationWarning
     >
       <head>

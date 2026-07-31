@@ -1,0 +1,9 @@
+# Working temporal del pipeline de tokens
+tmp/
+
+# Archivo .fig (pesado, referencia visual). Conservar local; no versionar.
+source/figma/*.zip
+source/figma/*.fig
+
+# Screenshots de evidencia del smoke (se regeneran con el E2E ds-smoke)
+generated/screenshots/

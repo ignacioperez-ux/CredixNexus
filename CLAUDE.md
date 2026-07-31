@@ -237,10 +237,14 @@ pruebas; riesgos/pendientes/supuestos.
   versión queda inmutable y auditada.
 - **IA con gobierno:** un agente nunca aprueba cambios, borra datos, modifica reglas publicadas ni
   cruza tenants; toda acción de agente se registra (prompt, modelo, input/output, confianza).
-- **Design system:** dos temas conmutables **Nexus** (oscuro) y **Claro** (claro), **ambos con acento
-  rojo Credix** (credix.com: `#E4002B` Nexus / `#E30613` Claro; fuente de verdad = `app/globals.css`).
-  El **teal/lima** (`--teal`) es color de **dato secundario** (data-viz), NO acento de marca. El portal
-  del rol Usuario tiene a **Claro como tema por defecto**. Datos numéricos en JetBrains Mono. Detalle en
+- **Design system:** fuente de verdad = **Design System oficial de Credix** (export Figma → tokens en
+  `design-system/source/`, generados a `design-system/generated/credix-tokens.css` vía
+  `scripts/generate-credix-tokens.mjs`). Acento de marca = **rojo Credix `#E42313`** (primary del DS) en
+  **ambos** temas. Dos temas conmutables **Nexus** (oscuro, se conserva) y **Claro** (claro, alineado al
+  esquema **Baseline** oficial del DS). Fuente oficial **Heebo** (UI + títulos). El **teal/lima**
+  (`--teal`) es color de **dato secundario** (data-viz), NO acento de marca. El portal del rol Usuario
+  tiene a **Claro como tema por defecto**. Datos numéricos en mono. Detalle en
+  `docs/ui/CREDIX_DESIGN_SYSTEM_INTEGRATION.md` y en
   `docs/DESIGN.md`.
 - **Tenant != Product != Party-role (invariante de modelo):** el `tenant` es una figura amplia =
   **modo operativo/de entrega** (`operating_mode` ∈ saas|bpo|enterprise|internal|marketplace). NO es
@@ -257,4 +261,5 @@ pruebas; riesgos/pendientes/supuestos.
 - Componentes UI en `components/`, módulos de dominio en `app/(app)/<modulo>/`.
 - Tipos compartidos en `lib/types/`. Clientes Supabase en `lib/supabase/`.
 - Commits: ASCII español sin tildes (§3.2 #7). Terminar mensajes con:
-  `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
+  `Desarrollado por Ignacio Perez Rubio (Arquitecto) y el grupo de SQUADS a cargo.`
+  (NO usar coautoria de Claude/Claude Code en ningun commit ni credito visible.)

@@ -42,6 +42,12 @@ export default defineConfig({
     timeout: 180_000,
   },
   projects: [
+    // 0) Smoke del Design System (SIN credenciales): landing/login publica. No depende de setup.
+    {
+      name: "ds-smoke",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /credix-ds\..*\.spec\.ts/,
+    },
     // 1) Login del usuario de prueba -> guarda storageState reutilizable.
     { name: "setup", testMatch: /.*\.setup\.ts/ },
     // 2) Flujos del portal (partner_user / Mi Portal).
@@ -78,6 +84,13 @@ export default defineConfig({
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/squads.json" },
       testMatch: /squads\..*\.spec\.ts/,
+    },
+    // 7) Admin (system_admin): explorador CMDB / grafo de dependencias (maestro de tipos de CI).
+    {
+      name: "admin",
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/admin.json" },
+      testMatch: /cmdb\..*\.spec\.ts/,
     },
   ],
 });

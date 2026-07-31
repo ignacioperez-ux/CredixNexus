@@ -24,7 +24,7 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
             width: 32, height: 32, borderRadius: 9,
             background: "linear-gradient(135deg, #FF2247, #B00021)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 3px 14px rgba(228,0,43,.45)", flexShrink: 0,
+            boxShadow: "0 3px 14px rgba(228,35,19,.45)", flexShrink: 0,
           }}
         >
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, color: "#fff", lineHeight: 1 }}>C</span>

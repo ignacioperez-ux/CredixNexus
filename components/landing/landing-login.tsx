@@ -58,12 +58,12 @@ export function LandingLogin() {
           placeholder="••••••••" style={inp} />
       </label>
       {err && (
-        <div role="alert" style={{ background: "rgba(228,0,43,.12)", border: "1px solid rgba(228,0,43,.4)", color: "#FF8A9C", borderRadius: 10, padding: "9px 12px", fontSize: 12.5 }}>
+        <div role="alert" style={{ background: "rgba(228,35,19,.12)", border: "1px solid rgba(228,35,19,.4)", color: "#FF8A9C", borderRadius: 10, padding: "9px 12px", fontSize: 12.5 }}>
           {err}
         </div>
       )}
       <button type="submit" disabled={submitting}
-        style={{ minHeight: 46, borderRadius: 12, background: "#E4002B", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1, boxShadow: "0 12px 34px -8px rgba(228,0,43,.65)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        style={{ minHeight: 46, borderRadius: 12, background: "#E42313", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1, boxShadow: "0 12px 34px -8px rgba(228,35,19,.65)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {submitting ? "Ingresando…" : "Entrar a la plataforma"}
         {!submitting && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>}
       </button>
