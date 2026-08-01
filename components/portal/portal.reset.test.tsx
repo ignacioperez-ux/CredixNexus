@@ -35,6 +35,10 @@ vi.mock("@/lib/portal/assist", () => ({
   searchKb: vi.fn(async () => ({ articles: [], cases: [] })),
 }));
 vi.mock("@/lib/portal/case-actions", () => ({ uploadMyCaseEvidence: vi.fn(async () => ({ ok: true })) }));
+vi.mock("@/lib/portal/duplicates", () => ({
+  getReportAggregators: vi.fn(async () => ({ ok: true, top: null, others: [] })),
+  joinAsChildCase: vi.fn(async () => ({ ok: true, id: "inc-2", number: "INC-2026-001000", linked: true })),
+}));
 vi.mock("@/lib/knowledge/actions", () => ({ recordKbEvent: vi.fn(async () => ({ ok: true })) }));
 
 // Hijos pesados / de presentacion: stubs.

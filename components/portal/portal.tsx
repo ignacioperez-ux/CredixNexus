@@ -15,6 +15,8 @@ import { derivePriority, bumpPriority, type Urgency, type Impact } from "@/lib/i
 import { UrgencySegmented } from "@/components/portal/urgency-segmented";
 import { EvidenceDropzone } from "@/components/portal/evidence-dropzone";
 import { SuggestionsStrip, type StripItem } from "@/components/portal/suggestions-strip";
+import { getReportAggregators, joinAsChildCase, type Aggregator } from "@/lib/portal/duplicates";
+import { DuplicateBlock, TrendingAggregators } from "@/components/portal/duplicate-group";
 import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
 import { SlaRing } from "@/components/portal/hub-viz";
@@ -100,6 +102,10 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   const [mine, setMine] = useState<SimilarCaseHit[]>([]);
   const [kb, setKb] = useState<SearchResult>({ articles: [], cases: [] }); // sugerencias KB en vivo (al tipear)
   const [suggestDismissed, setSuggestDismissed] = useState(false); // P2: la X cierra la tira de forma persistente durante esta redaccion
+  const [agg, setAgg] = useState<Aggregator | null>(null);   // P4: caso agrupador que mejor matchea el borrador
+  const [trending, setTrending] = useState<Aggregator[]>([]); // P4.5: agrupadores 24h ("reportado hoy por otras personas")
+  const [aggDismissed, setAggDismissed] = useState(false);   // "mi caso es distinto"
+  const [joinBusyId, setJoinBusyId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);            // evidencia adjunta ANTES de registrar
   const [caseQuery, setCaseQuery] = useState("");            // buscador de "Mis casos"
   const [caseFilter, setCaseFilter] = useState<string | null>(null); // chip de estado activo
@@ -149,6 +155,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
     if (tab === "registrar") return;
     setSubject(""); setTouched(false); setCategoryId(""); setAppId(""); setAutoCat(false);
     setKb({ articles: [], cases: [] }); setMine([]); setFiles([]); setSuggestDismissed(false);
+    setAgg(null); setTrending([]); setAggDismissed(false);
     setCreated(null); setErr(null);
   }, [tab]);
 
@@ -163,14 +170,17 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   // parecidos (deduplicacion) + base de conocimiento/casos resueltos (deflection, sin IA).
   useEffect(() => {
     const text = subject.trim();
-    if (text.length < MIN_CHARS) { setMine([]); setKb({ articles: [], cases: [] }); return; }
+    if (text.length < MIN_CHARS) { setMine([]); setKb({ articles: [], cases: [] }); setAgg(null); setTrending([]); return; }
     const handle = setTimeout(async () => {
-      const [r, k] = await Promise.all([
-        checkMySimilarCases({ title: text, description: text, categoryId: categoryId || undefined, affectedCiId: appId || undefined }),
+      const draft = { title: text, description: text, categoryId: categoryId || undefined, affectedCiId: appId || undefined };
+      const [r, k, a] = await Promise.all([
+        checkMySimilarCases(draft),
         searchKb(text),
+        getReportAggregators(draft),   // P4: agrupadores abiertos con >=2 reportes
       ]);
       if (r.ok && r.items) setMine(r.items);
       setKb(k);
+      if (a.ok) { setAgg(a.top ?? null); setTrending(a.others ?? []); }
     }, 500);
     return () => clearTimeout(handle);
   }, [subject, categoryId, appId]);
@@ -194,7 +204,29 @@ export function Portal({ categories, applications = [], canViewIncidents = false
       // Evidencia opcional adjuntada en el intake: se sube al caso recien creado (owner-checked).
       for (const f of files) { const fd = new FormData(); fd.append("file", f); await uploadMyCaseEvidence(r.id, fd); }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      setCreated(r.number ?? ""); setSubject(""); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf(""); setSuggestDismissed(false);
+      resetIntake(r.number ?? "");
+      router.refresh();
+    });
+  }
+
+  // Limpia el intake tras registrar/sumarse y muestra la confirmacion con el numero de caso.
+  function resetIntake(number: string) {
+    setCreated(number); setSubject(""); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false);
+    setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf(""); setSuggestDismissed(false);
+    setAgg(null); setTrending([]); setAggDismissed(false);
+  }
+
+  // P4.3/P4.5: el usuario se SUMA a un caso agrupador -> caso hijo vinculado (no un duplicado nuevo).
+  // desc opcional: en el bloque principal usa el texto escrito; en "Tambien me pasa" (pie) va en 1 clic.
+  function joinCase(parentId: string, desc?: string) {
+    setErr(null);
+    setJoinBusyId(parentId);
+    startReg(async () => {
+      const r = await joinAsChildCase(parentId, desc);
+      setJoinBusyId(null);
+      if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
+      if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
+      resetIntake(r.number ?? "");
       router.refresh();
     });
   }
@@ -473,6 +505,11 @@ export function Portal({ categories, applications = [], canViewIncidents = false
               <SuggestionsStrip items={stripItems} onDismiss={() => setSuggestDismissed(true)} />
             )}
 
+            {/* P4.2 · Duplicados: "N personas reportaron lo mismo" -> sumarse a un caso hijo vinculado. */}
+            {!tooShort && agg && !aggDismissed && (
+              <DuplicateBlock agg={agg} busy={registering} onJoin={() => joinCase(agg.parentId, subject)} onDismiss={() => setAggDismissed(true)} />
+            )}
+
             {/* 3 · Categorizacion opcional (2 col, 50px). Aplicacion y categoria desde la BD (§11). */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
@@ -538,6 +575,13 @@ export function Portal({ categories, applications = [], canViewIncidents = false
               </button>
               <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, minWidth: 200 }}>{t("portal.register.guarantee")}</span>
             </div>
+
+            {/* P4.5 · "Reportado hoy por otras personas": sumarse en un clic (la via que mas duplicados evita). */}
+            {trending.length > 0 && (
+              <div style={{ borderTop: "1px solid var(--line-soft, var(--line))", paddingTop: 16 }}>
+                <TrendingAggregators items={trending} busyId={joinBusyId} onJoin={(a) => joinCase(a.parentId)} />
+              </div>
+            )}
           </div>
         </div>
       )}
