@@ -65,7 +65,7 @@ describe("Portal · registro y limpieza del intake", () => {
     const view = renderPortal();
 
     // 1) Asunto (>= MIN_CHARS) + categoria.
-    const textarea = screen.getByPlaceholderText("portal.search.placeholder") as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText("portal.intake.placeholder") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "Necesito acceso al sistema core" } });
     expect(textarea.value).toContain("acceso");
     const catSelect = findCatSelect();
@@ -73,7 +73,7 @@ describe("Portal · registro y limpieza del intake", () => {
     expect(catSelect.value).toBe("c1");
 
     // 2) Registrar -> mensaje de exito con el numero del caso.
-    fireEvent.click(screen.getByRole("button", { name: "portal.register" }));
+    fireEvent.click(screen.getByRole("button", { name: "portal.register.case" }));
     await waitFor(() => expect(h.createIncident).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByText("INC-2026-000999")).not.toBeNull());
 
@@ -85,7 +85,7 @@ describe("Portal · registro y limpieza del intake", () => {
     // 4) VOLVER a Registrar: formulario limpio (sin texto ni categoria) y sin mensaje.
     h.currentTab.value = "registrar";
     view.rerender(<Portal categories={categories} canFeedback={false} />);
-    expect((screen.getByPlaceholderText("portal.search.placeholder") as HTMLTextAreaElement).value).toBe("");
+    expect((screen.getByPlaceholderText("portal.intake.placeholder") as HTMLTextAreaElement).value).toBe("");
     expect(findCatSelect().value).toBe("");
     expect(screen.queryByText("INC-2026-000999")).toBeNull();
   });
@@ -93,9 +93,9 @@ describe("Portal · registro y limpieza del intake", () => {
   it("estando en Registrar, el texto tipeado NO se borra solo (el reset es solo al salir)", async () => {
     h.currentTab.value = "registrar";
     const view = renderPortal();
-    const textarea = screen.getByPlaceholderText("portal.search.placeholder") as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText("portal.intake.placeholder") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "texto en progreso" } });
     view.rerender(<Portal categories={categories} canFeedback={false} />);
-    expect((screen.getByPlaceholderText("portal.search.placeholder") as HTMLTextAreaElement).value).toBe("texto en progreso");
+    expect((screen.getByPlaceholderText("portal.intake.placeholder") as HTMLTextAreaElement).value).toBe("texto en progreso");
   });
 });

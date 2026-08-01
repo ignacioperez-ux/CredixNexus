@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContext, hasPermission } from "@/lib/auth/context";
 import { getAccessControl } from "@/lib/auth/session";
 import { ErrorCode, required, minLength, firstError } from "@/lib/validation";
-import { derivePriority, type Impact, type Urgency } from "@/lib/incidents/priority";
+import { derivePriority, bumpPriority, type Impact, type Urgency } from "@/lib/incidents/priority";
 import { requiresAssignee, assignmentGuard } from "@/lib/incidents/transitions";
 import { assertActOnIncident } from "@/lib/auth/incident-authz";
 import { findSimilarOpenCases, type SimilarDraft, type SimilarCaseHit } from "@/lib/incidents/similar";
@@ -40,7 +40,7 @@ export async function setPriority(incidentId: string, priority: string): Promise
 export type IncidentInput = {
   title: string;
   description: string;
-  categoryId: string;
+  categoryId?: string;   // R2: opcional. Si falta, el caso entra sin clasificar y la mesa/triage lo clasifica.
   affectedCiId?: string;
   affectedServiceId?: string;
   affectedProductId?: string;
@@ -81,8 +81,7 @@ function validateInput(i: IncidentInput): string | null {
   const financial = i.financialImpactEstimate ?? 0;
   return firstError(
     minLength(i.title, 5),
-    minLength(i.description, 10),
-    required(i.categoryId),
+    minLength(i.description, 8),   // R2: unico requisito real es la descripcion (min 8). La categoria es opcional.
     LEVELS.includes(i.impact) ? null : ErrorCode.FORMAT,
     LEVELS.includes(i.urgency) ? null : ErrorCode.FORMAT,
     financial < 0 ? ErrorCode.FORMAT : null,
@@ -104,13 +103,16 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
   const err = validateInput(input);
   if (err) return { ok: false, error: err };
 
-  const { data: cat } = await ctx.supabase
-    .from("incident_category")
-    .select("code")
-    .eq("id", input.categoryId)
-    .maybeSingle();
+  // Categoria OPCIONAL (R2): solo se consulta si el usuario eligio una. Sin categoria, el caso
+  // entra como "general" (sin clasificar) y la mesa/triage lo clasifica despues.
+  const cat = input.categoryId
+    ? (await ctx.supabase.from("incident_category").select("code").eq("id", input.categoryId).maybeSingle()).data
+    : null;
 
-  const priority = derivePriority(input.impact, input.urgency);
+  // Reincidencia (P1.5): un caso cuyo fix previo fallo sube un nivel de prioridad automaticamente.
+  const priority = input.isRecurrence
+    ? bumpPriority(derivePriority(input.impact, input.urgency))
+    : derivePriority(input.impact, input.urgency);
 
   // Reincidencia: si se enlaza un caso previo, verificar que existe en el tenant (RLS). Si no
   // se encuentra, se guarda la marca pero sin enlace (no bloquea el registro del caso).
@@ -127,7 +129,7 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
       title: input.title.trim(),
       description: input.description.trim(),
       category: (cat?.code as string | undefined)?.toLowerCase() ?? "general",
-      category_id: input.categoryId,
+      category_id: orNull(input.categoryId),
       affected_ci_id: orNull(input.affectedCiId),
       affected_service_id: orNull(input.affectedServiceId),
       affected_product_id: orNull(input.affectedProductId),

@@ -5,16 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import { AiReport } from "@/components/ai/ai-report";
-import { portalAssist, searchKb, type PortalAssistResult } from "@/lib/portal/assist";
+import { searchKb } from "@/lib/portal/assist";
 import type { SearchResult } from "@/lib/portal/queries";
 import { createIncident, checkMySimilarCases } from "@/lib/incidents/actions";
 import { uploadMyCaseEvidence } from "@/lib/portal/case-actions";
 import type { SimilarCaseHit } from "@/lib/incidents/similar";
-import { recordKbEvent } from "@/lib/knowledge/actions";
-import { FeedbackWidget } from "@/components/knowledge/feedback-widget";
 import { evalState, type PortalCategory, type PortalApp, type MyCase, type MyActivityItem } from "@/lib/portal/queries";
-import { derivePriority, type Urgency, type Impact } from "@/lib/incidents/priority";
+import { derivePriority, bumpPriority, type Urgency, type Impact } from "@/lib/incidents/priority";
+import { UrgencySegmented } from "@/components/portal/urgency-segmented";
+import { EvidenceDropzone } from "@/components/portal/evidence-dropzone";
+import { SuggestionsStrip, type StripItem } from "@/components/portal/suggestions-strip";
 import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
 import { SlaRing } from "@/components/portal/hub-viz";
@@ -30,7 +30,6 @@ type VoiceWindow = { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecogn
 type Tab = "inicio" | "autoservicio" | "miscasos" | "registrar";
 const TABS: Tab[] = ["inicio", "autoservicio", "miscasos", "registrar"];
 
-const URGENCIES: Urgency[] = ["critical", "high", "medium", "low"];
 // Impacto estimado del autoservicio: el usuario reporta su propio caso (impacto acotado). Se hace
 // EXPLICITO y explicable (no silencioso); la mesa puede ajustarlo. Espeja el enum de la BD.
 const INTAKE_IMPACT: Impact = "medium";
@@ -60,7 +59,7 @@ function sortKey(c: MyCase): number {
   return settled + due;
 }
 
-export function Portal({ categories, applications = [], canFeedback, canViewIncidents = false, myCases = [], caseTypes = {}, activity = [], userName = "" }: {
+export function Portal({ categories, applications = [], canViewIncidents = false, myCases = [], caseTypes = {}, activity = [], userName = "" }: {
   categories: PortalCategory[]; applications?: PortalApp[]; canFeedback: boolean; canViewIncidents?: boolean; myCases?: MyCase[]; caseTypes?: Record<string, { name: string }>; activity?: MyActivityItem[]; userName?: string;
 }) {
   const { t, locale } = useI18n();
@@ -95,13 +94,12 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   const [urgency, setUrgency] = useState<Urgency>("medium");
   const [isRecurrence, setIsRecurrence] = useState(false);       // reincidencia: fix previo fallido
   const [recurrenceOf, setRecurrenceOf] = useState("");          // caso previo (opcional)
-  const [res, setRes] = useState<PortalAssistResult | null>(null);
-  const [searching, startSearch] = useTransition();
   const [registering, startReg] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
   const [mine, setMine] = useState<SimilarCaseHit[]>([]);
   const [kb, setKb] = useState<SearchResult>({ articles: [], cases: [] }); // sugerencias KB en vivo (al tipear)
+  const [suggestDismissed, setSuggestDismissed] = useState(false); // P2: la X cierra la tira de forma persistente durante esta redaccion
   const [files, setFiles] = useState<File[]>([]);            // evidencia adjunta ANTES de registrar
   const [caseQuery, setCaseQuery] = useState("");            // buscador de "Mis casos"
   const [caseFilter, setCaseFilter] = useState<string | null>(null); // chip de estado activo
@@ -150,7 +148,7 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
   useEffect(() => {
     if (tab === "registrar") return;
     setSubject(""); setTouched(false); setCategoryId(""); setAppId(""); setAutoCat(false);
-    setRes(null); setKb({ articles: [], cases: [] }); setMine([]); setFiles([]);
+    setKb({ articles: [], cases: [] }); setMine([]); setFiles([]); setSuggestDismissed(false);
     setCreated(null); setErr(null);
   }, [tab]);
 
@@ -185,33 +183,32 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
     if (el) { el.focus(); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
   }
 
-  function consult() {
-    setErr(null);
-    startSearch(async () => {
-      const draft = { title: subject.trim(), description: subject.trim(), categoryId: categoryId || undefined, affectedCiId: appId || undefined };
-      const [r, m] = await Promise.all([portalAssist(subject), checkMySimilarCases(draft)]);
-      if (!r.ok) { setErr(r.error ?? "ERR_INVALID_FORMAT"); return; }
-      setRes(r);
-      if (m.ok && m.items) setMine(m.items);
-      if (r.suggestedCategoryId && !categoryId) { setCategoryId(r.suggestedCategoryId); setAutoCat(true); }
-    });
-  }
-
   function register() {
     setErr(null);
+    // R2: lo unico obligatorio es la descripcion (min 8). La categoria NO se exige; si falta, el
+    // caso entra sin clasificar y la mesa lo clasifica. Nunca se devuelve el caso por falta de datos.
     if (tooShort) { setTouched(true); return; }
-    if (!categoryId) { setErr("ERR_REQUIRED_FIELD"); return; }
     startReg(async () => {
-      const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId, affectedCiId: appId || undefined, impact: INTAKE_IMPACT, urgency, isRecurrence, recurrenceOfIncidentId: recurrenceOf || undefined });
+      const r = await createIncident({ title: subject.trim().slice(0, 120), description: subject.trim(), categoryId: categoryId || undefined, affectedCiId: appId || undefined, impact: INTAKE_IMPACT, urgency, isRecurrence, recurrenceOfIncidentId: recurrenceOf || undefined });
       if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
-      if (res) await Promise.all(res.articles.map((a) => recordKbEvent(a.id, "escalation", "portal", subject)));
       // Evidencia opcional adjuntada en el intake: se sube al caso recien creado (owner-checked).
       for (const f of files) { const fd = new FormData(); fd.append("file", f); await uploadMyCaseEvidence(r.id, fd); }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      setCreated(r.number ?? ""); setSubject(""); setRes(null); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf("");
+      setCreated(r.number ?? ""); setSubject(""); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false); setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf(""); setSuggestDismissed(false);
       router.refresh();
     });
   }
+
+  // Prioridad mostrada en el chip: sube un nivel si el usuario marca reincidencia (P1.5), igual que el backend.
+  const shownPriority = isRecurrence ? bumpPriority(estPriority) : estPriority;
+
+  // P2: la tira reune casos propios parecidos (dedup) + base de conocimiento + casos resueltos.
+  // Un resultado por fila con etiqueta de origen. Limite ~6 para no exceder el alto.
+  const stripItems: StripItem[] = [
+    ...kb.articles.map((a) => ({ key: `kb-${a.id}`, origin: "kb" as const, title: a.title, number: a.article_number, href: `/knowledge/${a.id}`, actionKey: "portal.strip.action.solution" as const })),
+    ...mine.map((s) => ({ key: `mine-${s.id}`, origin: (SETTLED.includes(s.status) ? "previous" : "open") as StripItem["origin"], title: s.title, number: s.incident_number, href: `/portal/cases/${s.id}`, actionKey: "portal.strip.action.open" as const })),
+    ...kb.cases.map((c) => ({ key: `case-${c.id}`, origin: "previous" as const, title: c.title, number: c.incident_number, href: canViewIncidents ? `/incidents/${c.id}` : "#", actionKey: "portal.strip.action.solution" as const, disabled: !canViewIncidents })),
+  ].slice(0, 6);
 
   const field: React.CSSProperties = { fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%" };
   const lbl: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "var(--text)", marginBottom: 5, display: "block" };
@@ -444,97 +441,87 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
 
       {/* ================= REGISTRAR ================= */}
       {tab === "registrar" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 18, alignItems: "start" }}>
-          {/* Intake estructurado */}
-          <div style={{ ...cardBox, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={sectionTitle}>{t("portal.intake.title")}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: -8 }}>{t("portal.intro")}</div>
+        <div style={{ maxWidth: 720 }}>
+          <div style={{ ...cardBox, padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <div style={sectionTitle}>{t("portal.intake.title")}</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{t("portal.intro")}</div>
+            </div>
 
+            {/* 1 · Texto libre: primero y lo mas grande. Dictar a la derecha de la etiqueta (P1.1). */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <label style={lbl}>{t("portal.field.subject")}</label>
+                <label htmlFor="intake-subject" style={{ ...lbl, fontWeight: 700, fontSize: 12.5 }}>{t("portal.field.subject")}</label>
                 {voiceSupported && (
                   <button type="button" onClick={toggleVoice} title={t("portal.voice")}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, padding: "4px 9px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600, padding: "6px 11px", minHeight: 32, borderRadius: "var(--r-pill)", cursor: "pointer",
                       border: `1px solid ${listening ? "var(--accent)" : "var(--line)"}`, background: listening ? "var(--accent-soft)" : "var(--card)", color: listening ? "var(--accent-2)" : "var(--muted)" }}>
-                    <Icon name={listening ? "power" : "play"} size={12} /> {listening ? t("portal.voice.stop") : t("portal.voice")}
+                    <Icon name={listening ? "power" : "play"} size={13} aria-hidden /> {listening ? t("portal.voice.stop") : t("portal.voice")}
                   </button>
                 )}
               </div>
-              <textarea ref={subjectRef} value={subject} onChange={(e) => setSubject(e.target.value)} onBlur={() => setTouched(true)} rows={4}
-                placeholder={t("portal.search.placeholder")}
-                style={{ ...field, resize: "vertical", borderColor: touched && tooShort ? "var(--st-critical-fg)" : "var(--field-border, var(--line))" }} />
-              <div style={{ fontSize: 10.5, marginTop: 4, color: touched && tooShort ? "var(--st-critical-fg)" : "var(--muted)" }}>
+              <textarea id="intake-subject" ref={subjectRef} value={subject} onChange={(e) => setSubject(e.target.value)} onBlur={() => setTouched(true)}
+                placeholder={t("portal.intake.placeholder")}
+                style={{ ...field, minHeight: 132, fontSize: 16.5, lineHeight: 1.5, padding: "12px 14px", resize: "vertical", borderColor: touched && tooShort ? "var(--st-critical-fg)" : "var(--field-border, var(--line))" }} />
+              <div style={{ fontSize: 12, marginTop: 5, color: touched && tooShort ? "var(--st-critical-fg)" : "var(--muted)" }}>
                 {touched && tooShort ? t("portal.subject.min") : t("portal.subject.hint")}
               </div>
             </div>
 
+            {/* 2 · Tira de sugerencias descartable, DEBAJO del texto (P2). No panel lateral. */}
+            {!tooShort && !suggestDismissed && (
+              <SuggestionsStrip items={stripItems} onDismiss={() => setSuggestDismissed(true)} />
+            )}
+
+            {/* 3 · Categorizacion opcional (2 col, 50px). Aplicacion y categoria desde la BD (§11). */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={lbl}>{t("portal.field.app")}</label>
-                <select value={appId} onChange={(e) => setAppId(e.target.value)} style={field}>
+                <label htmlFor="intake-app" style={{ ...lbl, fontWeight: 700 }}>{t("portal.field.app")}</label>
+                <select id="intake-app" value={appId} onChange={(e) => setAppId(e.target.value)} style={{ ...field, height: 50, borderRadius: "var(--r-md)" }}>
                   <option value="">{t("portal.field.app.none")}</option>
                   {apps.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={lbl}>{t("portal.create.field.cat")}{autoCat && <span style={{ color: "var(--accent-2)", fontWeight: 500 }}> · {t("portal.cat.auto")}</span>}</label>
-                <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setAutoCat(false); }} style={field}>
-                  <option value="">{t("portal.cat.choose")}</option>
+                <label htmlFor="intake-cat" style={{ ...lbl, fontWeight: 700 }}>{t("portal.create.field.cat")}{autoCat && <span style={{ color: "var(--accent-2)", fontWeight: 500 }}> · {t("portal.cat.auto")}</span>}</label>
+                <select id="intake-cat" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setAutoCat(false); }} style={{ ...field, height: 50, borderRadius: "var(--r-md)" }}>
+                  <option value="">{t("portal.cat.none")}</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{catLabel(c)}</option>)}
                 </select>
               </div>
             </div>
 
+            {/* 4 · Urgencia segmentada (un clic) + chip de prioridad en vivo (P1.3). */}
             <div>
-              <label style={lbl}>{t("portal.create.field.urgency")}</label>
+              <label style={{ ...lbl, fontWeight: 700 }}>{t("portal.create.field.urgency")}</label>
               <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <select value={urgency} onChange={(e) => setUrgency(e.target.value as Urgency)} style={{ ...field, maxWidth: 220 }}>
-                  {URGENCIES.map((u) => <option key={u} value={u}>{t(("lvl." + u) as MessageKey)}</option>)}
-                </select>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--muted)" }}>
+                <div style={{ flex: 1, minWidth: 260 }}><UrgencySegmented value={urgency} onChange={setUrgency} /></div>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>
                   {t("portal.priority.est")}
-                  <span title={t("portal.priority.note")} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600, color: priorityColor(estPriority), background: "var(--paper)", border: "1px solid var(--line)", padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "help" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: priorityColor(estPriority) }} />{t(priorityKey(estPriority))}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 700, color: priorityColor(shownPriority), background: "var(--paper)", border: "1px solid var(--line)", padding: "5px 12px", borderRadius: "var(--r-pill)" }}>
+                    <span aria-hidden style={{ width: 7, height: 7, borderRadius: "50%", background: priorityColor(shownPriority) }} />{t(priorityKey(shownPriority))}
                   </span>
                 </span>
               </div>
-              <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 5 }}>{t("portal.priority.note")}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>{t("portal.priority.note")}</div>
             </div>
 
-            {/* Evidencia (opcional): se adjunta al caso al registrarlo (owner-checked, <=10MB). */}
+            {/* 5 · Evidencia opcional (arrastrar + pegar Ctrl+V + seleccionar) — P1.4. */}
             <div>
-              <label style={lbl}>{t("portal.evidence.title")}</label>
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: 16, borderRadius: "var(--r-md)", border: "1.5px dashed var(--field-border, var(--line))", background: "var(--field-bg, var(--paper))", cursor: "pointer", textAlign: "center" }}>
-                <Icon name="paperclip" size={18} color="var(--muted)" />
-                <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("portal.evidence.hint")}</span>
-                <input type="file" multiple onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; setFiles((p) => [...p, ...fs]); }} style={{ display: "none" }} />
-              </label>
-              {files.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 8 }}>
-                  {files.map((f, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text)" }}>
-                      <Icon name="paperclip" size={12} color="var(--muted)" />
-                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)" }}>{Math.round(f.size / 1024)} KB</span>
-                      <button type="button" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "inline-flex" }}><Icon name="x" size={12} /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <label style={{ ...lbl, fontWeight: 700 }}>{t("portal.evidence.title")}</label>
+              <EvidenceDropzone files={files} onAdd={(fs) => setFiles((p) => [...p, ...fs])} onRemove={(i) => setFiles((p) => p.filter((_, j) => j !== i))} />
             </div>
 
-            {/* Reincidencia: el usuario indica que el caso ya se reporto y el fix no funciono o
-                derivo en otros problemas. Alimenta deteccion de problema (#4) y efectividad de fixes. */}
-            <div style={{ padding: "12px 14px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--paper)" }}>
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: "pointer" }}>
-                <input type="checkbox" checked={isRecurrence} onChange={(e) => { setIsRecurrence(e.target.checked); if (!e.target.checked) setRecurrenceOf(""); }} style={{ marginTop: 2, cursor: "pointer" }} />
-                <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>{t("portal.recurrence.label")}</span>
+            {/* 6 · Reincidencia: bloque clicable completo (no solo el checkbox). Sube prioridad (P1.5). */}
+            <div style={{ borderRadius: "var(--r-xl, 14px)", border: `1px solid ${isRecurrence ? "var(--accent)" : "var(--line)"}`, background: isRecurrence ? "var(--accent-soft)" : "var(--paper)" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "13px 15px" }}>
+                <input type="checkbox" checked={isRecurrence} onChange={(e) => { setIsRecurrence(e.target.checked); if (!e.target.checked) setRecurrenceOf(""); }} style={{ marginTop: 2, width: 18, height: 18, cursor: "pointer", accentColor: "var(--accent)" }} />
+                <span style={{ fontSize: 13.5, color: "var(--text)", fontWeight: 600 }}>{t("portal.recurrence.label")}</span>
               </label>
               {isRecurrence && (
-                <div style={{ marginTop: 10, paddingLeft: 27 }}>
-                  <label style={lbl}>{t("portal.recurrence.prior")}</label>
-                  <select value={recurrenceOf} onChange={(e) => setRecurrenceOf(e.target.value)} style={{ ...field, maxWidth: 380 }}>
+                <div style={{ padding: "0 15px 14px 43px" }}>
+                  <label htmlFor="intake-prior" style={lbl}>{t("portal.recurrence.prior")}</label>
+                  <select id="intake-prior" value={recurrenceOf} onChange={(e) => setRecurrenceOf(e.target.value)} style={{ ...field, height: 44 }}>
                     <option value="">{t("portal.recurrence.priornone")}</option>
                     {sortedCases.map((c) => <option key={c.id} value={c.id}>{c.incident_number} · {c.title}</option>)}
                   </select>
@@ -542,105 +529,15 @@ export function Portal({ categories, applications = [], canFeedback, canViewInci
               )}
             </div>
 
-            {err && <div style={{ fontSize: 12, color: "var(--st-critical-fg)" }}>{err.startsWith("ERR_") ? t(("err." + err) as MessageKey) : err}</div>}
+            {err && <div role="alert" style={{ fontSize: 12.5, color: "var(--st-critical-fg)" }}>{err.startsWith("ERR_") ? t(("err." + err) as MessageKey) : err}</div>}
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={consult} disabled={searching || tooShort} className="cx-btn-outline">
-                {searching ? t("portal.search.searching") : t("portal.consult")}
+            {/* 7 · Envio: un solo boton, 54px, con la garantia de "solo el asunto es obligatorio". */}
+            <div style={{ borderTop: "1px solid var(--line-soft, var(--line))", paddingTop: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <button onClick={register} disabled={registering || tooShort} className="cx-btn-primary" style={{ height: 54, borderRadius: 13, fontSize: 15 }}>
+                {registering ? t("portal.create.submitting") : t("portal.register.case")}
               </button>
-              <button onClick={register} disabled={registering || tooShort || !categoryId} className="cx-btn-primary">
-                {registering ? t("portal.create.submitting") : t("portal.register")}
-              </button>
+              <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, minWidth: 200 }}>{t("portal.register.guarantee")}</span>
             </div>
-          </div>
-
-          {/* Sugerencias (derecha) */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <div style={sectionTitle}>{t("portal.suggest.title")}</div>
-              <div style={{ fontSize: 11, color: "var(--muted)" }}>{t("portal.suggest.caption")}</div>
-            </div>
-
-            {mine.length > 0 && (
-              <div role="status" style={{ background: "var(--st-medium-bg)", border: "1px solid var(--st-medium)", borderRadius: "var(--r-md)", padding: 13 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--st-medium-fg)", marginBottom: 3 }}>{t("similar.mine.title")}</div>
-                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 9 }}>{t("similar.mine.hint")}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {mine.map((s) => {
-                    const sc = statusColors(s.status);
-                    return (
-                      <Link key={s.id} href={`/portal/cases/${s.id}`} className="cx-lift" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{s.incident_number}</span>
-                        <span style={{ flex: 1, fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 8px", borderRadius: "var(--r-pill)" }}>
-                          <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.fg }} />{t(statusKey(s.status))}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Base de conocimiento EN VIVO: sugiere articulos + casos resueltos mientras se escribe (sin IA). */}
-            {!res && (kb.articles.length > 0 || kb.cases.length > 0) && (
-              <div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{t("portal.kb.live.title")}</div>
-                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 9 }}>{t("portal.kb.live.hint")}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {kb.articles.map((a) => <KbCard key={a.id} id={a.id} number={a.article_number} title={a.title} summary={a.summary} content={a.content} canFeedback={canFeedback} />)}
-                  {kb.cases.length > 0 && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 2 }}>{t("portal.cases.title")}</div>}
-                  {kb.cases.map((c) => (
-                    <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} className={canViewIncidents ? "cx-lift" : undefined} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
-                      <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: "11px 13px" }}>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{c.incident_number}</span>
-                          <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>{c.title}</span>
-                        </div>
-                        {c.resolution && <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3 }}>{c.resolution}</div>}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!res && mine.length === 0 && kb.articles.length === 0 && kb.cases.length === 0 && <div style={{ background: "var(--acc-teal-bg, var(--paper))", border: "1px dashed var(--acc-teal-border, var(--line))", borderRadius: "var(--r-xl)", padding: 26, textAlign: "center", fontSize: 12.5, color: "var(--muted)" }}>{t("portal.suggest.empty")}</div>}
-
-            {res && (
-              <>
-                {!res.aiConfigured && <div style={{ fontSize: 11.5, color: "var(--muted)", background: "var(--paper)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "8px 11px" }}>{t("portal.ai.off")}</div>}
-
-                {res.guidance && (
-                  <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>{t("portal.guidance.title")}</span>
-                      {typeof res.confidence === "number" && <span style={{ fontSize: 10.5, color: "var(--muted)" }}>· {res.confidence}%</span>}
-                    </div>
-                    <AiReport text={res.guidance} framed={false} />
-                  </div>
-                )}
-
-                {res.articles.map((a) => <KbCard key={a.id} id={a.id} number={a.article_number} title={a.title} summary={a.summary} content={a.content} canFeedback={canFeedback} />)}
-
-                {res.cases.length > 0 && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)", marginTop: 2 }}>{t("portal.cases.title")}</div>}
-                {res.cases.map((c) => (
-                  <Link key={c.id} href={canViewIncidents ? `/incidents/${c.id}` : "#"} className={canViewIncidents ? "cx-lift" : undefined} style={{ textDecoration: "none", pointerEvents: canViewIncidents ? "auto" : "none" }}>
-                    <div style={{ ...cardBox, borderRadius: "var(--r-md)", padding: "11px 13px" }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{c.incident_number}</span>
-                        <span style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>{c.title}</span>
-                      </div>
-                      {c.resolution && <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3 }}>{c.resolution}</div>}
-                    </div>
-                  </Link>
-                ))}
-
-                {res.articles.length === 0 && res.cases.length === 0 && (
-                  <div style={{ fontSize: 12, color: "var(--muted)", padding: "8px 2px" }}>{t("portal.suggest.none")}</div>
-                )}
-              </>
-            )}
           </div>
         </div>
       )}
@@ -685,24 +582,3 @@ function EvalBanner({ cases, t, caseHref }: { cases: MyCase[]; t: (k: MessageKey
   );
 }
 
-function KbCard({ id, number, title, summary, content, canFeedback }: { id: string; number: string; title: string; summary: string | null; content: string; canFeedback: boolean }) {
-  const { t } = useI18n();
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md)", padding: "13px 15px", display: "flex", flexDirection: "column", gap: 7 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>{t("portal.kb.badge")}</span>
-        <Link href={`/knowledge/${id}`} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", textDecoration: "none" }}>{number}</Link>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{title}</span>
-      </div>
-      {summary && <div style={{ fontSize: 12, color: "var(--muted)" }}>{summary}</div>}
-      {open && content && <AiReport text={content} framed={false} />}
-      {content && (
-        <button onClick={() => setOpen((o) => !o)} style={{ alignSelf: "flex-start", fontSize: 11.5, fontWeight: 600, color: "var(--accent-2)", background: "transparent", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-          {open ? t("portal.kb.hide") : t("portal.kb.read")}
-        </button>
-      )}
-      {canFeedback && <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 7 }}><FeedbackWidget articleId={id} source="portal" canFeedback={canFeedback} compact /></div>}
-    </div>
-  );
-}

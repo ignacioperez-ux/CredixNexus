@@ -12,3 +12,12 @@ export function derivePriority(impact: Impact, urgency: Urgency): Priority {
   const m = Math.max(rank[impact], rank[urgency]);
   return m === 3 ? "p1_critical" : m === 2 ? "p2_high" : m === 1 ? "p3_medium" : "p4_low";
 }
+
+// Sube la prioridad un nivel (p4->p3->p2->p1; p1 se mantiene). Se usa cuando el usuario marca
+// que el caso es una REINCIDENCIA (fix previo fallido): un caso que ya se reporto y no se resolvio
+// merece mas atencion (P1.5). Mismo criterio en el frontend (chip) y en el backend (createIncident).
+export function bumpPriority(p: Priority): Priority {
+  const order: Priority[] = ["p4_low", "p3_medium", "p2_high", "p1_critical"];
+  const i = order.indexOf(p);
+  return i < 0 ? p : order[Math.min(i + 1, order.length - 1)];
+}
