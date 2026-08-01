@@ -1,5 +1,5 @@
 import { getContext } from "@/lib/auth/context";
-import { getOperationsTower } from "@/lib/operations/queries";
+import { getOperationsTower, getOpsInbox } from "@/lib/operations/queries";
 import { getSupervisor, getOverview } from "@/lib/analytics/queries";
 import { type DashboardCounts } from "@/components/dashboard/kpi-grid";
 import { OperationsTower } from "@/components/operations/operations-tower";
@@ -13,8 +13,9 @@ export default async function OperacionesPage() {
   const ctx = await getContext();
   if (!ctx) return null;
 
-  const [tower, supervisor, overview, countsRes] = await Promise.all([
+  const [tower, inbox, supervisor, overview, countsRes] = await Promise.all([
     getOperationsTower(ctx.supabase),
+    getOpsInbox(ctx.supabase),
     getSupervisor(ctx.supabase),
     getOverview(ctx.supabase),
     ctx.supabase.rpc("dashboard_counts"),
@@ -25,5 +26,5 @@ export default async function OperacionesPage() {
   };
   const firstName = ctx.name.trim().split(/\s+/)[0] || ctx.name;
 
-  return <OperationsTower tower={tower} supervisor={supervisor} overview={overview} counts={counts} firstName={firstName} />;
+  return <OperationsTower tower={tower} inbox={inbox} supervisor={supervisor} overview={overview} counts={counts} firstName={firstName} />;
 }

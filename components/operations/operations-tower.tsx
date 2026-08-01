@@ -6,9 +6,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/provider";
 import { Icon } from "@/components/ui/icon";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
-import type { OperationsTower as TowerData, OpsDecision, OpsPipelineStage, OpsKpis } from "@/lib/operations/queries";
+import type { OperationsTower as TowerData, OpsDecision, OpsPipelineStage, OpsKpis, OpsInbox } from "@/lib/operations/queries";
 import type { Overview, Supervisor } from "@/lib/analytics/queries";
 import { KpiGrid, type DashboardCounts } from "@/components/dashboard/kpi-grid";
+import { CaseInbox, type InboxGroup } from "@/components/cases/case-inbox";
+import { humanCommitment } from "@/lib/format/time";
 
 // Torre de Control de Operaciones (support_lead) UNIFICADA: absorbe las metricas del ex-dashboard
 // ejecutivo. Decision primero (hero + bandeja priorizada), luego operacion (KPIs) y detalle en tabs
@@ -34,11 +36,11 @@ const FUNNEL: { key: string; color: string }[] = [
   { key: "resolved", color: "var(--st-low)" },
 ];
 
-type Tab = "resumen" | "colas" | "carga" | "sla" | "aging";
-const TABS: Tab[] = ["resumen", "colas", "carga", "sla", "aging"];
+type Tab = "resumen" | "bandeja" | "colas" | "carga" | "sla" | "aging";
+const TABS: Tab[] = ["resumen", "bandeja", "colas", "carga", "sla", "aging"];
 
-export function OperationsTower({ tower, supervisor, overview, counts, firstName }: {
-  tower: TowerData; supervisor: Supervisor; overview: Overview; counts: DashboardCounts; firstName: string;
+export function OperationsTower({ tower, inbox, supervisor, overview, counts, firstName }: {
+  tower: TowerData; inbox: OpsInbox; supervisor: Supervisor; overview: Overview; counts: DashboardCounts; firstName: string;
 }) {
   const { t, locale } = useI18n();
   const sp = useSearchParams();
@@ -69,8 +71,26 @@ export function OperationsTower({ tower, supervisor, overview, counts, firstName
   const delta = today - (inflow.at(-2) ?? 0);
 
   const tabLabels: Record<Tab, MessageKey> = {
-    resumen: "op.tw.tab.resumen", colas: "op.tw.tab.colas", carga: "op.tw.tab.carga", sla: "op.tw.tab.sla", aging: "op.tw.tab.aging",
+    resumen: "op.tw.tab.resumen", bandeja: "op.tw.tab.bandeja", colas: "op.tw.tab.colas", carga: "op.tw.tab.carga", sla: "op.tw.tab.sla", aging: "op.tw.tab.aging",
   };
+
+  // P3 · Bandeja por accion del lider de operaciones (support_lead: tiene los permisos de gestion).
+  const humanStatus = (s: string) => t(("portal.human." + s) as MessageKey);
+  const opsRow = (r: OpsInbox["active"][number], actions: InboxGroup["rows"][number]["actions"]) => ({
+    id: r.id, number: r.number, title: r.title, href: `/incidents/${r.id}`,
+    subtitle: humanStatus(r.status), meta: humanCommitment(r.resoDueAt, locale), metaOverdue: r.overdue, actions,
+  });
+  const opsGroups: InboxGroup[] = [
+    { key: "active", tone: "info", title: t("op.tw.inbox.active"),
+      rows: inbox.active.map((r) => opsRow(r, [
+        { key: "escalate", label: t("op.tw.inbox.escalate"), variant: "primary", href: `/incidents/${r.id}` },
+        { key: "link", label: t("op.tw.inbox.linkchange"), variant: "secondary", href: `/incidents/${r.id}` },
+      ])) },
+    { key: "evolution", tone: "attention", icon: "zap", title: t("op.tw.inbox.evolution"),
+      rows: inbox.evolution.map((r) => opsRow(r, [{ key: "view", label: t("op.inbox.view"), variant: "secondary", href: `/incidents/${r.id}` }])) },
+    { key: "observation", tone: "resolved", title: t("op.tw.inbox.observation"),
+      rows: inbox.observation.map((r) => opsRow(r, [{ key: "view", label: t("op.inbox.view"), variant: "secondary", href: `/incidents/${r.id}` }])) },
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1180 }}>
@@ -142,6 +162,11 @@ export function OperationsTower({ tower, supervisor, overview, counts, firstName
             <KpiGrid counts={counts} />
           </section>
         </div>
+      )}
+
+      {/* 1b) BANDEJA por accion (P3): activas / escalados a Evolucion / post-liberacion en observacion */}
+      {tab === "bandeja" && (
+        <CaseInbox groups={opsGroups} emptyLabel={t("op.cases.empty")} />
       )}
 
       {/* 2) COLAS: embudo por estado (supervisor.by_status) */}

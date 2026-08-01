@@ -116,3 +116,35 @@ export async function getOperationsTower(supabase: SupabaseClient): Promise<Oper
 
   return { status, decisions, pipeline, kpis };
 }
+
+// Bandeja por accion del Gerente de Operaciones (P3). Grupos por "de quien es la pelota":
+// activas (abiertas) / escaladas a Evolucion (in_evolution, casos ancla) / post-liberacion en
+// observacion (resolved, aun no cerradas). Solo lectura; las acciones (Escalar/Vincular a cambio)
+// abren el detalle del caso donde vive el flujo. RLS por tenant.
+export type OpsInboxRow = { id: string; number: string; title: string; status: string; priority: string; resoDueAt: string | null; overdue: boolean };
+export type OpsInbox = { active: OpsInboxRow[]; evolution: OpsInboxRow[]; observation: OpsInboxRow[] };
+
+export async function getOpsInbox(supabase: SupabaseClient): Promise<OpsInbox> {
+  const OPEN_S = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+  const { data } = await supabase
+    .from("incident")
+    .select("id, incident_number, title, status, priority, sla_resolution_due_at")
+    .in("status", [...OPEN_S, "in_evolution", "resolved"])
+    .order("opened_at", { ascending: false })
+    .limit(200);
+  const now = Date.now();
+  const rows: (OpsInboxRow & { _s: string })[] = ((data ?? []) as Record<string, unknown>[]).map((r) => {
+    const due = (r.sla_resolution_due_at as string | null) ?? null;
+    const status = (r.status as string) ?? "new";
+    return {
+      _s: status, id: r.id as string, number: r.incident_number as string, title: r.title as string,
+      status, priority: (r.priority as string) ?? "p3_medium", resoDueAt: due,
+      overdue: !!due && Date.parse(due) < now && OPEN_S.includes(status),
+    };
+  });
+  return {
+    active: rows.filter((r) => OPEN_S.includes(r._s)),
+    evolution: rows.filter((r) => r._s === "in_evolution"),
+    observation: rows.filter((r) => r._s === "resolved"),
+  };
+}
