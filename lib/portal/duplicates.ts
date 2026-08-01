@@ -90,7 +90,8 @@ export async function getReportAggregators(draft: SimilarDraft): Promise<Aggrega
   return { ok: true, top, others };
 }
 
-export type JoinResult = { ok: boolean; error?: string; id?: string; number?: string; linked?: boolean };
+export type JoinResult = { ok: boolean; error?: string; id?: string; number?: string; linked?: boolean;
+  openedAt?: string | null; responseDueAt?: string | null; resolutionDueAt?: string | null };
 
 /** El usuario se SUMA a un caso agrupador: crea SU caso hijo y lo enlaza como duplicado del padre
  *  (source='self_report'), en vez de abrir un caso independiente (P4.3). Usa createIncident (que ya
@@ -118,7 +119,7 @@ export async function joinAsChildCase(parentId: string, description?: string): P
   });
   // Si el enlace falla (p.ej. carrera), el caso ya quedo registrado como caso normal: no se pierde.
   revalidatePath("/portal");
-  return { ok: true, id: r.id, number: r.number, linked: !error };
+  return { ok: true, id: r.id, number: r.number, linked: !error, openedAt: r.openedAt, responseDueAt: r.responseDueAt, resolutionDueAt: r.resolutionDueAt };
 }
 
 /** "Volvio a pasar" (P3): el usuario reporta que un caso RESUELTO volvio a ocurrir. Crea un caso
@@ -134,5 +135,5 @@ export async function reportRecurrence(originalId: string): Promise<JoinResult> 
   const r = await createIncident({ title: desc.slice(0, 120), description: desc, impact: "medium", urgency: "medium", isRecurrence: true, recurrenceOfIncidentId: originalId });
   if (!r.ok || !r.id) return { ok: false, error: r.error };
   revalidatePath("/portal");
-  return { ok: true, id: r.id, number: r.number, linked: true };
+  return { ok: true, id: r.id, number: r.number, linked: true, openedAt: r.openedAt, responseDueAt: r.responseDueAt, resolutionDueAt: r.resolutionDueAt };
 }

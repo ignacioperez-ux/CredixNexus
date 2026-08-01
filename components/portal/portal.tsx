@@ -18,6 +18,7 @@ import { SuggestionsStrip, type StripItem } from "@/components/portal/suggestion
 import { getReportAggregators, joinAsChildCase, reportRecurrence, type Aggregator } from "@/lib/portal/duplicates";
 import { DuplicateBlock, TrendingAggregators } from "@/components/portal/duplicate-group";
 import { CaseInbox, type InboxGroup } from "@/components/cases/case-inbox";
+import { CaseCreated, type Confirmation } from "@/components/portal/case-created";
 import { humanAgo, humanCommitment } from "@/lib/format/time";
 import { priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
@@ -99,7 +100,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   const [recurrenceOf, setRecurrenceOf] = useState("");          // caso previo (opcional)
   const [registering, startReg] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-  const [created, setCreated] = useState<string | null>(null);
+  const [conf, setConf] = useState<Confirmation | null>(null); // P5: confirmacion con expectativa explicita
   const [mine, setMine] = useState<SimilarCaseHit[]>([]);
   const [kb, setKb] = useState<SearchResult>({ articles: [], cases: [] }); // sugerencias KB en vivo (al tipear)
   const [suggestDismissed, setSuggestDismissed] = useState(false); // P2: la X cierra la tira de forma persistente durante esta redaccion
@@ -156,7 +157,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
     setSubject(""); setTouched(false); setCategoryId(""); setAppId(""); setAutoCat(false);
     setKb({ articles: [], cases: [] }); setMine([]); setFiles([]); setSuggestDismissed(false);
     setAgg(null); setTrending([]); setAggDismissed(false);
-    setCreated(null); setErr(null);
+    setConf(null); setErr(null);
   }, [tab]);
 
   // La CTA "Reportar caso" (?report=1) enfoca el intake de la pestana Registrar.
@@ -204,14 +205,16 @@ export function Portal({ categories, applications = [], canViewIncidents = false
       // Evidencia opcional adjuntada en el intake: se sube al caso recien creado (owner-checked).
       for (const f of files) { const fd = new FormData(); fd.append("file", f); await uploadMyCaseEvidence(r.id, fd); }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      resetIntake(r.number ?? "");
+      resetIntake(r);
       router.refresh();
     });
   }
 
-  // Limpia el intake tras registrar/sumarse y muestra la confirmacion con el numero de caso.
-  function resetIntake(number: string) {
-    setCreated(number); setSubject(""); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false);
+  // Limpia el intake tras registrar/sumarse y muestra la CONFIRMACION (P5) con numero + compromisos SLA.
+  type CaseResult = { id?: string; number?: string; openedAt?: string | null; responseDueAt?: string | null; resolutionDueAt?: string | null };
+  function resetIntake(r: CaseResult) {
+    setConf({ id: r.id ?? "", number: r.number ?? "", openedAt: r.openedAt ?? null, responseDueAt: r.responseDueAt ?? null, resolutionDueAt: r.resolutionDueAt ?? null });
+    setSubject(""); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false);
     setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf(""); setSuggestDismissed(false);
     setAgg(null); setTrending([]); setAggDismissed(false);
   }
@@ -226,7 +229,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
       setJoinBusyId(null);
       if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      resetIntake(r.number ?? "");
+      resetIntake(r);
       router.refresh();
     });
   }
@@ -238,7 +241,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
       const r = await reportRecurrence(originalId);
       if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
       if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
-      setCreated(r.number ?? ""); router.refresh();
+      resetIntake(r); router.refresh();
     });
   }
 
@@ -294,9 +297,9 @@ export function Portal({ categories, applications = [], canViewIncidents = false
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
-      {created && (
+      {conf && tab !== "registrar" && (
         <div style={{ fontSize: 13, fontWeight: 600, padding: "11px 14px", borderRadius: "var(--r-md)", background: "var(--st-low-bg)", color: "var(--st-low-fg)", display: "flex", alignItems: "center", gap: 8 }}>
-          <Icon name="check" size={15} /> {t("portal.created")} <span style={{ fontFamily: "var(--font-mono)" }}>{created}</span>
+          <Icon name="check" size={15} /> {t("portal.created")} <span style={{ fontFamily: "var(--font-mono)" }}>{conf.number}</span>
         </div>
       )}
 
@@ -469,7 +472,15 @@ export function Portal({ categories, applications = [], canViewIncidents = false
       )}
 
       {/* ================= REGISTRAR ================= */}
-      {tab === "registrar" && (
+      {tab === "registrar" && conf && (
+        <div style={{ maxWidth: 720 }}>
+          <div style={{ ...cardBox, padding: "28px 20px" }}>
+            <CaseCreated conf={conf} caseHref={caseHref} onNew={() => setConf(null)} />
+          </div>
+        </div>
+      )}
+
+      {tab === "registrar" && !conf && (
         <div style={{ maxWidth: 720 }}>
           <div style={{ ...cardBox, padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
             <div>

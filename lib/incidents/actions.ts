@@ -11,7 +11,9 @@ import { findSimilarOpenCases, type SimilarDraft, type SimilarCaseHit } from "@/
 import { searchKnowledge, type SearchResult } from "@/lib/portal/queries";
 import { embedQuery, triggerIncidentEmbedding, type SemanticHit } from "@/lib/ai/embeddings";
 
-export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string };
+export type ActionResult = { ok: boolean; error?: string; id?: string; number?: string;
+  // Compromisos SLA del caso recien creado (P5: confirmacion con expectativa explicita).
+  openedAt?: string | null; responseDueAt?: string | null; resolutionDueAt?: string | null };
 
 /** Guard de permiso: pasa si es admin o tiene AL MENOS uno de los codigos. Defense-in-depth
  *  para las mutaciones de incidencia (antes solo dependian de RLS + gate de UI). */
@@ -145,14 +147,19 @@ export async function createIncident(input: IncidentInput): Promise<ActionResult
       recurrence_of_incident_id: recurrenceOf,
       ...fintechCols(input),
     })
-    .select("id, incident_number")
+    .select("id, incident_number, opened_at, sla_response_due_at, sla_resolution_due_at")
     .single();
 
   if (error) return { ok: false, error: error.message };
   // Embedding semantico (fire-and-forget): no bloquea el registro.
   void triggerIncidentEmbedding(ctx.supabase, data.id as string);
   revalidatePath("/incidents");
-  return { ok: true, id: data.id as string, number: data.incident_number as string };
+  return {
+    ok: true, id: data.id as string, number: data.incident_number as string,
+    openedAt: (data.opened_at as string | null) ?? null,
+    responseDueAt: (data.sla_response_due_at as string | null) ?? null,
+    resolutionDueAt: (data.sla_resolution_due_at as string | null) ?? null,
+  };
 }
 
 /** Cambia el flag de reincidencia despues del registro. Solo el REPORTANTE (libre, es su

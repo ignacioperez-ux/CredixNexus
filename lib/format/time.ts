@@ -11,6 +11,12 @@ function timeOf(d: Date, locale: string): string {
   return d.toLocaleTimeString(locale === "en" ? "en-US" : "es-CR", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+/** Solo la hora legible: "3:22 p. m." (P5 paso "Lo recibimos"). */
+export function humanTimeOnly(iso: string | null | undefined, locale = "es"): string | null {
+  const d = parse(iso);
+  return d ? timeOf(d, locale) : null;
+}
+
 /** "hace 2 horas" / "hace 5 minutos" / "ahora" / "hace 3 días". Solo pasado; futuro -> "ahora". */
 export function humanAgo(iso: string | null | undefined, locale = "es", now: number = Date.now()): string {
   const d = parse(iso);
