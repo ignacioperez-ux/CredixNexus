@@ -14,6 +14,7 @@ import { addMyCaseComment, uploadMyCaseEvidence, deleteMyCaseEvidence, escalateM
 import { setIncidentRecurrence } from "@/lib/incidents/actions";
 import type { MyCaseDetail, CaseThreadItem, MyCaseSurvey, PortalAttachment } from "@/lib/portal/case-queries";
 import { CaseCsat } from "./case-csat";
+import { humanCommitment, humanAgo } from "@/lib/format/time";
 
 // Detalle de caso PROPIO del usuario (P2): centro de tracking client-centric. No reutiliza la
 // vista de agente; muestra estado, SLA, hilo (solo mensajes no internos) y CSAT al resolverse.
@@ -63,6 +64,10 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
 
   const sc = statusColors(detail.status);
   const inEvolution = detail.status === "in_evolution";
+  // P6: el caso espera al usuario (en pausa esperando su dato). Ultima pregunta de la mesa = ultimo
+  // mensaje que no es mio ni del sistema (una consulta del equipo).
+  const awaitingUser = detail.status === "waiting" || detail.status === "reopened";
+  const lastStaffMsg = [...thread].reverse().find((m) => !m.is_mine && !m.is_system_generated) ?? null;
   // Se puede evaluar en resuelto y tambien en cerrado sin evaluar (p.ej. cerrado por el agente);
   // si ya se envio, se muestra en solo-lectura. El estado pasa a "evaluado" al enviar.
   const showCsat = detail.status === "resolved" || detail.status === "closed" || survey?.status === "submitted";
@@ -98,9 +103,43 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(detail.status))}
             </span>
           </div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: "var(--fw-title, 700)" as React.CSSProperties["fontWeight"], fontSize: "var(--fs-5)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)", marginTop: 4 }}>{detail.title}</div>
+          <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.01em", color: "var(--text)" }}>{detail.title}</h1>
         </div>
       </div>
+
+      {/* P6.2 · El caso espera al usuario: pregunta de la mesa + respuesta INLINE (no obligar a bajar al hilo). */}
+      {awaitingUser && canReply && (
+        <div style={{ background: "var(--acc-amber-bg, var(--st-high-bg))", border: "1px solid var(--acc-amber-border, var(--st-high))", borderRadius: "var(--r-2xl, 18px)", padding: 18 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span aria-hidden style={{ width: 40, height: 40, flexShrink: 0, borderRadius: "50%", background: "var(--acc-amber-ink, var(--st-high))", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700 }}>{(detail.assignee?.trim()[0] ?? "?").toUpperCase()}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                {detail.assignee ?? t("case.team")} <span style={{ fontWeight: 500, color: "var(--muted)" }}>· {t("case.attends.desk")}</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 1 }}>
+                {t("case.await.title")}{lastStaffMsg ? ` · ${humanAgo(lastStaffMsg.created_at, locale)}` : ""}
+              </div>
+              {lastStaffMsg && (
+                <blockquote style={{ margin: "10px 0 0", padding: "10px 14px", background: "var(--card)", borderLeft: "3px solid var(--acc-amber-ink, var(--st-high))", borderRadius: "var(--r-md)", fontSize: 14, color: "var(--text)" }}>“{lastStaffMsg.body}”</blockquote>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+            <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("case.reply.placeholder")}
+              style={{ fontSize: 14, padding: "10px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%", resize: "vertical" }} />
+            {err && <div role="alert" style={{ fontSize: 12.5, color: "var(--st-critical-fg)" }}>{err}</div>}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={send} disabled={pending || reply.trim().length === 0} className="cx-btn-primary" style={{ height: 46, borderRadius: 12 }}>
+                {pending ? t("case.reply.sending") : t("case.reply.send")}
+              </button>
+              <label style={{ ...uploadBtn, height: 46, borderRadius: 12, opacity: busy ? 0.6 : 1 }}>
+                <Icon name="paperclip" size={14} aria-hidden /> {t("case.evidence.add")}
+                <input type="file" onChange={onUpload} disabled={busy} style={{ display: "none" }} />
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 16, alignItems: "start" }}>
         {/* ===== IZQUIERDA: seguimiento / evaluacion / detalle / comunicacion ===== */}
@@ -146,19 +185,27 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
           )}
 
           <div style={panel}>
-            <div style={{ ...cardTitle, marginBottom: 12 }}>{t("case.thread.title")}</div>
+            <div style={{ ...cardTitle, marginBottom: 12 }}>{t("case.history.title")}</div>
             {thread.length === 0 ? (
               <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("case.thread.empty")}</div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {thread.map((m) => (
-                  <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: m.is_mine ? "flex-end" : "flex-start" }}>
-                    <div style={{ maxWidth: "82%", background: m.is_mine ? "var(--accent-soft)" : "var(--paper)", border: `1px solid ${m.is_mine ? "var(--accent)" : "var(--line)"}`, borderRadius: "var(--r-lg)", padding: "10px 13px", fontSize: 13, color: "var(--text)" }}>{m.body}</div>
-                    <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
-                      {m.is_mine ? t("case.you") : m.is_system_generated ? t("case.system") : t("case.team")} · {new Date(m.created_at).toLocaleString(locale)}
-                    </span>
-                  </div>
-                ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {thread.map((m) => {
+                  // Punto de color: exito = hito del sistema; espera-usuario = advertencia; avance = info.
+                  const isQuestion = !m.is_mine && !m.is_system_generated && m.id === lastStaffMsg?.id && awaitingUser;
+                  const dot = m.is_system_generated ? "var(--st-low-fg, var(--st-low))" : isQuestion ? "var(--acc-amber-ink, var(--st-high))" : m.is_mine ? "var(--accent-2)" : "var(--st-info)";
+                  return (
+                    <div key={m.id} style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+                      <span aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: dot, flexShrink: 0, marginTop: 5 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, color: "var(--text)", lineHeight: 1.5 }}>{m.body}</div>
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                          {m.is_mine ? t("case.you") : m.is_system_generated ? t("case.system") : t("case.team")} · {humanAgo(m.created_at, locale)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
             {canReply && (
@@ -181,8 +228,21 @@ export function UserCaseDetail({ detail, thread, survey, attachments = [] }: { d
           </div>
         </div>
 
-        {/* ===== DERECHA: SLA / quien atiende / adjuntos ===== */}
+        {/* ===== DERECHA: cuando se resuelve / SLA / quien atiende / adjuntos ===== */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)" }}>
+          {/* P6.3 · Cuando se resuelve (compromiso legible + motivo si esta en pausa). */}
+          <div style={panel}>
+            <div style={{ ...cardTitle, marginBottom: 8 }}>{t("case.when.title")}</div>
+            {detail.status === "resolved" || detail.status === "closed" ? (
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--st-low-fg, var(--st-low))" }}>{t("case.when.resolved")}</div>
+            ) : (
+              <>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18, color: "var(--text)" }}>{humanCommitment(detail.sla_resolution_due_at, locale) ?? t("case.when.tbd")}</div>
+                {awaitingUser && <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--acc-amber-ink, var(--st-high-fg))" }}>{t("case.when.paused")}</div>}
+              </>
+            )}
+          </div>
+
           <div style={panel}>
             <div style={{ ...cardTitle, marginBottom: 6 }}>{t("case.sla.title")}</div>
             <SlaStatusRow label={t("inc.sla.response")} dueAt={detail.sla_response_due_at} openedAt={detail.opened_at} resolvedAt={detail.first_response_at} status={detail.status} locale={locale} />
