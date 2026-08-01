@@ -11,15 +11,20 @@ export type ProjectRow = {
   squad: { name: string } | null;
   incident: { incident_number: string } | null;
   business_unit: { name: string } | null;
+  qa_status: string;                 // pending | in_testing | passed | failed (aprobacion Lider/PO)
+  prod_authorized: boolean;          // ya autorizado a produccion (release)
 };
 
 export async function listProjects(supabase: SupabaseClient): Promise<ProjectRow[]> {
   const { data, error } = await supabase
     .from("project")
-    .select("id, project_code, name, status, wsjf, estimated_benefit_amount, estimated_cost_amount, squad:squad_id(name), incident:created_from_incident_id(incident_number), business_unit:business_unit_id(name)")
+    .select("id, project_code, name, status, wsjf, estimated_benefit_amount, estimated_cost_amount, qa_status, prod_authorized_at, squad:squad_id(name), incident:created_from_incident_id(incident_number), business_unit:business_unit_id(name)")
     .order("wsjf", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as ProjectRow[];
+  return (data ?? []).map((r) => {
+    const row = r as Record<string, unknown>;
+    return { ...(row as unknown as ProjectRow), qa_status: (row.qa_status as string) ?? "pending", prod_authorized: !!row.prod_authorized_at };
+  });
 }
 
 /** Proyectos de evolucion nacidos de un incidente (ancla §0: la mesa conserva el hilo). */

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { setQaStatus, authorizeProduction } from "@/lib/projects/qa-actions";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { ProjectRow } from "@/lib/projects/queries";
@@ -24,6 +25,7 @@ const COLUMNS: { key: string; label: MessageKey; dot: string; statuses: string[]
 
 export function ProjectsKanban({ projects, convertibles, squads }: { projects: ProjectRow[]; convertibles: Convertible[]; squads: Squad[] }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [sortBy, setSortBy] = useState<"wsjf" | "roi">("wsjf");
   const [view, setView] = useState<"kanban" | "inbox">("kanban"); // P3: vista Kanban (default, E2E) o Bandeja por accion
 
@@ -51,6 +53,21 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
   const prio = (p: ProjectRow) => [{ key: "prio", label: t("proj.inbox.prioritize"), variant: "primary" as const, href: `/projects/${p.id}` }];
   const open = (p: ProjectRow) => [{ key: "open", label: t("proj.inbox.open"), variant: "secondary" as const, href: `/projects/${p.id}` }];
   const isAnalysis = (p: ProjectRow) => p.status === "proposed" || p.status === "approved";
+
+  // Aprobacion Lider/PO: aprobar/autorizar son un clic (accion positiva, sin motivo). "Devolver"
+  // SIEMPRE exige un motivo escrito -> se enruta al detalle del proyecto donde vive ese flujo (con
+  // evidencia). El servidor valida el permiso (project.validate/deploy).
+  const [qaBusy, startQa] = useTransition();
+  const doApproveQa = (p: ProjectRow) => startQa(async () => { const r = await setQaStatus(p.id, "passed"); if (r.ok) router.refresh(); });
+  const doAuthorize = (p: ProjectRow) => startQa(async () => { const r = await authorizeProduction(p.id); if (r.ok) router.refresh(); });
+  const approveActions = (p: ProjectRow) => [
+    { key: "approve", label: t("proj.inbox.approve"), variant: "primary" as const, onClick: () => doApproveQa(p), disabled: qaBusy },
+    { key: "return", label: t("proj.inbox.return"), variant: "secondary" as const, href: `/projects/${p.id}` },
+  ];
+  const releaseActions = (p: ProjectRow) => [
+    { key: "authorize", label: t("proj.inbox.authorize"), variant: "primary" as const, onClick: () => doAuthorize(p), disabled: qaBusy },
+    { key: "open", label: t("proj.inbox.open"), variant: "secondary" as const, href: `/projects/${p.id}` },
+  ];
   const projectGroups: InboxGroup[] = [
     { key: "converted", tone: "info", icon: "zap", title: t("proj.inbox.converted"),
       rows: sorted.filter((p) => !!p.incident && isAnalysis(p)).map((p) => projRow(p, prio(p))) },
@@ -60,6 +77,11 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
       rows: sorted.filter((p) => p.status === "active").map((p) => projRow(p, open(p))) },
     { key: "blocked", tone: "attention", icon: "flag", title: t("proj.inbox.blocked"),
       rows: sorted.filter((p) => p.status === "on_hold").map((p) => projRow(p, open(p))) },
+    // Aprobacion Lider/PO (P3): pendientes de aprobar (QA en prueba) y listos para liberar (QA ok).
+    { key: "approval", tone: "attention", icon: "check", title: t("proj.inbox.pending_approval"),
+      rows: sorted.filter((p) => p.qa_status === "in_testing").map((p) => projRow(p, approveActions(p))) },
+    { key: "release", tone: "info", title: t("proj.inbox.ready_release"),
+      rows: sorted.filter((p) => p.qa_status === "passed" && !p.prod_authorized).map((p) => projRow(p, releaseActions(p))) },
   ];
 
   return (
