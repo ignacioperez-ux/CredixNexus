@@ -187,3 +187,13 @@ export async function getMyPerformance(supabase: SupabaseClient, accountId: stri
     skills: ((skillRes.data ?? []) as { level: number; skill: unknown }[]).map((s) => ({ name: (one(s.skill)?.name as string) ?? "—", level: s.level })).sort((a, b) => b.level - a.level),
   };
 }
+
+/** Conteo de reportes agrupados por caso (hijos duplicados activos) para mostrar el contador en la
+ *  bandeja del operador (P3). reportCount efectivo = 1 (el propio) + hijos. Solo lectura. */
+export async function getDuplicateCounts(supabase: SupabaseClient, ids: string[]): Promise<Record<string, number>> {
+  if (ids.length === 0) return {};
+  const { data } = await supabase.from("incident_duplicate_link").select("primary_incident_id").eq("status", "active").in("primary_incident_id", ids);
+  const m: Record<string, number> = {};
+  for (const r of (data ?? []) as { primary_incident_id: string }[]) m[r.primary_incident_id] = (m[r.primary_incident_id] ?? 0) + 1;
+  return m;
+}
