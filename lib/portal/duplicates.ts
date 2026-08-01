@@ -120,3 +120,19 @@ export async function joinAsChildCase(parentId: string, description?: string): P
   revalidatePath("/portal");
   return { ok: true, id: r.id, number: r.number, linked: !error };
 }
+
+/** "Volvio a pasar" (P3): el usuario reporta que un caso RESUELTO volvio a ocurrir. Crea un caso
+ *  nuevo marcado como REINCIDENCIA del original (createIncident sube un nivel de prioridad y enlaza
+ *  recurrence_of_incident_id). Senal muy valiosa para la mesa (efectividad del fix). */
+export async function reportRecurrence(originalId: string): Promise<JoinResult> {
+  const ctx = await getContext();
+  if (!ctx?.tenantId || !ctx.accountId) return { ok: false, error: ErrorCode.PERMISSION };
+  if (!originalId) return { ok: false, error: ErrorCode.FORMAT };
+  const { data: orig } = await ctx.supabase.from("incident").select("title").eq("id", originalId).maybeSingle();
+  if (!orig) return { ok: false, error: ErrorCode.INVALID_REFERENCE };
+  const desc = `Volvió a pasar: ${(orig as { title: string }).title}`;
+  const r = await createIncident({ title: desc.slice(0, 120), description: desc, impact: "medium", urgency: "medium", isRecurrence: true, recurrenceOfIncidentId: originalId });
+  if (!r.ok || !r.id) return { ok: false, error: r.error };
+  revalidatePath("/portal");
+  return { ok: true, id: r.id, number: r.number, linked: true };
+}

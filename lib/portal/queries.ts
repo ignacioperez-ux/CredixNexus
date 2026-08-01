@@ -88,12 +88,14 @@ export type MyCase = {
   priority: string | null; sla_resolution_due_at: string | null; first_response_at: string | null; resolved_at: string | null;
   case_type: string | null; // tipo de caso (fintech) para el desglose "Mis casos por tipo"
   survey_status: string | null; // estado de la encuesta CSAT (pending/submitted/na) para el estado "pendiente de evaluacion / evaluado"
+  updated_at: string | null;   // ultima actividad (para "hace 2 horas" en la bandeja agrupada, P3)
+  assignee_name: string | null; // quien atiende (para el avatar de "En manos de la mesa", P3)
 };
 export async function getMyReportedCases(supabase: SupabaseClient, accountId: string | null): Promise<MyCase[]> {
   if (!accountId) return [];
   const { data, error } = await supabase
     .from("incident")
-    .select("id, incident_number, title, status, opened_at, priority, sla_resolution_due_at, first_response_at, resolved_at, case_type, survey:case_survey(status)")
+    .select("id, incident_number, title, status, opened_at, priority, sla_resolution_due_at, first_response_at, resolved_at, case_type, updated_at, survey:case_survey(status), assignee:assigned_user_id(full_name)")
     .eq("reported_by_user_id", accountId)
     .order("opened_at", { ascending: false })
     .limit(20);
@@ -102,7 +104,9 @@ export async function getMyReportedCases(supabase: SupabaseClient, accountId: st
     const row = r as Record<string, unknown>;
     const s = row.survey as { status: string }[] | { status: string } | null;
     const survey_status = Array.isArray(s) ? (s[0]?.status ?? null) : (s?.status ?? null);
-    return { ...(row as unknown as MyCase), survey_status };
+    const a = row.assignee as { full_name: string }[] | { full_name: string } | null;
+    const assignee_name = Array.isArray(a) ? (a[0]?.full_name ?? null) : (a?.full_name ?? null);
+    return { ...(row as unknown as MyCase), survey_status, assignee_name };
   });
 }
 

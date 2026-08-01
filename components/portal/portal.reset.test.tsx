@@ -38,6 +38,7 @@ vi.mock("@/lib/portal/case-actions", () => ({ uploadMyCaseEvidence: vi.fn(async 
 vi.mock("@/lib/portal/duplicates", () => ({
   getReportAggregators: vi.fn(async () => ({ ok: true, top: null, others: [] })),
   joinAsChildCase: vi.fn(async () => ({ ok: true, id: "inc-2", number: "INC-2026-001000", linked: true })),
+  reportRecurrence: vi.fn(async () => ({ ok: true, id: "inc-3", number: "INC-2026-001001", linked: true })),
 }));
 vi.mock("@/lib/knowledge/actions", () => ({ recordKbEvent: vi.fn(async () => ({ ok: true })) }));
 

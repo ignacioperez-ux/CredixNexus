@@ -15,11 +15,12 @@ import { derivePriority, bumpPriority, type Urgency, type Impact } from "@/lib/i
 import { UrgencySegmented } from "@/components/portal/urgency-segmented";
 import { EvidenceDropzone } from "@/components/portal/evidence-dropzone";
 import { SuggestionsStrip, type StripItem } from "@/components/portal/suggestions-strip";
-import { getReportAggregators, joinAsChildCase, type Aggregator } from "@/lib/portal/duplicates";
+import { getReportAggregators, joinAsChildCase, reportRecurrence, type Aggregator } from "@/lib/portal/duplicates";
 import { DuplicateBlock, TrendingAggregators } from "@/components/portal/duplicate-group";
-import { statusKey, statusColors, priorityKey, priorityColor } from "@/lib/incidents/labels";
+import { CaseInbox, type InboxGroup } from "@/components/cases/case-inbox";
+import { humanAgo, humanCommitment } from "@/lib/format/time";
+import { priorityKey, priorityColor } from "@/lib/incidents/labels";
 import { Icon } from "@/components/ui/icon";
-import { SlaRing } from "@/components/portal/hub-viz";
 
 // Tipos minimos de Web Speech API (no estan en la lib estandar de TS).
 type SpeechRec = {
@@ -108,7 +109,6 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   const [joinBusyId, setJoinBusyId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);            // evidencia adjunta ANTES de registrar
   const [caseQuery, setCaseQuery] = useState("");            // buscador de "Mis casos"
-  const [caseFilter, setCaseFilter] = useState<string | null>(null); // chip de estado activo
 
   // Dictado por voz (Web Speech API): opcional, degradado si el navegador no lo soporta.
   const [listening, setListening] = useState(false);
@@ -231,6 +231,49 @@ export function Portal({ categories, applications = [], canViewIncidents = false
     });
   }
 
+  // "Volvio a pasar" (P3): reporta un caso resuelto que reincide -> caso nuevo marcado reincidencia.
+  function reportAgain(originalId: string) {
+    setErr(null);
+    startReg(async () => {
+      const r = await reportRecurrence(originalId);
+      if (!r.ok || !r.id) { setErr(t(("err." + (r.error ?? "ERR_INVALID_FORMAT")) as MessageKey)); return; }
+      if (canViewIncidents) { router.push(`/incidents/${r.id}`); return; }
+      setCreated(r.number ?? ""); router.refresh();
+    });
+  }
+
+  // P3: bandeja del usuario agrupada por ACCION (no por estado). Busqueda detras de control secundario.
+  const q = caseQuery.trim().toLowerCase();
+  const inboxCases = q ? sortedCases.filter((c) => `${c.title} ${c.incident_number} ${caseTypes[c.case_type || ""]?.name ?? ""}`.toLowerCase().includes(q)) : sortedCases;
+  const humanStatus = (s: string) => t(("portal.human." + s) as MessageKey);
+  const userInbox: InboxGroup[] = [
+    {
+      key: "action", tone: "attention", icon: "alert", title: t("inbox.user.action"),
+      rows: inboxCases.filter((c) => ATTENTION.includes(c.status)).map((c) => ({
+        id: c.id, number: c.incident_number, title: c.title, href: caseHref(c.id),
+        subtitle: `${c.assignee_name ?? t("case.team")} ${t("inbox.user.asked")} · ${humanAgo(c.updated_at ?? c.opened_at, locale)}`,
+        actions: [{ key: "reply", label: t("inbox.user.reply"), variant: "primary" as const, href: caseHref(c.id) }],
+      })),
+    },
+    {
+      key: "desk", tone: "info", hint: t("inbox.user.desk.hint"), title: t("inbox.user.desk"),
+      rows: inboxCases.filter((c) => !SETTLED.includes(c.status) && !ATTENTION.includes(c.status)).map((c) => ({
+        id: c.id, number: c.incident_number, title: c.title, href: caseHref(c.id),
+        whoName: c.assignee_name ?? undefined, subtitle: humanStatus(c.status),
+        meta: humanCommitment(c.sla_resolution_due_at, locale),
+        metaOverdue: !!c.sla_resolution_due_at && new Date(c.sla_resolution_due_at).getTime() < Date.now(),
+      })),
+    },
+    {
+      key: "resolved", tone: "resolved", title: t("inbox.user.resolved"),
+      rows: inboxCases.filter((c) => SETTLED.includes(c.status)).map((c) => ({
+        id: c.id, number: c.incident_number, title: c.title, href: caseHref(c.id),
+        subtitle: c.resolved_at ? `${t("portal.human.resolved")} · ${humanAgo(c.resolved_at, locale)}` : undefined,
+        actions: [{ key: "again", label: t("inbox.user.again"), variant: "secondary" as const, onClick: () => reportAgain(c.id), disabled: registering }],
+      })),
+    },
+  ];
+
   // Prioridad mostrada en el chip: sube un nivel si el usuario marca reincidencia (P1.5), igual que el backend.
   const shownPriority = isRecurrence ? bumpPriority(estPriority) : estPriority;
 
@@ -248,12 +291,6 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   const sectionTitle: React.CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-4)", letterSpacing: "var(--tracking-title, normal)", color: "var(--text)" };
   const apps = applications;
 
-  // "Mis casos": filtro por chip de estado + busqueda por asunto/codigo/tipo.
-  const filteredCases = sortedCases.filter((c) =>
-    (!caseFilter || c.status === caseFilter) &&
-    (!caseQuery.trim() || `${c.title} ${c.incident_number} ${caseTypes[c.case_type || ""]?.name ?? ""}`.toLowerCase().includes(caseQuery.trim().toLowerCase())),
-  );
-  const CASE_FILTERS: (string | null)[] = [null, "new", "assigned", "in_progress", "waiting", "resolved"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)", maxWidth: "var(--w-app)" }}>
@@ -418,54 +455,14 @@ export function Portal({ categories, applications = [], canViewIncidents = false
           </Link>
 
           <div style={{ ...cardBox, padding: 18 }}>
-            {/* Barra: buscador + chips de estado */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-              <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-                <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center", color: "var(--muted)" }}><Icon name="search" size={14} /></span>
-                <input value={caseQuery} onChange={(e) => setCaseQuery(e.target.value)} placeholder={t("portal.mycases.search")} style={{ ...field, padding: "9px 11px 9px 32px" }} />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
-              {CASE_FILTERS.map((s) => {
-                const active = caseFilter === s;
-                return (
-                  <button key={s ?? "all"} type="button" onClick={() => setCaseFilter(s)}
-                    style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: "var(--r-pill)", cursor: "pointer",
-                      background: active ? "var(--accent)" : "var(--card)", border: active ? "1px solid var(--accent)" : "1px solid var(--line)", color: active ? "var(--on-accent, #fff)" : "var(--muted)" }}>
-                    {s ? t(statusKey(s)) : t("portal.mycases.all")}
-                  </button>
-                );
-              })}
-            </div>
-
-            {filteredCases.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "8px 2px" }}>{myCases.length === 0 ? t("portal.mycases.empty") : t("portal.mycases.nofilter")}</div>
+            {myCases.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--muted)", padding: "8px 2px" }}>{t("portal.mycases.empty")}</div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {filteredCases.map((c) => {
-                  const sc = statusColors(c.status);
-                  const es = evalState(c.status, c.survey_status);
-                  const row = (
-                    <div className="cx-lift" style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px 9px 13px", background: "var(--paper)", borderRadius: "var(--r-md)", borderLeft: `3px solid ${sc.fg}` }}>
-                      <SlaRing openedAt={c.opened_at} dueAt={c.sla_resolution_due_at} resolvedAt={c.resolved_at} status={c.status} size={38} />
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent-2)" }}>{c.incident_number}</span>
-                      <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
-                      {es && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: "var(--r-pill)",
-                          color: es === "evaluated" ? "var(--st-low-fg)" : "var(--st-high-fg)",
-                          background: es === "evaluated" ? "var(--st-low-bg)" : "var(--st-high-bg)" }}>
-                          {t(es === "evaluated" ? "case.eval.done" : "case.eval.pending")}
-                        </span>
-                      )}
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 600, color: sc.fg, background: sc.bg, padding: "2px 9px", borderRadius: "var(--r-pill)" }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.fg }} />{t(statusKey(c.status))}
-                      </span>
-                      <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(c.opened_at).toLocaleDateString(locale)}</span>
-                    </div>
-                  );
-                  return <Link key={c.id} href={caseHref(c.id)} style={{ textDecoration: "none" }}>{row}</Link>;
-                })}
-              </div>
+              <CaseInbox
+                groups={userInbox}
+                search={{ value: caseQuery, onChange: setCaseQuery, placeholder: t("portal.mycases.search") }}
+                emptyLabel={t("portal.mycases.nofilter")}
+              />
             )}
           </div>
         </>
