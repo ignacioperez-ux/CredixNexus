@@ -11,6 +11,7 @@ import { convertRecommendation } from "@/lib/projects/actions";
 import { scoreColor } from "@/lib/incidents/labels";
 import { useListFilters, FilterBar, Drill, type FilterDef } from "@/components/common/filters";
 import { NewProjectButton, PortfolioLink } from "./new-project-button";
+import { CaseInbox, type InboxGroup } from "@/components/cases/case-inbox";
 
 type Convertible = { id: string; recommended_name: string; transformation_score: number; business_priority: number | null; incident: { incident_number: string } | null };
 type Squad = { id: string; name: string };
@@ -24,6 +25,7 @@ const COLUMNS: { key: string; label: MessageKey; dot: string; statuses: string[]
 export function ProjectsKanban({ projects, convertibles, squads }: { projects: ProjectRow[]; convertibles: Convertible[]; squads: Squad[] }) {
   const { t } = useI18n();
   const [sortBy, setSortBy] = useState<"wsjf" | "roi">("wsjf");
+  const [view, setView] = useState<"kanban" | "inbox">("kanban"); // P3: vista Kanban (default, E2E) o Bandeja por accion
 
   const defs: FilterDef<ProjectRow>[] = [
     { key: "squad", label: t("proj.field.squad"), get: (p) => p.squad?.name, allLabel: t("md.filter.all") },
@@ -39,6 +41,26 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
     }
     return Number(b.wsjf) - Number(a.wsjf);
   });
+
+  // P3 · Bandeja por accion (evolucion/squads): grupos mutuamente excluyentes por origen/estado.
+  const projRow = (p: ProjectRow, actions: InboxGroup["rows"][number]["actions"]) => ({
+    id: p.id, number: p.project_code, title: p.name, href: `/projects/${p.id}`,
+    subtitle: `${p.squad?.name ?? t("proj.inbox.nosquad")}${p.incident ? ` · ◂ ${p.incident.incident_number}` : ""}`,
+    meta: `WSJF ${Number(p.wsjf).toFixed(1)}`, actions,
+  });
+  const prio = (p: ProjectRow) => [{ key: "prio", label: t("proj.inbox.prioritize"), variant: "primary" as const, href: `/projects/${p.id}` }];
+  const open = (p: ProjectRow) => [{ key: "open", label: t("proj.inbox.open"), variant: "secondary" as const, href: `/projects/${p.id}` }];
+  const isAnalysis = (p: ProjectRow) => p.status === "proposed" || p.status === "approved";
+  const projectGroups: InboxGroup[] = [
+    { key: "converted", tone: "info", icon: "zap", title: t("proj.inbox.converted"),
+      rows: sorted.filter((p) => !!p.incident && isAnalysis(p)).map((p) => projRow(p, prio(p))) },
+    { key: "analysis", tone: "neutral", title: t("proj.inbox.analysis"),
+      rows: sorted.filter((p) => !p.incident && isAnalysis(p)).map((p) => projRow(p, prio(p))) },
+    { key: "active", tone: "info", title: t("proj.inbox.active"),
+      rows: sorted.filter((p) => p.status === "active").map((p) => projRow(p, open(p))) },
+    { key: "blocked", tone: "attention", icon: "flag", title: t("proj.inbox.blocked"),
+      rows: sorted.filter((p) => p.status === "on_hold").map((p) => projRow(p, open(p))) },
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -56,33 +78,49 @@ export function ProjectsKanban({ projects, convertibles, squads }: { projects: P
 
       {convertibles.length > 0 && <ConvertStrip convertibles={convertibles} squads={squads} />}
       <FilterBar defs={defs} filters={f} />
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("proj.sortby")}:</span>
-        {(["wsjf", "roi"] as const).map((k) => (
-          <button key={k} onClick={() => setSortBy(k)}
-            style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: sortBy === k ? "none" : "1px solid var(--line)", background: sortBy === k ? "var(--cta-bg)" : "var(--card)", color: sortBy === k ? "var(--cta-fg)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-            {k === "wsjf" ? "WSJF" : t("proj.roi")}
-          </button>
-        ))}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "inline-flex", gap: 6 }}>
+          {(["kanban", "inbox"] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)}
+              style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: view === v ? "none" : "1px solid var(--line)", background: view === v ? "var(--accent)" : "var(--card)", color: view === v ? "var(--on-accent, #fff)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              {t(v === "kanban" ? "proj.view.kanban" : "proj.view.inbox")}
+            </button>
+          ))}
+        </div>
+        {view === "kanban" && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("proj.sortby")}:</span>
+            {(["wsjf", "roi"] as const).map((k) => (
+              <button key={k} onClick={() => setSortBy(k)}
+                style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", border: sortBy === k ? "none" : "1px solid var(--line)", background: sortBy === k ? "var(--cta-bg)" : "var(--card)", color: sortBy === k ? "var(--cta-fg)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                {k === "wsjf" ? "WSJF" : t("proj.roi")}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, alignItems: "start" }}>
-        {COLUMNS.map((col) => {
-          const items = sorted.filter((p) => col.statuses.includes(p.status));
-          return (
-            <div key={col.key} style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <span style={{ width: 9, height: 9, borderRadius: "50%", background: col.dot }} />
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{t(col.label)}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>{items.length}</span>
+      {view === "inbox" ? (
+        <CaseInbox groups={projectGroups} emptyLabel={t("proj.inbox.empty")} />
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, alignItems: "start" }}>
+          {COLUMNS.map((col) => {
+            const items = sorted.filter((p) => col.statuses.includes(p.status));
+            return (
+              <div key={col.key} style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: col.dot }} />
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{t(col.label)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>{items.length}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {items.length === 0 && <div style={{ fontSize: 12, color: "var(--muted)" }}>—</div>}
+                  {items.map((p) => <ProjectCard key={p.id} p={p} onSquad={p.squad?.name ? () => f.set("squad", p.squad!.name) : undefined} />)}
+                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {items.length === 0 && <div style={{ fontSize: 12, color: "var(--muted)" }}>—</div>}
-                {items.map((p) => <ProjectCard key={p.id} p={p} onSquad={p.squad?.name ? () => f.set("squad", p.squad!.name) : undefined} />)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
