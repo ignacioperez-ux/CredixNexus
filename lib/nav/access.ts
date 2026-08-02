@@ -52,6 +52,9 @@ export const ROUTE_PERMISSIONS: { prefix: string; perm: string | string[] }[] = 
   { prefix: "/ledger", perm: "audit.read" },
   { prefix: "/catalog", perm: "masterdata.manage" },
   { prefix: "/admin", perm: "user.manage" },
+  // P1 (remediacion S1/R4): /partner es una vista de datos de partner -> requiere perm de staff.
+  // partner_user (externo) NO tiene incident.read, asi que ya no puede abrirla por URL.
+  { prefix: "/partner", perm: "incident.read" },
 ];
 
 /** Permiso requerido para una ruta (por prefijo mas especifico), o undefined si es libre. */
