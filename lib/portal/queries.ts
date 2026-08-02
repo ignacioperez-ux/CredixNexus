@@ -80,8 +80,9 @@ export async function listApplications(supabase: SupabaseClient): Promise<Portal
   return (data ?? []) as PortalApp[];
 }
 
-/** Casos que el propio usuario reporto (auto-scope por reported_by). RLS acota por tenant;
- *  aqui filtramos a los propios para dar al usuario final su "Mis casos" sin exponer el resto.
+/** Casos que el propio usuario reporto. Via RPC get_my_reported_cases (SECURITY DEFINER,
+ *  scoped a current_account_id): resuelve el nombre del asignado (staff) aunque el partner
+ *  externo tenga user_account owner-scoped por RLS (0135). No expone datos de terceros.
  *  Incluye SLA/prioridad reales para el Hub (anillo SLA, donut de estado). */
 export type MyCase = {
   id: string; incident_number: string; title: string; status: string; opened_at: string;
@@ -93,21 +94,9 @@ export type MyCase = {
 };
 export async function getMyReportedCases(supabase: SupabaseClient, accountId: string | null): Promise<MyCase[]> {
   if (!accountId) return [];
-  const { data, error } = await supabase
-    .from("incident")
-    .select("id, incident_number, title, status, opened_at, priority, sla_resolution_due_at, first_response_at, resolved_at, case_type, updated_at, survey:case_survey(status), assignee:assigned_user_id(full_name)")
-    .eq("reported_by_user_id", accountId)
-    .order("opened_at", { ascending: false })
-    .limit(20);
+  const { data, error } = await supabase.rpc("get_my_reported_cases", { p_limit: 20 });
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => {
-    const row = r as Record<string, unknown>;
-    const s = row.survey as { status: string }[] | { status: string } | null;
-    const survey_status = Array.isArray(s) ? (s[0]?.status ?? null) : (s?.status ?? null);
-    const a = row.assignee as { full_name: string }[] | { full_name: string } | null;
-    const assignee_name = Array.isArray(a) ? (a[0]?.full_name ?? null) : (a?.full_name ?? null);
-    return { ...(row as unknown as MyCase), survey_status, assignee_name };
-  });
+  return (data as MyCase[] | null) ?? [];
 }
 
 /** Estado de evaluacion derivado para el usuario: los casos resueltos/cerrados estan "evaluados"
