@@ -16,7 +16,7 @@ import { UrgencySegmented } from "@/components/portal/urgency-segmented";
 import { EvidenceDropzone } from "@/components/portal/evidence-dropzone";
 import { SuggestionsStrip, type StripItem } from "@/components/portal/suggestions-strip";
 import { getReportAggregators, joinAsChildCase, reportRecurrence, type Aggregator } from "@/lib/portal/duplicates";
-import { DuplicateBlock, TrendingAggregators } from "@/components/portal/duplicate-group";
+import { DuplicateBlock, TrendingAggregators, ResolvedBefore, type ResolvedHit } from "@/components/portal/duplicate-group";
 import { CaseInbox, type InboxGroup } from "@/components/cases/case-inbox";
 import { CaseCreated, type Confirmation } from "@/components/portal/case-created";
 import { humanAgo, humanCommitment } from "@/lib/format/time";
@@ -70,23 +70,9 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   const firstName = userName.trim().split(/[\s@.]+/)[0] || "";
   const catLabel = (c: PortalCategory) => (locale === "en" ? c.name_en : c.name) ?? c.name;
   const openCount = myCases.filter((c) => !SETTLED.includes(c.status)).length;
-  const resolvedCount = myCases.filter((c) => c.status === "resolved" || c.status === "closed").length;
-  const attentionCount = myCases.filter((c) => ATTENTION.includes(c.status)).length;
   const sortedCases = [...myCases].sort((a, b) => sortKey(a) - sortKey(b));
   const toEvalCases = sortedCases.filter((c) => evalState(c.status, c.survey_status) === "pending_eval");
   const caseHref = (id: string) => (canViewIncidents ? `/incidents/${id}` : `/portal/cases/${id}`);
-
-  // Tiempo de respuesta promedio (dato REAL): horas entre apertura y primera respuesta, cuando existe.
-  const responded = myCases.filter((c) => c.first_response_at);
-  const avgRespH = responded.length
-    ? Math.round((responded.reduce((s, c) => s + (new Date(c.first_response_at as string).getTime() - new Date(c.opened_at).getTime()), 0) / responded.length) / 3600000 * 10) / 10
-    : null;
-
-  // Conteo por TIPO de caso (barras verde-agua). Nombre desde el catalogo (cero hardcode §11).
-  const byType = myCases.reduce<Record<string, number>>((m, c) => { const k = c.case_type || "Incident"; m[k] = (m[k] ?? 0) + 1; return m; }, {});
-  const typeRows = Object.entries(byType).sort((a, b) => b[1] - a[1]);
-  const maxType = Math.max(1, ...typeRows.map(([, n]) => n));
-  const typeName = (code: string) => caseTypes[code]?.name ?? code;
 
   const router = useRouter();
   const subjectRef = useRef<HTMLTextAreaElement>(null);
@@ -107,6 +93,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   const [agg, setAgg] = useState<Aggregator | null>(null);   // P4: caso agrupador que mejor matchea el borrador
   const [trending, setTrending] = useState<Aggregator[]>([]); // P4.5: agrupadores 24h ("reportado hoy por otras personas")
   const [aggDismissed, setAggDismissed] = useState(false);   // "mi caso es distinto"
+  const [resolvedDismissed, setResolvedDismissed] = useState(false); // (b) cerrar "resuelto anteriormente"
   const [joinBusyId, setJoinBusyId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);            // evidencia adjunta ANTES de registrar
   const [caseQuery, setCaseQuery] = useState("");            // buscador de "Mis casos"
@@ -156,7 +143,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
     if (tab === "registrar") return;
     setSubject(""); setTouched(false); setCategoryId(""); setAppId(""); setAutoCat(false);
     setKb({ articles: [], cases: [] }); setMine([]); setFiles([]); setSuggestDismissed(false);
-    setAgg(null); setTrending([]); setAggDismissed(false);
+    setAgg(null); setTrending([]); setAggDismissed(false); setResolvedDismissed(false);
     setConf(null); setErr(null);
   }, [tab]);
 
@@ -216,7 +203,7 @@ export function Portal({ categories, applications = [], canViewIncidents = false
     setConf({ id: r.id ?? "", number: r.number ?? "", openedAt: r.openedAt ?? null, responseDueAt: r.responseDueAt ?? null, resolutionDueAt: r.resolutionDueAt ?? null });
     setSubject(""); setKb({ articles: [], cases: [] }); setCategoryId(""); setAppId(""); setAutoCat(false);
     setTouched(false); setFiles([]); setIsRecurrence(false); setRecurrenceOf(""); setSuggestDismissed(false);
-    setAgg(null); setTrending([]); setAggDismissed(false);
+    setAgg(null); setTrending([]); setAggDismissed(false); setResolvedDismissed(false);
   }
 
   // P4.3/P4.5: el usuario se SUMA a un caso agrupador -> caso hijo vinculado (no un duplicado nuevo).
@@ -280,13 +267,27 @@ export function Portal({ categories, applications = [], canViewIncidents = false
   // Prioridad mostrada en el chip: sube un nivel si el usuario marca reincidencia (P1.5), igual que el backend.
   const shownPriority = isRecurrence ? bumpPriority(estPriority) : estPriority;
 
-  // P2: la tira reune casos propios parecidos (dedup) + base de conocimiento + casos resueltos.
-  // Un resultado por fila con etiqueta de origen. Limite ~6 para no exceder el alto.
+  // Sugerencias generales (tira descartable): KB + tus casos ABIERTOS parecidos. Los casos ya
+  // RESUELTOS van al bloque (b) "resuelto anteriormente", no aqui, para no mostrarlos dos veces.
   const stripItems: StripItem[] = [
     ...kb.articles.map((a) => ({ key: `kb-${a.id}`, origin: "kb" as const, title: a.title, number: a.article_number, href: `/knowledge/${a.id}`, actionKey: "portal.strip.action.solution" as const })),
-    ...mine.map((s) => ({ key: `mine-${s.id}`, origin: (SETTLED.includes(s.status) ? "previous" : "open") as StripItem["origin"], title: s.title, number: s.incident_number, href: `/portal/cases/${s.id}`, actionKey: "portal.strip.action.open" as const })),
-    ...kb.cases.map((c) => ({ key: `case-${c.id}`, origin: "previous" as const, title: c.title, number: c.incident_number, href: canViewIncidents ? `/incidents/${c.id}` : "#", actionKey: "portal.strip.action.solution" as const, disabled: !canViewIncidents })),
+    ...mine.filter((s) => !SETTLED.includes(s.status)).map((s) => ({ key: `mine-${s.id}`, origin: "open" as const, title: s.title, number: s.incident_number, href: `/portal/cases/${s.id}`, actionKey: "portal.strip.action.open" as const })),
   ].slice(0, 6);
+
+  // (b) "Resuelto anteriormente": casos PROPIOS parecidos ya resueltos (mine settled) + resueltos del
+  // buscador (kb.cases; para el partner ya vienen acotados a los suyos por RLS -> 0135). Dedup por id.
+  // Todos son casos del usuario (o visibles por staff) -> abribles via caseHref.
+  const resolvedHits: ResolvedHit[] = (() => {
+    const seen = new Set<string>();
+    const out: ResolvedHit[] = [];
+    for (const s of mine.filter((m) => SETTLED.includes(m.status))) {
+      if (!seen.has(s.id)) { seen.add(s.id); out.push({ id: s.id, number: s.incident_number, title: s.title, href: caseHref(s.id), canOpen: true }); }
+    }
+    for (const c of kb.cases) {
+      if (!seen.has(c.id)) { seen.add(c.id); out.push({ id: c.id, number: c.incident_number, title: c.title, href: caseHref(c.id), canOpen: true }); }
+    }
+    return out.slice(0, 4);
+  })();
 
   const field: React.CSSProperties = { fontSize: 13, padding: "9px 11px", borderRadius: "var(--r-md)", border: "1px solid var(--field-border, var(--line))", background: "var(--field-bg, var(--card))", color: "var(--text)", fontFamily: "var(--font-ui)", width: "100%" };
   const lbl: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "var(--text)", marginBottom: 5, display: "block" };
@@ -306,8 +307,8 @@ export function Portal({ categories, applications = [], canViewIncidents = false
       {/* ================= INICIO ================= */}
       {tab === "inicio" && (
         <>
-          {/* Hero saludo */}
-          <div style={{ position: "relative", overflow: "hidden", background: "var(--hero-grad)", border: "1px solid var(--line)", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-hero, var(--sh-card))", padding: "28px 30px" }}>
+          {/* Saludo */}
+          <div>
             <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".16em", color: "var(--accent-2)", marginBottom: 8 }}>{t("portal.hero.tag")}</div>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--fs-greeting, var(--fs-hero))", letterSpacing: "-0.01em", color: "var(--text)", lineHeight: 1.05 }}>
               {t("portal.welcome")}{firstName ? `, ${firstName}` : ""}
@@ -315,75 +316,26 @@ export function Portal({ categories, applications = [], canViewIncidents = false
             <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 8 }}>
               {openCount > 0 ? t("portal.welcome.open").replace("{n}", String(openCount)) : t("portal.welcome.sub")}
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-              <Link href="/portal?tab=registrar" className="cx-btn-primary" style={{ textDecoration: "none" }}><Icon name="plus" size={15} color="var(--on-primary, #fff)" /> {t("portal.register")}</Link>
-              <Link href="/portal?tab=miscasos" className="cx-btn-outline" style={{ textDecoration: "none" }}>{t("portal.cta.mycases")}</Link>
-            </div>
+          </div>
+
+          {/* Lanzador: dos opciones grandes (Registrar / Mis casos), abren al click */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+            <Link href="/portal?tab=registrar" className="cx-lift" style={{ ...cardBox, padding: "26px 24px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 12, minHeight: 150 }}>
+              <span style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 14, display: "grid", placeItems: "center", background: "var(--cta-grad, var(--accent))", color: "#fff", boxShadow: "var(--sh-red, none)" }}><Icon name="plus" size={24} color="#fff" /></span>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 21, color: "var(--text)" }}>{t("portal.register")}</span>
+              <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{t("portal.access.register.sub")}</span>
+            </Link>
+            <Link href="/portal?tab=miscasos" className="cx-lift" style={{ background: "var(--acc-teal-bg, var(--card))", border: "1px solid var(--acc-teal-border, var(--line))", borderRadius: "var(--r-card, var(--r-xl))", boxShadow: "var(--sh-e1, none)", padding: "26px 24px", textDecoration: "none", display: "flex", flexDirection: "column", gap: 12, minHeight: 150 }}>
+              <span style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 14, display: "grid", placeItems: "center", background: "var(--acc-teal-ink, var(--teal))", color: "#fff", position: "relative" }}>
+                <Icon name="inbox" size={24} color="#fff" />
+                {openCount > 0 && <span style={{ position: "absolute", top: -7, right: -7, minWidth: 22, height: 22, padding: "0 6px", borderRadius: 999, background: "var(--accent)", color: "#fff", fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center", fontFamily: "var(--font-mono)" }}>{openCount}</span>}
+              </span>
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 21, color: "var(--text)" }}>{t("nav.user.mycases")}</span>
+              <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{t("portal.launch.mycases.sub")}</span>
+            </Link>
           </div>
 
           {toEvalCases.length > 0 && <EvalBanner cases={toEvalCases} t={t} caseHref={caseHref} />}
-
-          {/* MIS INDICADORES */}
-          <div>
-            <div style={overline}>{t("portal.metrics.title")}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-              <MetricCard label={t("portal.summary.inprogress")} value={openCount} fam="blue" icon="inbox" />
-              <MetricCard label={t("portal.summary.resolved")} value={resolvedCount} fam="emerald" icon="check" />
-              <MetricCard label={t("portal.metric.response")} value={avgRespH ?? "—"} unit={avgRespH != null ? " h" : ""} fam="teal" icon="power" />
-              <MetricCard label={t("portal.summary.attention")} value={attentionCount} fam="amber" icon="alert" />
-            </div>
-          </div>
-
-          {/* 2-col: por tipo + actividad reciente */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
-            <div style={{ ...cardBox, padding: "var(--sp-5)" }}>
-              <span style={sectionTitle}>{t("portal.bytype.title")}</span>
-              {typeRows.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 10 }}>{t("portal.mycases.empty")}</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: "var(--sp-3)" }}>
-                  {typeRows.map(([code, n]) => (
-                    <div key={code} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ width: 130, flexShrink: 0, fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{typeName(code)}</span>
-                      <div style={{ flex: 1, height: 10, background: "var(--track)", borderRadius: "var(--r-pill)", overflow: "hidden" }}>
-                        <div style={{ width: `${Math.round((n / maxType) * 100)}%`, height: "100%", background: "var(--teal)", borderRadius: "var(--r-pill)" }} />
-                      </div>
-                      <span style={{ width: 22, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>{n}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ ...cardBox, padding: "var(--sp-5)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <span style={sectionTitle}>{t("portal.activity.title")}</span>
-                {activity.length > 0 && <Link href="/portal?tab=miscasos" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-2)", textDecoration: "none" }}>{t("portal.activity.all")} →</Link>}
-              </div>
-              {activity.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("portal.mycases.empty")}</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {activity.slice(0, 6).map((a, i) => {
-                    const who = a.is_mine ? t("case.you") : a.is_system ? t("case.system") : t("case.team");
-                    return (
-                      <Link key={`${a.incident_id}-${i}`} href={caseHref(a.incident_id)} className="cx-lift" style={{ textDecoration: "none", display: "flex", gap: 10, padding: "9px 12px", background: "var(--paper)", borderRadius: "var(--r-md)" }}>
-                        <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-2)" }}><Icon name={a.is_system ? "zap" : a.is_mine ? "user" : "inbox"} size={14} /></span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{a.incident_number}</span>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{who}</span>
-                            <span style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-mono)" }}>{new Date(a.created_at).toLocaleDateString(locale)}</span>
-                          </span>
-                          <span style={{ display: "block", fontSize: 12.5, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{a.body}</span>
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
         </>
       )}
 
@@ -513,9 +465,15 @@ export function Portal({ categories, applications = [], canViewIncidents = false
               <SuggestionsStrip items={stripItems} onDismiss={() => setSuggestDismissed(true)} />
             )}
 
-            {/* P4.2 · Duplicados: "N personas reportaron lo mismo" -> sumarse a un caso hijo vinculado. */}
+            {/* (a) · "Ya reportado por otras personas": N personas reportaron lo mismo -> sumarse a un
+                caso hijo vinculado. Dismissible ("mi caso es distinto"). */}
             {!tooShort && agg && !aggDismissed && (
               <DuplicateBlock agg={agg} busy={registering} onJoin={() => joinCase(agg.parentId, subject)} onDismiss={() => setAggDismissed(true)} />
+            )}
+
+            {/* (b) · "Resuelto anteriormente": casos propios parecidos ya resueltos. Dismissible. */}
+            {!tooShort && resolvedHits.length > 0 && !resolvedDismissed && (
+              <ResolvedBefore items={resolvedHits} busy={registering} onAgain={reportAgain} onDismiss={() => setResolvedDismissed(true)} />
             )}
 
             {/* 3 · Categorizacion opcional (2 col, 50px). Aplicacion y categoria desde la BD (§11). */}
@@ -593,23 +551,6 @@ export function Portal({ categories, applications = [], canViewIncidents = false
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-const overline: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".14em", color: "var(--muted)", marginBottom: 10 };
-
-function MetricCard({ label, value, unit = "", fam, icon }: { label: string; value: number | string; unit?: string; fam?: string; icon?: string }) {
-  const bg = fam ? `var(--acc-${fam}-bg, var(--paper))` : "var(--paper)";
-  const border = fam ? `var(--acc-${fam}-border, var(--line))` : "var(--line)";
-  const ink = fam ? `var(--acc-${fam}-ink, var(--text))` : "var(--text)";
-  return (
-    <div style={{ background: "var(--card)", border: `1px solid var(--line)`, borderRadius: "var(--r-xl)", boxShadow: "var(--sh-e1, none)", padding: "16px 18px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        {icon && <span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center", background: bg, border: `1px solid ${border}`, color: ink }}><Icon name={icon} size={14} color={ink} /></span>}
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{label}</span>
-      </div>
-      <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 30, letterSpacing: "-0.02em", color: ink, fontVariantNumeric: "tabular-nums" }}>{value}<span style={{ fontSize: 15, fontWeight: 600 }}>{unit}</span></div>
     </div>
   );
 }

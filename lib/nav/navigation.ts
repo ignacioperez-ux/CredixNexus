@@ -293,11 +293,11 @@ export function isPortalNav(roles: string[], isAdmin: boolean): boolean {
  *  lineal; 'mycases' pinta el badge azul con el nro de casos activos. Las rutas NO cambian. */
 export type PortalMenuItem = { id: string; label: MessageKey; href: string; icon: string; tab?: string; badge?: "mycases" };
 export const USER_PORTAL_MENU: PortalMenuItem[] = [
+  // Portal enfocado (decision del arquitecto): SOLO Inicio + Mis casos en el menu; Registrar es el
+  // CTA de arriba. Autoservicio/Conocimiento/Catalogo se retiran del nav del usuario final para dar
+  // una experiencia de dos opciones. Las rutas siguen existiendo; solo se quita el acceso desde aqui.
   { id: "inicio",        label: "nav.user.home",        href: "/portal",                 icon: "home",    tab: "inicio" },
-  { id: "autoservicio",  label: "nav.user.selfservice", href: "/portal?tab=autoservicio", icon: "sliders", tab: "autoservicio" },
   { id: "miscasos",      label: "nav.user.mycases",     href: "/portal?tab=miscasos",     icon: "inbox",   tab: "miscasos", badge: "mycases" },
-  { id: "conocimiento",  label: "nav.user.knowledge",   href: "/knowledge",              icon: "sparkle" },
-  { id: "catalogo",      label: "nav.user.catalog",     href: "/service-catalog",        icon: "folder" },
 ];
 
 /** Categoria que contiene una ruta (por prefijo mas especifico). */

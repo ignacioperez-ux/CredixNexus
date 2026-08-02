@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n/provider";
 import { Icon } from "@/components/ui/icon";
 import type { Aggregator } from "@/lib/portal/duplicates";
@@ -47,6 +48,49 @@ export function DuplicateBlock({ agg, busy, onJoin, onDismiss }: {
         <button type="button" onClick={onDismiss} disabled={busy} className="cx-btn-outline" style={{ height: 46, borderRadius: 12 }}>
           {t("portal.dup.distinct")}
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** (b) · "Esto ya se resolvio antes": casos PROPIOS parecidos que ya estan resueltos. Bloque
+ *  independiente y DESCARTABLE (X). Cada fila enlaza al caso y ofrece "Volvio a pasar" (reporta un
+ *  caso nuevo marcado reincidencia). Complementa (a) "ya reportado por otras personas" (DuplicateBlock).
+ *  Tokens del DS (tema claro/oscuro), R5/R6/R7. */
+export type ResolvedHit = { id: string; number: string; title: string; href: string; canOpen: boolean };
+export function ResolvedBefore({ items, busy, onAgain, onDismiss }: {
+  items: ResolvedHit[]; busy: boolean; onAgain: (id: string) => void; onDismiss: () => void;
+}) {
+  const { t } = useI18n();
+  if (items.length === 0) return null;
+  return (
+    <div role="status" style={{ background: "var(--st-low-bg)", border: "1px solid var(--st-low-fg, var(--st-low))", borderRadius: "var(--r-lg, 16px)", padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+        <span aria-hidden style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--st-low-fg, var(--st-low))", color: "#fff" }}><Icon name="check" size={16} color="#fff" /></span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--st-low-fg, var(--st-low))" }}>{t("portal.resolved.title")}</span>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("portal.resolved.sub")}</span>
+        </span>
+        <button type="button" onClick={onDismiss} aria-label={t("portal.strip.dismiss")} className="cx-ds-btn"
+          style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--st-low-fg, var(--st-low))", display: "inline-flex", padding: 10, minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="x" size={16} aria-hidden />
+        </button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+        {items.map((it) => (
+          <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 13px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--r-md, 12px)", minHeight: 52 }}>
+            <span style={{ flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--accent-2)" }}>{it.number}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
+            {it.canOpen && (
+              <Link href={it.href} className="cx-ds-btn" style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: "var(--accent-2)", textDecoration: "none", padding: "6px 8px" }}>
+                {t("portal.strip.action.open")} →
+              </Link>
+            )}
+            <button type="button" onClick={() => onAgain(it.id)} disabled={busy} className="cx-btn-outline" style={{ height: 40, borderRadius: 11, fontSize: 12.5, padding: "0 14px", flexShrink: 0 }}>
+              {t("inbox.user.again")}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
