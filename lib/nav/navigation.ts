@@ -174,32 +174,36 @@ export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
   ] },
 ]);
 
-// Persona "Gerente de Operaciones" (support_lead). Mesa de ayuda / service management (ITIL·ITSM):
-// decision -> casos -> equipo -> clientes/riesgo -> servicio -> analitica. Mismos items canonicos
-// (paths/perms intactos); reagrupacion + renombres de presentacion. La UNICA ventana hacia
-// Evolucion es "Casos en Evolucion" (nav.convertedcases) en SOLO LECTURA: el ancla del caso que
-// Operaciones derivo, para comunicar avances al cliente (sin WSJF/ROI/squads). La segregacion dura
-// (no ver Proyectos/Portafolio/Squads/Tribus/Reglas/AI aunque tenga el perm) es de capa de
-// aplicacion: ROLE_ROUTE_DENY en access.ts + el guard del layout.
+// Persona "Gerente de Operaciones" (support_lead). Mesa de ayuda / service management (ITIL·ITSM).
+// Reestructuracion Operaciones (Fase A): 5 grupos. Torre de Control es el default y absorbe la
+// Analitica (analitica + comportamiento se vuelven la 3a pestana de la Torre en la Fase B; aqui van
+// como items del grupo Torre). Casos pierde SLA (-> grupo final "Catalogo y SLA") e Incidentes
+// mayores (se elimina la pantalla; pasa a estado gateado a Gerencia en la Fase D). Clientes y Riesgo
+// operativo se eliminan del rol; el grupo queda como "Disputas" (solo Fraude). Servicio se disuelve:
+// Catalogo va al grupo final; Autoservicio y Conocimiento salen del menu. Equipo (Agentes /talent +
+// Carga /workload) y el grupo final (Catalogo /service-catalog + SLA /sla-governance) se fusionan en
+// una sola pantalla en la Fase B. Mismos items canonicos (paths/perms intactos). La UNICA ventana a
+// Evolucion es "Casos en Evolucion" (RO). Segregacion dura via ROLE_ROUTE_DENY (access.ts) + guard.
 export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
   { id: "op.torre", label: "nav.op.torre", icon: "home", items: [
     { id: "nav.ophome" },
-  ] },
-  { id: "op.analitica", label: "nav.op.analitica", icon: "activity", items: [
+    // Fase B: analitica + comportamiento se colapsan en la 3a pestana "Analitica" de la Torre.
     { id: "nav.analytics" }, { id: "nav.behavior" },
   ] },
   { id: "op.casos", label: "nav.op.casos", icon: "inbox", items: [
-    { id: "nav.triage" }, { id: "nav.incidents" }, { id: "nav.majorincidents" }, { id: "nav.sla" },
+    { id: "nav.triage" }, { id: "nav.incidents" },
     { id: "nav.convertedcases", readOnly: true, label: "nav.opx.evolcases" },
   ] },
   { id: "op.equipo", label: "nav.op.equipo", icon: "users", items: [
+    // Fase B: fusion de Agentes (/talent) + Carga (/workload) en una sola pantalla "Agentes y carga".
     { id: "nav.resources", label: "nav.opx.workload" }, { id: "nav.talent", label: "nav.opx.performance" },
   ] },
-  { id: "op.clientes", label: "nav.op.clientes", icon: "shield", items: [
-    { id: "nav.customers" }, { id: "nav.frauddisputes" }, { id: "nav.risk" },
+  { id: "op.disputas", label: "nav.op.disputas", icon: "shield", items: [
+    { id: "nav.frauddisputes" },
   ] },
-  { id: "op.servicio", label: "nav.op.servicio", icon: "sliders", items: [
-    { id: "nav.servicecatalog" }, { id: "nav.selfservice" }, { id: "nav.knowledge" },
+  { id: "op.servicio", label: "nav.op.catalogosla", icon: "sliders", items: [
+    // Fase B: fusion de Catalogo de servicios (/service-catalog) + Gobierno SLA (/sla-governance).
+    { id: "nav.servicecatalog" }, { id: "nav.sla" },
   ] },
 ]);
 

@@ -49,7 +49,7 @@ export const ROLE_UX: Record<string, RoleUx> = {
   // Gte. Operaciones -> Torre de Control de Operaciones (persona OPERATIONS_NAV). Home en su Torre;
   // auto-expande sus bloques de persona. Se conservan ids MACRO para el caso multi-rol que renderiza
   // MACRO_NAV (p.ej. support_lead + admin), donde el overlay no aplica.
-  support_lead: { emphasis: ["op.torre", "op.casos", "op.clientes", "tickets", "operaciones", "analitica"], home: "/operaciones", primaryAction: "assignTicket" },
+  support_lead: { emphasis: ["op.torre", "op.casos", "op.equipo", "op.disputas", "op.servicio", "tickets", "operaciones", "analitica"], home: "/operaciones", primaryAction: "assignTicket" },
   // Operador -> "Mi dia" (persona SUPPORT_AGENT_NAV). NO toma casos: los recibe asignados, por eso
   // se elimina "Tomar siguiente" (primaryAction) y el CTA pasa a "Crear caso" (reportar como usuario).
   support_agent: { emphasis: ["ag.dia", "ag.casos"], home: "/mi-dia", primaryAction: "reportCase" },
