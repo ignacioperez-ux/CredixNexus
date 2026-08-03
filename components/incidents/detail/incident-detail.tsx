@@ -136,6 +136,14 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
             <InfoTip tip="inc.tip.stepper" />
           </span>
           <PriorityTag priority={inc.priority} />
+          {/* Estado "Incidente mayor": badge critico cuando el caso fue declarado MI (solo lo declara
+              la Gerente de Operaciones). Enlaza al war-room (la pantalla dedicada salio del menu). */}
+          {majorIncident && (
+            <Link href={`/major-incidents/${majorIncident.id}`} title={t("mi.badge.major")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--st-critical-fg)", background: "var(--st-critical-bg)", border: "1px solid var(--st-critical-fg)", padding: "3px 10px", borderRadius: "var(--r-pill)", textDecoration: "none" }}>
+              <Icon name="alert" size={11} color="var(--st-critical-fg)" /> {t("mi.badge.major")} · {majorIncident.severity.toUpperCase()}
+            </Link>
+          )}
           {inc.intake_status === "pending" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--accent-2)", background: "var(--accent-soft)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.pending")}</span>}
           {inc.intake_status === "discarded" && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", background: "var(--paper)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t("tri.discarded")}</span>}
           {inc.classified_as && inc.intake_status === "accepted" && <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--st-info)", background: "var(--st-info-bg)", padding: "3px 10px", borderRadius: "var(--r-pill)" }}>{t(("tri.class." + inc.classified_as) as MessageKey)}</span>}

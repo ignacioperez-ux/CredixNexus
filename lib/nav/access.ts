@@ -72,11 +72,12 @@ export function requiredPermForPath(pathname: string): string | string[] | undef
 // por rol el acceso a los modulos de Evolucion/definicion aunque tenga el permiso. Coherente con su
 // menu (OPERATIONS_NAV): lo que no esta en su persona, no se alcanza por URL. NO toca RLS ni perms.
 export const ROLE_ROUTE_DENY: Record<string, string[]> = {
-  // Reestructuracion Operaciones (Fase A): ademas de Evolucion/definicion, se bloquean por URL las
-  // pantallas eliminadas del rol -> Clientes (/customers), Riesgo operativo (/risk) e Incidentes
-  // mayores (/major-incidents; pasa a estado gateado a Gerencia en la Fase D). Autoservicio y
-  // Conocimiento se sacan del menu pero NO se bloquean por URL (la KB es transversal).
-  support_lead: ["/projects", "/squads", "/evolucion", "/delivery-areas", "/rules", "/ai-center", "/customers", "/risk", "/major-incidents"],
+  // Reestructuracion Operaciones (Fases A/D): ademas de Evolucion/definicion, se bloquean por URL las
+  // pantallas eliminadas del rol -> Clientes (/customers) y Riesgo operativo (/risk). Incidente mayor
+  // (Fase D) es ahora un ESTADO que la Gerente declara inline en el caso (major_incident.manage) y
+  // comanda en el war-room /major-incidents/[id] -> NO se bloquea /major-incidents (solo salio del
+  // menu). Autoservicio y Conocimiento salen del menu pero no se bloquean (la KB es transversal).
+  support_lead: ["/projects", "/squads", "/evolucion", "/delivery-areas", "/rules", "/ai-center", "/customers", "/risk"],
   // Miembro de Squad: conserva project.read/squad.read (para sus vistas /mi-*), pero NO alcanza el
   // portafolio global, la Torre/Mapa de Evolucion, el listado global de Squads, el Workload global,
   // los casos convertidos ni el motor de reglas/AI. Usa las rutas /mi-* acotadas.
