@@ -16,13 +16,13 @@ import { StatusPill, PriorityTag, ScoreBadge, SlaBadge } from "./badges";
 import { useGrouping, GroupBar, EmptyState, type GroupDef } from "@/components/common/filters";
 import { Icon } from "@/components/ui/icon";
 
-const STATUS_FILTERS = ["all", "new", "triaged", "in_progress", "in_evolution", "resolved"];
+const STATUS_FILTERS = ["all", "new", "received", "triaged", "in_progress", "in_evolution", "resolved"];
 const DOMAIN_FILTERS = ["all", "business", "technology", "service"];
 const PRIORITY_ORDER = ["p1_critical", "p2_high", "p3_medium", "p4_low"];
-const OPEN_STATES = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
+const OPEN_STATES = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
 const SETTLED_STATES = ["resolved", "closed", "cancelled"];
 // Estados donde un caso AUN puede sugerirse a elevar: abierto y NO ya derivado a Evolucion.
-const ELEVATION_STATES = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+const ELEVATION_STATES = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened"];
 
 /** SLA vencido: con fecha de vencimiento pasada, aun sin resolver y en estado abierto. */
 function slaBreached(r: IncidentRow, now: number): boolean {

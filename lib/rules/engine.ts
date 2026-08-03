@@ -172,7 +172,7 @@ export async function evaluateOpenIncidents(max = 100): Promise<{ ok: boolean; e
   if (!(await hasPermission(ctx.supabase, "incident.update")) && !(await hasPermission(ctx.supabase, "triage.manage"))) {
     return { ok: false, error: "ERR_PERMISSION_DENIED" };
   }
-  const OPEN = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+  const OPEN = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened"];
   const { data: rows } = await ctx.supabase
     .from("incident").select("id").in("status", OPEN).eq("transformation_score", 0).limit(max + 1);
   const ids = (rows ?? []).map((r) => r.id as string);

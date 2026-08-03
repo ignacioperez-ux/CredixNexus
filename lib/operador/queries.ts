@@ -5,7 +5,7 @@ import { clockView, type RiskBucket } from "@/lib/sla/thresholds";
 // Datos del OPERADOR, SIEMPRE acotados a la persona (assigned_member_id / assigned_user_id). Cero
 // datos globales de la mesa. SLA con clockView (semaforo + tiempo humano, sin % crudo).
 
-const OPEN = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+const OPEN = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened"];
 const SETTLED = ["resolved", "closed", "cancelled"];
 
 const SEL = "id, incident_number, title, priority, status, case_type, opened_at, first_response_at, resolved_at, sla_response_due_at, sla_resolution_due_at, assigned_member_id, assigned_user_id, customer_name, pii_flag, category:category_id(name), ci:affected_ci_id(name)";

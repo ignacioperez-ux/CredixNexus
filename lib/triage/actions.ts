@@ -58,11 +58,12 @@ export async function acceptCase(incidentId: string, classifiedAs: string, kbArt
     if (error) return { ok: false, error: error.message };
     await systemComment(ctx, incidentId, "Caso resuelto directamente con un articulo de la base de conocimiento (problema ya conocido).");
   } else {
-    // Incidencia nueva -> queda en Operaciones lista para asignar.
-    patch.status = "triaged";
+    // Incidencia admitida SIN asignar -> "Recibido" (received); queda sin asignar en Operaciones
+    // (assigned_user_id NULL -> "Sin asignar" en el listado). La asignacion es un paso posterior.
+    patch.status = "received";
     const { error } = await ctx.supabase.from("incident").update(patch).eq("id", incidentId);
     if (error) return { ok: false, error: error.message };
-    await systemComment(ctx, incidentId, "Caso admitido como incidencia. Gestion por Operaciones.");
+    await systemComment(ctx, incidentId, "Caso recibido en Operaciones. Pendiente de asignar.");
   }
 
   revalidatePath(`/incidents/${incidentId}`);

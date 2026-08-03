@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const OPEN = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
+const OPEN = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
 
 export type FitSuggestion = {
   id: string;

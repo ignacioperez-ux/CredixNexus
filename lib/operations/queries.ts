@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const CLOSED = ["resolved", "closed", "cancelled"];
 const CRIT = ["p1_critical", "p2_high"];
 const DERIVED = ["to_evolution", "approved_to_evolution"];
-const PIPELINE_STAGES = ["new", "triaged", "assigned", "in_progress", "resolved", "in_evolution"] as const;
+const PIPELINE_STAGES = ["new", "received", "triaged", "assigned", "in_progress", "resolved", "in_evolution"] as const;
 
 export type OpsStatusLine = {
   pendingIntake: number; unassigned: number; unassignedCrit: number;
@@ -125,7 +125,7 @@ export type OpsInboxRow = { id: string; number: string; title: string; status: s
 export type OpsInbox = { active: OpsInboxRow[]; evolution: OpsInboxRow[]; observation: OpsInboxRow[] };
 
 export async function getOpsInbox(supabase: SupabaseClient): Promise<OpsInbox> {
-  const OPEN_S = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+  const OPEN_S = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened"];
   const { data } = await supabase
     .from("incident")
     .select("id, incident_number, title, status, priority, sla_resolution_due_at")

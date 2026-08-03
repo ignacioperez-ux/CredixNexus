@@ -23,6 +23,7 @@ export function priorityColor(p: string): string {
 export function statusColors(s: string): { fg: string; bg: string } {
   const map: Record<string, { fg: string; bg: string }> = {
     new: { fg: "var(--st-new)", bg: "var(--st-new-bg)" },
+    received: { fg: "var(--st-triaged)", bg: "var(--st-triaged-bg)" },
     triaged: { fg: "var(--st-triaged)", bg: "var(--st-triaged-bg)" },
     assigned: { fg: "var(--st-assigned)", bg: "var(--st-assigned-bg)" },
     in_progress: { fg: "var(--st-progress)", bg: "var(--st-progress-bg)" },

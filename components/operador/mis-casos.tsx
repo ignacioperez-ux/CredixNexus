@@ -13,7 +13,7 @@ import type { OpCase, QueueCase } from "@/lib/operador/queries";
 // incident.assign/triage.manage, asi que "Tomar"/"Vincular como duplicado" son potestad del lider
 // (support_lead) — aqui la cola sin asignar es de solo lectura y las acciones son Responder/Ver.
 
-const OPEN = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened"];
+const OPEN = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened"];
 function endOfToday(): number { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); }
 const isDueToday = (c: OpCase) => !c.settled && !!c.dueAt && Date.parse(c.dueAt) <= endOfToday() && c.overdueMs == null;
 const isUrgent = (c: OpCase) => c.overdueMs != null || isDueToday(c);

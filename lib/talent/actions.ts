@@ -72,7 +72,7 @@ export async function assignIncidentMember(incidentId: string, memberId: string,
     .upsert({ tenant_id: ctx.tenantId, incident_id: incidentId, member_id: memberId, is_primary: true, created_by: ctx.accountId }, { onConflict: "incident_id,member_id" });
   if (error) return { ok: false, error: error.message };
   const patch: Record<string, unknown> = { assigned_member_id: memberId };
-  if (inc.status === "new" || inc.status === "triaged") patch.status = "assigned";
+  if (inc.status === "new" || inc.status === "received" || inc.status === "triaged") patch.status = "assigned";
   await ctx.supabase.from("incident").update(patch).eq("id", incidentId);
   await asgComment(ctx, incidentId, viaSuggestion ? `Responsable principal: ${await memberName(ctx, memberId)} (tomando la sugerencia del sistema).` : `Responsable principal: ${await memberName(ctx, memberId)}.`);
   return asgDone(incidentId);
@@ -91,7 +91,7 @@ export async function addCaseAssignee(incidentId: string, memberId: string): Pro
   if (error) return { ok: false, error: error.code === "23505" ? ErrorCode.DUPLICATE : error.message };
   const name = await memberName(ctx, memberId);
   if (first) {
-    await ctx.supabase.from("incident").update({ assigned_member_id: memberId, status: g.inc.status === "new" || g.inc.status === "triaged" ? "assigned" : g.inc.status }).eq("id", incidentId);
+    await ctx.supabase.from("incident").update({ assigned_member_id: memberId, status: g.inc.status === "new" || g.inc.status === "received" || g.inc.status === "triaged" ? "assigned" : g.inc.status }).eq("id", incidentId);
     await asgComment(ctx, incidentId, `Responsable principal: ${name}.`);
   } else {
     await asgComment(ctx, incidentId, `Colaborador agregado: ${name}.`);

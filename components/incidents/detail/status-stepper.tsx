@@ -7,11 +7,12 @@ import { Icon } from "@/components/ui/icon";
 // Ciclo de vida principal del caso, como pasos. El estado actual se marca claramente;
 // los previos quedan "hechos" (check). Reemplaza la fila de botones con flechas que se
 // leia como un flujo confuso (y donde "Eliminar" parecia un paso). Ver status-actions.
-const MAIN = ["new", "triaged", "assigned", "in_progress", "resolved"] as const;
+const MAIN = ["new", "received", "assigned", "in_progress", "resolved"] as const;
 
-// Estados que no estan en la ruta principal se mapean a su paso equivalente.
+// Estados que no estan en la ruta principal se mapean a su paso equivalente. 'triaged' (legacy)
+// comparte el paso de 'received' (Recibido); el paso activo muestra la etiqueta exacta del estado.
 const STEP_OF: Record<string, number> = {
-  new: 0, triaged: 1, assigned: 2, in_progress: 3, waiting: 3, reopened: 3, resolved: 4, closed: 4,
+  new: 0, received: 1, triaged: 1, assigned: 2, in_progress: 3, waiting: 3, reopened: 3, resolved: 4, closed: 4,
 };
 
 export function StatusStepper({ status }: { status: string }) {
@@ -22,7 +23,7 @@ export function StatusStepper({ status }: { status: string }) {
     const branch = status === "in_evolution";
     return (
       <div role="group" aria-label={t("inc.stepper.aria")} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <Chip label={t(statusKey("triaged"))} tone="done" />
+        <Chip label={t(statusKey("received"))} tone="done" />
         <Icon name="chevron-right" size={13} color="var(--line)" />
         <Chip label={t(statusKey(status))} tone={branch ? "active" : "muted"} />
       </div>

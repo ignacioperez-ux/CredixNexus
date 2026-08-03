@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const OPEN = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
+const OPEN = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
 
 export type PartnerTicket = { incident_number: string; title: string; status: string; category: string; opened_at: string };
 export type PartnerPortal = {

@@ -42,6 +42,7 @@ const DECISION_META: Record<OpsDecision["kind"], { label: MessageKey; cta: Messa
 
 const AGING_COLOR: Record<string, string> = { "0-1d": "var(--st-low)", "1-3d": "var(--st-medium)", "3-7d": "var(--st-high)", "7d+": "var(--st-critical)" };
 const FUNNEL: { key: string; color: string }[] = [
+  { key: "received", color: "var(--st-info)" },
   { key: "triaged", color: "var(--st-info)" },
   { key: "assigned", color: "var(--st-info)" },
   { key: "in_progress", color: "var(--st-high)" },

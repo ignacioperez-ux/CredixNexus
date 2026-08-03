@@ -2,7 +2,7 @@
 // Combina topologia declarada (service_dependency, configuration_item.service_id) con
 // asociaciones DERIVADAS de evidencia real (co-ocurrencia en incidentes). Cero invento.
 
-export const ACTIVE_INCIDENT_STATUSES = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
+export const ACTIVE_INCIDENT_STATUSES = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
 
 export type ServiceInput = { id: string; code: string; name: string; business_domain: string; criticality: string };
 export type EdgeInput = { id: string; service_id: string; depends_on_service_id: string; dependency_type: string; criticality: string };
