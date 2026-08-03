@@ -29,8 +29,16 @@ export function AssignResponsible({ incidentId, members, assignees, editable, ca
   const [kind, setKind] = useState<"all" | "internal" | "external">("all");
   const [fit, setFit] = useState<Map<string, number> | null>(null);
   const [loadingSug, setLoadingSug] = useState(false);
+  const [pick, setPick] = useState("");     // asignacion rapida: un responsable
+  const [adv, setAdv] = useState(false);    // "Opciones avanzadas" (colaboradores + filtros + IA)
 
   const assignedIds = useMemo(() => new Set(assignees.map((a) => a.member_id)), [assignees]);
+
+  // Lista simple (todos los no asignados, por nombre) para el selector rapido de UN responsable.
+  const quickRows = useMemo(
+    () => members.filter((m) => !assignedIds.has(m.id)).sort((a, b) => a.name.localeCompare(b.name)),
+    [members, assignedIds],
+  );
 
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -95,43 +103,68 @@ export function AssignResponsible({ incidentId, members, assignees, editable, ca
       {!editable && <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>{t("asg.readonly")}</div>}
 
       {canEdit && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)" }}>{t("asg.addTitle")}</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("asg.search")}
-              style={{ flex: 1, minWidth: 120, fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
-            <select value={kind} onChange={(e) => setKind(e.target.value as "all" | "internal" | "external")}
-              style={{ fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)" }}>
-              <option value="all">{t("asg.f.alltype")}</option>
-              <option value="internal">{t("asg.f.internal")}</option>
-              <option value="external">{t("asg.f.external")}</option>
-            </select>
-            <button onClick={loadSuggestions} disabled={loadingSug} title={t("asg.ai.hint")}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "7px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: fit ? "var(--accent-soft)" : "var(--card)", color: "var(--accent-2)", cursor: loadingSug ? "default" : "pointer", whiteSpace: "nowrap" }}>
-              <Icon name="sparkle" size={13} color="var(--accent-bright)" /> {loadingSug ? t("asg.suggesting") : t("asg.suggest")}
-            </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Asignacion RAPIDA: un responsable. El primero queda principal y pasa el caso a Asignado. */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)", marginBottom: 6 }}>{t("asg.responsible")}</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select value={pick} onChange={(e) => setPick(e.target.value)}
+                style={{ flex: 1, minWidth: 0, fontSize: 12.5, padding: "9px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }}>
+                <option value="">{t("asg.search")}</option>
+                {quickRows.map((m) => <option key={m.id} value={m.id}>{m.name}{m.is_external ? ` · ${t("asg.ext")}` : ""}</option>)}
+              </select>
+              <button onClick={() => run(async () => { const r = await addCaseAssignee(incidentId, pick); if (r.ok) setPick(""); return r; })} disabled={busy || !pick}
+                style={{ fontSize: 13, fontWeight: 700, padding: "9px 18px", borderRadius: "var(--r-md)", border: "none", background: "var(--cta-bg)", color: "var(--cta-fg)", cursor: busy || !pick ? "default" : "pointer", whiteSpace: "nowrap", opacity: busy || !pick ? 0.6 : 1 }}>
+                {t("asg.assign")}
+              </button>
+            </div>
           </div>
 
-          <div style={{ border: "1px solid var(--line-soft)", borderRadius: "var(--r-md)", maxHeight: 240, overflowY: "auto" }}>
-            {rows.length === 0 ? (
-              <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--muted)" }}>{t("asg.empty")}</div>
-            ) : rows.map((m) => {
-              const f = fit?.get(m.id);
-              return (
-                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid var(--line-soft)" }}>
-                  {fit && <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, width: 24, textAlign: "right", color: f != null ? scoreColor(f) : "var(--muted)" }}>{f ?? "—"}</span>}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{m.is_external ? t("asg.ext") : t("asg.int")}</div>
-                  </div>
-                  <button onClick={() => run(() => addCaseAssignee(incidentId, m.id))} disabled={busy}
-                    style={{ fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: busy ? "default" : "pointer" }}>
-                    {t("asg.add")}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          {/* Opciones avanzadas (plegado): colaboradores adicionales + filtro interno/externo + sugerencia IA. */}
+          <button type="button" onClick={() => setAdv((a) => !a)}
+            style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "4px 2px", border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer" }}>
+            <Icon name={adv ? "chevron-down" : "chevron-right"} size={13} /> {t("asg.advanced")}
+          </button>
+
+          {adv && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("asg.search")}
+                  style={{ flex: 1, minWidth: 120, fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)", fontFamily: "var(--font-ui)" }} />
+                <select value={kind} onChange={(e) => setKind(e.target.value as "all" | "internal" | "external")}
+                  style={{ fontSize: 12, padding: "7px 9px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--card)", color: "var(--text)" }}>
+                  <option value="all">{t("asg.f.alltype")}</option>
+                  <option value="internal">{t("asg.f.internal")}</option>
+                  <option value="external">{t("asg.f.external")}</option>
+                </select>
+                <button onClick={loadSuggestions} disabled={loadingSug} title={t("asg.ai.hint")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "7px 10px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: fit ? "var(--accent-soft)" : "var(--card)", color: "var(--accent-2)", cursor: loadingSug ? "default" : "pointer", whiteSpace: "nowrap" }}>
+                  <Icon name="sparkle" size={13} color="var(--accent-bright)" /> {loadingSug ? t("asg.suggesting") : t("asg.suggest")}
+                </button>
+              </div>
+
+              <div style={{ border: "1px solid var(--line-soft)", borderRadius: "var(--r-md)", maxHeight: 240, overflowY: "auto" }}>
+                {rows.length === 0 ? (
+                  <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--muted)" }}>{t("asg.empty")}</div>
+                ) : rows.map((m) => {
+                  const f = fit?.get(m.id);
+                  return (
+                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid var(--line-soft)" }}>
+                      {fit && <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, width: 24, textAlign: "right", color: f != null ? scoreColor(f) : "var(--muted)" }}>{f ?? "—"}</span>}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
+                        <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{m.is_external ? t("asg.ext") : t("asg.int")}</div>
+                      </div>
+                      <button onClick={() => run(() => addCaseAssignee(incidentId, m.id))} disabled={busy}
+                        style={{ fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--accent)", background: "transparent", color: "var(--accent-2)", cursor: busy ? "default" : "pointer" }}>
+                        {t("asg.add")}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {err && <div style={{ fontSize: 11.5, color: "var(--st-critical-fg)" }}>{err}</div>}
         </div>
       )}
