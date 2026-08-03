@@ -1,17 +1,20 @@
 import { getContext } from "@/lib/auth/context";
 import { getOperationsTower, getOpsInbox } from "@/lib/operations/queries";
-import { getSupervisor, getOverview } from "@/lib/analytics/queries";
+import { getSupervisor, getOverview, getPerformance, getCategoryTrends, getRecurrenceAnalytics, getBehaviorAnalysis, normalizeDimension } from "@/lib/analytics/queries";
 import { type DashboardCounts } from "@/components/dashboard/kpi-grid";
-import { OperationsTower } from "@/components/operations/operations-tower";
+import { OperationsTower, type TowerAnalytics } from "@/components/operations/operations-tower";
 
 // Torre de Control del Gerente de Operaciones (support_lead). UNIFICA la Torre + las metricas del
-// ex-dashboard ejecutivo: decision primero (hero + bandeja), luego operacion (KPIs) y detalle en tabs.
-// Reutiliza las 4 lecturas existentes (getOperationsTower + getSupervisor + getOverview +
-// dashboard_counts) sin duplicar logica; todo real y bajo RLS. Guard (incident.read) + denylist de
-// persona ya aplican en app/(app)/layout.tsx.
-export default async function OperacionesPage() {
+// ex-dashboard ejecutivo + la Analitica (Fase B): 3 pestanas (Resumen / Operacion / Analitica). La
+// pestana Analitica embebe Analytics + Analisis de comportamiento; dim/weeks viajan en la URL. Todo
+// dato real bajo RLS; resiliencia: si la analitica falla (rol sin analytics.read), se degrada sin
+// tumbar la Torre. Guard (incident.read) + denylist de persona aplican en app/(app)/layout.tsx.
+export default async function OperacionesPage({ searchParams }: { searchParams: Promise<{ dim?: string; weeks?: string }> }) {
   const ctx = await getContext();
   if (!ctx) return null;
+  const sp = await searchParams;
+  const dimension = normalizeDimension(sp.dim);
+  const weeks = Math.min(52, Math.max(4, Number.parseInt(sp.weeks ?? "12", 10) || 12));
 
   const [tower, inbox, supervisor, overview, countsRes] = await Promise.all([
     getOperationsTower(ctx.supabase),
@@ -26,5 +29,20 @@ export default async function OperacionesPage() {
   };
   const firstName = ctx.name.trim().split(/\s+/)[0] || ctx.name;
 
-  return <OperationsTower tower={tower} inbox={inbox} supervisor={supervisor} overview={overview} counts={counts} firstName={firstName} />;
+  // Bundle de la pestana Analitica (reusa overview/supervisor ya leidos). Resiliente: gatea por
+  // analytics.read en los RPC; si falla, analytics=null -> la Torre muestra el estado no-disponible.
+  let analytics: TowerAnalytics | null = null;
+  try {
+    const [performance, categoryTrends, recurrence, behavior] = await Promise.all([
+      getPerformance(ctx.supabase),
+      getCategoryTrends(ctx.supabase),
+      getRecurrenceAnalytics(ctx.supabase),
+      getBehaviorAnalysis(ctx.supabase, dimension, weeks),
+    ]);
+    analytics = { performance, categoryTrends, recurrence, behavior, dimension, weeks };
+  } catch {
+    analytics = null;
+  }
+
+  return <OperationsTower tower={tower} inbox={inbox} supervisor={supervisor} overview={overview} counts={counts} firstName={firstName} analytics={analytics} />;
 }

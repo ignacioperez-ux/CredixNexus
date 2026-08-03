@@ -7,10 +7,24 @@ import { useI18n } from "@/lib/i18n/provider";
 import { Icon } from "@/components/ui/icon";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
 import type { OperationsTower as TowerData, OpsDecision, OpsPipelineStage, OpsKpis, OpsInbox } from "@/lib/operations/queries";
-import type { Overview, Supervisor } from "@/lib/analytics/queries";
+import type { Overview, Supervisor, Performance, RecurrenceAnalytics, BehaviorAnalysis, BehaviorDimension } from "@/lib/analytics/queries";
 import { KpiGrid, type DashboardCounts } from "@/components/dashboard/kpi-grid";
 import { CaseInbox, type InboxGroup } from "@/components/cases/case-inbox";
+import { Analytics } from "@/components/analytics/analytics";
+import { BehaviorAnalysisView } from "@/components/analytics/behavior-analysis";
+import { AnalyticsUnavailable } from "@/components/analytics/analytics-unavailable";
 import { humanCommitment } from "@/lib/format/time";
+
+// Bundle de la pestana Analitica de la Torre (Fase B): reusa overview/supervisor ya leidos y agrega
+// performance/categoryTrends/recurrence (Analytics) + behavior/dimension/weeks (Analisis de comportamiento).
+export type TowerAnalytics = {
+  performance: Performance;
+  categoryTrends: Record<string, number[]>;
+  recurrence: RecurrenceAnalytics;
+  behavior: BehaviorAnalysis;
+  dimension: BehaviorDimension;
+  weeks: number;
+};
 
 // Torre de Control de Operaciones (support_lead) UNIFICADA: absorbe las metricas del ex-dashboard
 // ejecutivo. Decision primero (hero + bandeja priorizada), luego operacion (KPIs) y detalle en tabs
@@ -36,11 +50,11 @@ const FUNNEL: { key: string; color: string }[] = [
   { key: "resolved", color: "var(--st-low)" },
 ];
 
-type Tab = "resumen" | "bandeja" | "colas" | "carga" | "sla" | "aging";
-const TABS: Tab[] = ["resumen", "bandeja", "colas", "carga", "sla", "aging"];
+type Tab = "resumen" | "operacion" | "analitica";
+const TABS: Tab[] = ["resumen", "operacion", "analitica"];
 
-export function OperationsTower({ tower, inbox, supervisor, overview, counts, firstName }: {
-  tower: TowerData; inbox: OpsInbox; supervisor: Supervisor; overview: Overview; counts: DashboardCounts; firstName: string;
+export function OperationsTower({ tower, inbox, supervisor, overview, counts, firstName, analytics = null }: {
+  tower: TowerData; inbox: OpsInbox; supervisor: Supervisor; overview: Overview; counts: DashboardCounts; firstName: string; analytics?: TowerAnalytics | null;
 }) {
   const { t, locale } = useI18n();
   const sp = useSearchParams();
@@ -71,7 +85,7 @@ export function OperationsTower({ tower, inbox, supervisor, overview, counts, fi
   const delta = today - (inflow.at(-2) ?? 0);
 
   const tabLabels: Record<Tab, MessageKey> = {
-    resumen: "op.tw.tab.resumen", bandeja: "op.tw.tab.bandeja", colas: "op.tw.tab.colas", carga: "op.tw.tab.carga", sla: "op.tw.tab.sla", aging: "op.tw.tab.aging",
+    resumen: "op.tw.tab.resumen", operacion: "op.tw.tab.operacion", analitica: "op.tw.tab.analitica",
   };
 
   // P3 · Bandeja por accion del lider de operaciones (support_lead: tiene los permisos de gestion).
@@ -150,7 +164,7 @@ export function OperationsTower({ tower, inbox, supervisor, overview, counts, fi
         })}
       </div>
 
-      {/* 1) RESUMEN: pipeline + inventario */}
+      {/* 1) RESUMEN: pipeline + inventario + bandeja por accion */}
       {tab === "resumen" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <section style={card()}>
@@ -161,41 +175,39 @@ export function OperationsTower({ tower, inbox, supervisor, overview, counts, fi
             <SectionTitle icon="layers" title={t("dash.inventory")} />
             <KpiGrid counts={counts} />
           </section>
+          <CaseInbox groups={opsGroups} emptyLabel={t("op.cases.empty")} />
         </div>
       )}
 
-      {/* 1b) BANDEJA por accion (P3): activas / escalados a Evolucion / post-liberacion en observacion */}
-      {tab === "bandeja" && (
-        <CaseInbox groups={opsGroups} emptyLabel={t("op.cases.empty")} />
+      {/* 2) OPERACION: colas + carga + SLA + aging (detalle operativo) */}
+      {tab === "operacion" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Panel title={t("dash.funnel")}>
+            <Funnel supervisor={supervisor} t={t} />
+          </Panel>
+          <Panel title={t("dash.workload")}>
+            <Workload supervisor={supervisor} t={t} />
+          </Panel>
+          <section style={card()}>
+            <SectionTitle icon="scale" title={t("op.tw.kpis.title")} />
+            <Kpis kpis={kpis} t={t} />
+          </section>
+          <Panel title={t("dash.aging")}>
+            <Aging supervisor={supervisor} t={t} />
+          </Panel>
+        </div>
       )}
 
-      {/* 2) COLAS: embudo por estado (supervisor.by_status) */}
-      {tab === "colas" && (
-        <Panel title={t("dash.funnel")}>
-          <Funnel supervisor={supervisor} t={t} />
-        </Panel>
-      )}
-
-      {/* 3) CARGA: por operador (supervisor.workload) */}
-      {tab === "carga" && (
-        <Panel title={t("dash.workload")}>
-          <Workload supervisor={supervisor} t={t} />
-        </Panel>
-      )}
-
-      {/* 4) SLA: indicadores ITSM (tower.kpis) */}
-      {tab === "sla" && (
-        <section style={card()}>
-          <SectionTitle icon="scale" title={t("op.tw.kpis.title")} />
-          <Kpis kpis={kpis} t={t} />
-        </section>
-      )}
-
-      {/* 5) AGING: antiguedad del backlog (supervisor.aging) */}
-      {tab === "aging" && (
-        <Panel title={t("dash.aging")}>
-          <Aging supervisor={supervisor} t={t} />
-        </Panel>
+      {/* 3) ANALITICA: Analytics + Analisis de comportamiento embebidos (dim/weeks en la URL, ?tab= preservado) */}
+      {tab === "analitica" && (
+        analytics ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <Analytics overview={overview} performance={analytics.performance} supervisor={supervisor} categoryTrends={analytics.categoryTrends} recurrence={analytics.recurrence} />
+            <BehaviorAnalysisView data={analytics.behavior} dimension={analytics.dimension} weeks={analytics.weeks} basePath="/operaciones" />
+          </div>
+        ) : (
+          <AnalyticsUnavailable />
+        )
       )}
     </div>
   );

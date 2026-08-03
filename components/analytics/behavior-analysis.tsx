@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/dictionaries";
@@ -58,16 +58,22 @@ const CSS = `
 .ba .ba-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
 `;
 
-export function BehaviorAnalysisView({ data, dimension, weeks }: { data: BehaviorAnalysis; dimension: BehaviorDimension; weeks: number }) {
+export function BehaviorAnalysisView({ data, dimension, weeks, basePath = "/analytics/comportamiento" }: { data: BehaviorAnalysis; dimension: BehaviorDimension; weeks: number; basePath?: string }) {
   const { t, locale } = useI18n();
   const router = useRouter();
+  const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [rankSort, setRankSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
   const [detSort, setDetSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
 
   // scroll:false conserva la posicion del lector: cambiar Ventana o Agrupar por no debe
   // saltar al tope (los controles de agrupacion viven bajo la tendencia).
-  const go = (dim: BehaviorDimension, w: number) => startTransition(() => router.push(`/analytics/comportamiento?dim=${dim}&weeks=${w}`, { scroll: false }));
+  // Preserva otros params (p.ej. ?tab= cuando esta embebido en la Torre) al cambiar dim/weeks.
+  const go = (dim: BehaviorDimension, w: number) => startTransition(() => {
+    const p = new URLSearchParams(Array.from(sp.entries()));
+    p.set("dim", dim); p.set("weeks", String(w));
+    router.push(`${basePath}?${p.toString()}`, { scroll: false });
+  });
   const fmtMoney = (n: number) => new Intl.NumberFormat(locale === "es" ? "es-CR" : "en-US", { style: "currency", currency: "CRC", maximumFractionDigits: 0 }).format(n);
   const fmtMoneyShort = (n: number) => Math.abs(n) >= 1_000_000 ? "₡" + (n / 1_000_000).toLocaleString(locale === "es" ? "es-CR" : "en-US", { maximumFractionDigits: 1 }) + " M" : fmtMoney(n);
   const dimLabel = t(DIM_LABEL[dimension]);

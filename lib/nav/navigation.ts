@@ -186,9 +186,8 @@ export const EVOLUTION_NAV: NavCategory[] = buildRoleNav([
 // Evolucion es "Casos en Evolucion" (RO). Segregacion dura via ROLE_ROUTE_DENY (access.ts) + guard.
 export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
   { id: "op.torre", label: "nav.op.torre", icon: "home", items: [
+    // Analitica + Analisis de comportamiento viven ahora como la 3a pestana "Analitica" de /operaciones.
     { id: "nav.ophome" },
-    // Fase B: analitica + comportamiento se colapsan en la 3a pestana "Analitica" de la Torre.
-    { id: "nav.analytics" }, { id: "nav.behavior" },
   ] },
   { id: "op.casos", label: "nav.op.casos", icon: "inbox", items: [
     { id: "nav.triage" }, { id: "nav.incidents" },
