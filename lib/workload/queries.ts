@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const OPEN_INCIDENT = ["new", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
+const OPEN_INCIDENT = ["new", "received", "triaged", "assigned", "in_progress", "waiting", "reopened", "in_evolution"];
 
 export type MemberSquad = { name: string; is_transversal: boolean };
 export type MemberLoad = {

@@ -15,6 +15,7 @@ import { requiresAssignee } from "@/lib/incidents/transitions";
 // El progreso del ciclo de vida lo muestra el StatusStepper; aqui solo se avanza.
 const NEXT: Record<string, string[]> = {
   new: ["triaged"],
+  received: ["assigned", "in_progress"],
   triaged: ["assigned", "in_progress"],
   assigned: ["in_progress"],
   in_progress: ["waiting", "resolved"],

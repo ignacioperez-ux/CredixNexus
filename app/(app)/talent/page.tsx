@@ -4,6 +4,7 @@ import { getTalentProfiles, getTalentAreas } from "@/lib/talent/queries";
 import { getWorkload } from "@/lib/workload/queries";
 import { getSimulationInputs } from "@/lib/workload/simulation";
 import { getSquadCapacities } from "@/lib/capacity/queries";
+import { isRouteDeniedForRoles } from "@/lib/nav/access";
 import { AgentsAndLoad } from "@/components/team/agents-and-load";
 
 // Fusion "Agentes y carga" (Fase B): Agentes (Talento) + pestana Carga (Workload + Simulacion) para
@@ -12,7 +13,8 @@ export default async function TalentPage() {
   const ctx = await getContext();
   if (!ctx) return null;
   const access = await getAccessControl();
-  const canLoad = access.isAdmin || access.perms.includes("squad.read");
+  // La pestana Carga replica el control de acceso de /workload: perm squad.read Y no vedado por persona.
+  const canLoad = (access.isAdmin || access.perms.includes("squad.read")) && !isRouteDeniedForRoles("/workload", access.roles);
   const [profiles, areas, workload, simInputs, squads] = await Promise.all([
     getTalentProfiles(ctx.supabase),
     getTalentAreas(ctx.supabase),
