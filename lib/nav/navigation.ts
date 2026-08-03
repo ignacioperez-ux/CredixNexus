@@ -195,15 +195,15 @@ export const OPERATIONS_NAV: NavCategory[] = buildRoleNav([
     { id: "nav.convertedcases", readOnly: true, label: "nav.opx.evolcases" },
   ] },
   { id: "op.equipo", label: "nav.op.equipo", icon: "users", items: [
-    // Fase B: fusion de Agentes (/talent) + Carga (/workload) en una sola pantalla "Agentes y carga".
-    { id: "nav.resources", label: "nav.opx.workload" }, { id: "nav.talent", label: "nav.opx.performance" },
+    // Fase B: pantalla unica "Agentes y carga" (/talent con pestanas Agentes + Carga).
+    { id: "nav.talent", label: "nav.opx.workload" },
   ] },
   { id: "op.disputas", label: "nav.op.disputas", icon: "shield", items: [
     { id: "nav.frauddisputes" },
   ] },
   { id: "op.servicio", label: "nav.op.catalogosla", icon: "sliders", items: [
-    // Fase B: fusion de Catalogo de servicios (/service-catalog) + Gobierno SLA (/sla-governance).
-    { id: "nav.servicecatalog" }, { id: "nav.sla" },
+    // Fase B: pantalla unica "Catalogo y SLA" (/service-catalog con pestanas Catalogo + Gobierno SLA).
+    { id: "nav.servicecatalog", label: "nav.op.catalogosla" },
   ] },
 ]);
 
