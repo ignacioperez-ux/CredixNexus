@@ -210,61 +210,51 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
               <EvaluateMemberPanel members={[{ id: inc.assigned_member_id, name: inc.assignee.name }]} entityType="incident" entityId={inc.id} title={t("eval.title.incident")} />
             )}
 
-            {(canManageAssign || duplicateLinks.duplicateOf || duplicateLinks.primaryOf.length > 0) && (
-              <Card title={t("dup.section")} tip="inc.tip.duplicates">
-                <DuplicatesPanel incidentId={inc.id} incidentTitle={inc.title} links={duplicateLinks} canManage={canManageAssign} />
-              </Card>
-            )}
-
             <Card title="SLA">
               <SlaStatusRow label={t("inc.sla.response")} dueAt={inc.sla_response_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} />
               <SlaStatusRow label={t("inc.sla.resolution")} dueAt={inc.sla_resolution_due_at} openedAt={inc.opened_at} resolvedAt={inc.resolved_at} status={inc.status} locale={locale} last />
             </Card>
-
-            <Card title={t("sla.section.escalations")}>
-              <IncidentEscalations escalations={escalations} />
-            </Card>
-
-            {effort && (
-              <Card title={t("wl2.title")} tip="inc.tip.effort">
-                <WorkLog incidentId={inc.id} effort={effort} canLog={canLogWork} />
-              </Card>
-            )}
-
-            {(survey || inc.status === "resolved" || inc.status === "closed") && (
-              <Card title={t("csat.title")}>
-                <CsatPanel incidentId={inc.id} survey={survey} canSubmit={canSubmitCsat} />
-              </Card>
-            )}
-
-            <Card title={t("inc.section.ledger")}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {ledger.map((l) => (
-                  <div key={l.block_height} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
-                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", width: 34 }}>#{l.block_height}</span>
-                    <span style={{ color: "var(--text)", flex: 1 }}>{l.action}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-2)", fontSize: 10.5 }}>{l.current_hash.slice(0, 10)}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", fontSize: 10.5 }}>{new Date(l.timestamp).toLocaleString(locale)}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
           </div>
         </div>
 
-      {/* Vinculos y analisis del caso: modulos plegables (vacio -> cerrado). Antes vivian en una
-          pestaña "Analisis y vinculos" separada; ahora forman parte de la misma vista de gestion. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Zona 2 — "Mas del caso": todo lo secundario, agrupado y colapsado por defecto. Cada
+          sub-seccion se abre sola si tiene contenido; un grupo entero se oculta si queda vacio.
+          El nucleo del caso (Zona 1, arriba) queda limpio para cualquier estado. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 4 }}>
+        <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 10, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>{t("inc.more.title")}</span>
+          <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{t("inc.more.hint")}</span>
+        </div>
+
+        {/* Seguimiento operativo: escalamientos, esfuerzo y satisfaccion (antes en el rail derecho). */}
+        <MoreGroup label={t("inc.group.tracking")}>
+          {escalations.length > 0 && (
+            <Collapsible key="esc" title={t("sla.section.escalations")} count={escalations.length} defaultOpen>
+              <IncidentEscalations escalations={escalations} />
+            </Collapsible>
+          )}
+          {effort && (canLogWork || effort.entries.length > 0) && (
+            <Collapsible key="wl" title={t("wl2.title")} tip="inc.tip.effort" count={effort.entries.length} defaultOpen={effort.entries.length > 0}>
+              <WorkLog incidentId={inc.id} effort={effort} canLog={canLogWork} />
+            </Collapsible>
+          )}
+          {(survey || inc.status === "resolved" || inc.status === "closed") && (
+            <Collapsible key="csat" title={t("csat.title")} count={survey ? 1 : 0} defaultOpen={!!survey}>
+              <CsatPanel incidentId={inc.id} survey={survey} canSubmit={canSubmitCsat} />
+            </Collapsible>
+          )}
+        </MoreGroup>
+
+        {/* Vinculos: se ocultan cuando estan VACIOS para no ensuciar la pantalla; quien puede
+            gestionar los sigue viendo (aunque vacios) para poder vincular. KB/Proyectos solo si hay. */}
+        <MoreGroup label={t("inc.group.links")}>
           {(majorIncident || inc.priority === "p1_critical" || canManageMi) && (
-            <Collapsible title={t("mi.section.incident")} tip="inc.tip.mi" count={majorIncident ? 1 : 0} defaultOpen={!!majorIncident}>
+            <Collapsible key="mi" title={t("mi.section.incident")} tip="inc.tip.mi" count={majorIncident ? 1 : 0} defaultOpen={!!majorIncident}>
               <DeclareMi incidentId={inc.id} incidentTitle={inc.title} isP1={inc.priority === "p1_critical"} linked={majorIncident} canManage={canManageMi} />
             </Collapsible>
           )}
-
-          {/* Vinculos: se ocultan cuando estan VACIOS para no ensuciar la pantalla; quien puede
-              gestionar los sigue viendo (aunque vacios) para poder vincular. KB solo si hay match. */}
           {knowledge.length > 0 && (
-            <Collapsible title={t("inc.section.knowledge")} tip="inc.tip.kb" count={knowledge.length} defaultOpen>
+            <Collapsible key="kb" title={t("inc.section.knowledge")} tip="inc.tip.kb" count={knowledge.length} defaultOpen>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {knowledge.map((k) => (
                   <div key={k.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: "var(--r-md)", background: "var(--teal-soft)" }}>
@@ -276,33 +266,33 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
               </div>
             </Collapsible>
           )}
-
+          {(canManageAssign || duplicateLinks.duplicateOf || duplicateLinks.primaryOf.length > 0) && (
+            <Collapsible key="dup" title={t("dup.section")} tip="inc.tip.duplicates" count={(duplicateLinks.duplicateOf ? 1 : 0) + duplicateLinks.primaryOf.length} defaultOpen={!!duplicateLinks.duplicateOf || duplicateLinks.primaryOf.length > 0}>
+              <DuplicatesPanel incidentId={inc.id} incidentTitle={inc.title} links={duplicateLinks} canManage={canManageAssign} />
+            </Collapsible>
+          )}
           {(problems.length > 0 || canManageProblem) && (
-            <Collapsible title={t("prob.linked")} tip="inc.tip.problem" count={problems.length} defaultOpen={problems.length > 0}>
+            <Collapsible key="prob" title={t("prob.linked")} tip="inc.tip.problem" count={problems.length} defaultOpen={problems.length > 0}>
               <ProblemLink incidentId={inc.id} problems={problems} canManage={canManageProblem} />
             </Collapsible>
           )}
-
           {(changes.length > 0 || canManageChange) && (
-            <Collapsible title={t("chg.section.incident")} tip="inc.tip.changes" count={changes.length} defaultOpen={changes.length > 0}>
+            <Collapsible key="chg" title={t("chg.section.incident")} tip="inc.tip.changes" count={changes.length} defaultOpen={changes.length > 0}>
               <ChangeLink changes={changes} canManage={canManageChange} newHref={`/changes/new?incident=${inc.id}`} />
             </Collapsible>
           )}
-
           {(workflows.length > 0 || canRunWorkflow) && (
-            <Collapsible title={t("wf.section.incident")} tip="inc.tip.workflows" count={workflows.length} defaultOpen={workflows.length > 0}>
+            <Collapsible key="wf" title={t("wf.section.incident")} tip="inc.tip.workflows" count={workflows.length} defaultOpen={workflows.length > 0}>
               <IncidentWorkflows incidentId={inc.id} incidentTitle={inc.title} linked={workflows} definitions={workflowDefs} canRun={canRunWorkflow} />
             </Collapsible>
           )}
-
           {(financialCase || canManageFraud || canManageDispute) && (
-            <Collapsible title={t("fc.section")} tip="inc.tip.financial" count={financialCase ? 1 : 0} defaultOpen={hasFinancial}>
+            <Collapsible key="fc" title={t("fc.section")} tip="inc.tip.financial" count={financialCase ? 1 : 0} defaultOpen={hasFinancial}>
               <FinancialCaseLink incidentId={inc.id} existing={financialCase} amount={inc.amount} canFraud={canManageFraud} canDispute={canManageDispute} />
             </Collapsible>
           )}
-
           {projects.length > 0 && (
-            <Collapsible title={t("inc.section.projects")} count={projects.length} defaultOpen>
+            <Collapsible key="proj" title={t("inc.section.projects")} count={projects.length} defaultOpen>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {projects.map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`} className="cx-lift"
@@ -316,14 +306,20 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
               </div>
             </Collapsible>
           )}
+          {(riskEvent || canManageRisk) && (
+            <Collapsible key="risk" title={t("risk.title")} count={riskEvent ? 1 : 0} defaultOpen={!!riskEvent}>
+              <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
+            </Collapsible>
+          )}
+        </MoreGroup>
 
-          {/* Transformacion / Evolucion / IA: solo Gerencia y roles con permiso (el operador ve la
-              pantalla limpia; no se pierde el motor de scoring, §3.1 #2). */}
-          {(canTriage || canManageAssign) && <EvaluatePanel incidentId={inc.id} />}
-          {(canManageAssign || canManageProblem) && <EvolutionPanel incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
-
+        {/* Transformacion / Evolucion / IA: solo Gerencia y roles con permiso (el operador ve la
+            pantalla limpia; no se pierde el motor de scoring, §3.1 #2). */}
+        <MoreGroup label={t("inc.group.transform")}>
+          {(canTriage || canManageAssign) && <EvaluatePanel key="eval" incidentId={inc.id} />}
+          {(canManageAssign || canManageProblem) && <EvolutionPanel key="evo" incidentId={inc.id} status={inc.status} score={inc.transformation_score} candidate={inc.transformation_candidate} />}
           {(canTriage || canManageAssign) && (
-            <AiSuggestions title={t("ai.opt.title")} hint={t("ai.opt.hint")} tip="inc.tip.ai">
+            <AiSuggestions key="ai" title={t("ai.opt.title")} hint={t("ai.opt.hint")} tip="inc.tip.ai">
               <Card title={t("inc.section.rca")}>
                 <AiRca incidentId={inc.id} current={inc.root_cause_summary} />
               </Card>
@@ -336,14 +332,39 @@ export function IncidentDetail({ inc, comments, ledger, knowledge = [], riskEven
               </Card>
             </AiSuggestions>
           )}
+        </MoreGroup>
 
-          {/* Riesgo operativo (GRC): vinculo al evento de riesgo; se conserva como accion. */}
-          {(riskEvent || canManageRisk) && (
-            <Collapsible title={t("risk.title")} count={riskEvent ? 1 : 0} defaultOpen={!!riskEvent}>
-              <RiskLink incidentId={inc.id} linked={riskEvent} canManage={canManageRisk} />
-            </Collapsible>
-          )}
-        </div>
+        {/* Auditoria: historial inmutable (ledger). Colapsado por defecto; siempre presente. */}
+        <MoreGroup label={t("inc.group.audit")}>
+          <Collapsible key="ledger" title={t("inc.section.ledger")} count={ledger.length}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {ledger.map((l) => (
+                <div key={l.block_height} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", width: 34 }}>#{l.block_height}</span>
+                  <span style={{ color: "var(--text)", flex: 1 }}>{l.action}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-2)", fontSize: 10.5 }}>{l.current_hash.slice(0, 10)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", fontSize: 10.5 }}>{new Date(l.timestamp).toLocaleString(locale)}</span>
+                </div>
+              ))}
+            </div>
+          </Collapsible>
+        </MoreGroup>
+      </div>
+    </div>
+  );
+}
+
+// Grupo de "Mas del caso": encabezado ligero + sus modulos. Se oculta por completo si no tiene
+// ningun hijo visible (los hijos entran como `cond && <X/>`, que produce `false` cuando no aplica).
+function MoreGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  const items = (Array.isArray(children) ? children : [children])
+    .flat()
+    .filter((c): c is React.ReactElement => !!c && typeof c === "object");
+  if (items.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.7px", color: "var(--muted)" }}>{label}</div>
+      {items}
     </div>
   );
 }
