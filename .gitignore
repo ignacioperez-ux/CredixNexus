@@ -49,3 +49,6 @@ backup/
 /playwright-report/
 /playwright/.cache/
 /e2e/.auth/
+
+# Screenshots generados por el kit de captura (binarios; no versionar)
+/e2e/screenshots/**/*.png

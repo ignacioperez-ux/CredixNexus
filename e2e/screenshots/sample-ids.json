@@ -1,0 +1,21 @@
+{
+  "_comment": "Ids de muestra (tenant CREDIX) para capturar las pantallas de detalle. No son secretos (UUID de entidades demo internas). Si un id deja de existir, regenerar con una consulta 'select id from <tabla> limit 1' y actualizar aqui.",
+  "incident": "6332f33d-80e6-4630-a1c9-c87a27b36240",
+  "major_incident": "1c64efc7-3270-45f9-82ac-a2b92e454318",
+  "service_request": "d6f1093d-9e6d-4e8c-8b87-a5a43c0ded66",
+  "project": "bb8e6c8f-7ec8-4630-90c2-280a4c788833",
+  "problem": "349636d4-646e-4e62-ac14-80f02d9de3eb",
+  "change_request": "908b6781-25a3-4e18-bb15-fc6d579cc6d6",
+  "squad": "ae966091-5fa6-4453-a9c7-0e08aa3e6621",
+  "vendor": "4415f226-69a6-422f-bdbe-612b50cbde34",
+  "party": "c2c8915b-5159-44e2-991b-359c44cbd197",
+  "fraud_case": "29cd2344-1191-4cd6-994d-93d6b4bca026",
+  "dispute_case": "b554b991-f757-41e9-b3d7-8c6185c0f026",
+  "knowledge_article": "ba7ccd04-d21f-4c36-9c3b-982b2e4e491d",
+  "workflow_instance": "b1a39c82-713f-48ff-8d42-696063dceae1",
+  "workflow_definition": "779f85be-e5b7-4097-a47c-7ddfc9e5534f",
+  "process": "d47f7e08-629b-4855-82f7-647c8b47f759",
+  "team_member": "d81f7a55-442b-474c-9a11-413308cfdab6",
+  "risk_event": "d2097f93-7bf9-434e-8a5a-f4cf9146ad11",
+  "catalog_key": "business-units"
+}

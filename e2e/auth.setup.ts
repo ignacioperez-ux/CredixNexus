@@ -9,6 +9,9 @@ const PERSONAS = [
   { name: "operador",    email: process.env.E2E_OPERADOR_EMAIL,    password: process.env.E2E_OPERADOR_PASSWORD,    state: "e2e/.auth/operador.json" },
   { name: "evolucion",   email: process.env.E2E_EVOLUCION_EMAIL,   password: process.env.E2E_EVOLUCION_PASSWORD,   state: "e2e/.auth/evolucion.json" },
   { name: "squads",      email: process.env.E2E_SQUADS_EMAIL,      password: process.env.E2E_SQUADS_PASSWORD,      state: "e2e/.auth/squads.json" },
+  // Admin (system_admin/tenant_admin): ve TODAS las pantallas (MACRO_NAV, sin denylist). Lo usa el
+  // kit de capturas (screenshots.capture.spec.ts) para las vistas globales/staff. Se saltea sin creds.
+  { name: "admin",       email: process.env.E2E_ADMIN_EMAIL,       password: process.env.E2E_ADMIN_PASSWORD,       state: "e2e/.auth/admin.json" },
 ];
 
 for (const p of PERSONAS) {

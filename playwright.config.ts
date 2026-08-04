@@ -92,5 +92,15 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/admin.json" },
       testMatch: /cmdb\..*\.spec\.ts/,
     },
+    // 8) Kit de CAPTURAS de pantalla (manual de pantallas). NO fija storageState a nivel proyecto:
+    // cada bloque de persona en la spec aplica su propio estado (test.use) y se saltea si falta. Corre
+    // en serie (1 worker) para no saturar el dev server y evitar carreras de tema/screenshot.
+    {
+      name: "screenshots",
+      dependencies: ["setup"],
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: /screenshots\.capture\.spec\.ts/,
+    },
   ],
 });
